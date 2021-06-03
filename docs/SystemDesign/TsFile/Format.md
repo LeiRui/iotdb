@@ -7,9 +7,9 @@
     to you under the Apache License, Version 2.0 (the
     "License"); you may not use this file except in compliance
     with the License.  You may obtain a copy of the License at
-
+    
         http://www.apache.org/licenses/LICENSE-2.0
-
+    
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
     "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -68,7 +68,7 @@
 
 Here is a graph about the TsFile structure.
 
-<img style="width:100%; max-width:800px; max-height:600px; margin-left:auto; margin-right:auto; display:block;" src="https://user-images.githubusercontent.com/37140360/109955373-6069c480-7d1d-11eb-9cae-252ea139abaa.jpg">
+<img style="width:100%; max-width:800px; max-height:600px; margin-left:auto; margin-right:auto; display:block;" src="https://user-images.githubusercontent.com/33376433/120660695-2a71e300-c4ba-11eb-9e61-5e023636480b.png">
 
 This TsFile contains two devices: d1, d2. Each device contains two measurements: s1, s2. 4 timeseries in total. Each timeseries contains 2 Chunks.
 
@@ -134,17 +134,17 @@ PageHeader Structure
 
 Here is the detailed information for `statistics`:
 
- |             Member               | Description | DoubleStatistics | FloatStatistics | IntegerStatistics | LongStatistics | BinaryStatistics | BooleanStatistics |
- | :----------------------------------: | :--------------: | :----: | :----: | :----: | :----: | :----: | :----: |
- | count  | number of time-value points | long | long | long | long | long | long | 
- | startTime | start time | long | long | long | long | long | long | 
- | endTime | end time | long | long | long | long | long | long | 
- | minValue | min value | double | float | int | long | - | - |
- | maxValue | max value | double | float | int | long | - | - |
- | firstValue | first value | double | float | int | long | Binary | boolean|
- | lastValue | last value | double | float | int | long | Binary | boolean|
- | sumValue | sum value | double | double | double | double | - | - |
- 
+|             Member               | Description | DoubleStatistics | FloatStatistics | IntegerStatistics | LongStatistics | BinaryStatistics | BooleanStatistics |
+| :----------------------------------: | :--------------: | :----: | :----: | :----: | :----: | :----: | :----: |
+| count  | number of time-value points | long | long | long | long | long | long |
+| startTime | start time | long | long | long | long | long | long |
+| endTime | end time | long | long | long | long | long | long |
+| minValue | min value | double | float | int | long | - | - |
+| maxValue | max value | double | float | int | long | - | - |
+| firstValue | first value | double | float | int | long | Binary | boolean|
+| lastValue | last value | double | float | int | long | Binary | boolean|
+| sumValue | sum value | double | double | double | double | - | - |
+
 ##### ChunkGroupFooter
 
 |             Member             |  Type  | Description |

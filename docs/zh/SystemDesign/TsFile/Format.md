@@ -7,9 +7,9 @@
     to you under the Apache License, Version 2.0 (the
     "License"); you may not use this file except in compliance
     with the License.  You may obtain a copy of the License at
-
+    
         http://www.apache.org/licenses/LICENSE-2.0
-
+    
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
     "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -67,7 +67,7 @@
 
 下图是关于TsFile的结构图。
 
-<img style="width:100%; max-width:800px; max-height:600px; margin-left:auto; margin-right:auto; display:block;" src="https://user-images.githubusercontent.com/37140360/109955373-6069c480-7d1d-11eb-9cae-252ea139abaa.jpg">
+<img style="width:100%; max-width:800px; max-height:600px; margin-left:auto; margin-right:auto; display:block;" src="https://user-images.githubusercontent.com/33376433/120660695-2a71e300-c4ba-11eb-9e61-5e023636480b.png">
 
 此文件包括两个设备 d1、d2，每个设备包含两个测点 s1、s2，共 4 个时间序列。每个时间序列包含两个 Chunk。
 
@@ -133,17 +133,17 @@ PageHeader 结构
 
 这里是`statistics`的详细信息：
 
- |             成员               | 描述 | DoubleStatistics | FloatStatistics | IntegerStatistics | LongStatistics | BinaryStatistics | BooleanStatistics |
- | :----------------------------------: | :--------------: | :----: | :----: | :----: | :----: | :----: | :----: |
- | count  | 数据点个数 | long | long | long | long | long | long | 
- | startTime | 开始时间 | long | long | long | long | long | long | 
- | endTime | 结束时间 | long | long | long | long | long | long | 
- | minValue | 最小值 | double | float | int | long | - | - |
- | maxValue | 最大值 | double | float | int | long | - | - |
- | firstValue | 第一个值 | double | float | int | long | Binary | boolean|
- | lastValue | 最后一个值 | double | float | int | long | Binary | boolean|
- | sumValue | 和 | double | double | double | double | - | - |
- 
+|             成员               | 描述 | DoubleStatistics | FloatStatistics | IntegerStatistics | LongStatistics | BinaryStatistics | BooleanStatistics |
+| :----------------------------------: | :--------------: | :----: | :----: | :----: | :----: | :----: | :----: |
+| count  | 数据点个数 | long | long | long | long | long | long |
+| startTime | 开始时间 | long | long | long | long | long | long |
+| endTime | 结束时间 | long | long | long | long | long | long |
+| minValue | 最小值 | double | float | int | long | - | - |
+| maxValue | 最大值 | double | float | int | long | - | - |
+| firstValue | 第一个值 | double | float | int | long | Binary | boolean|
+| lastValue | 最后一个值 | double | float | int | long | Binary | boolean|
+| sumValue | 和 | double | double | double | double | - | - |
+
 ##### ChunkGroupFooter
 
 |                成员                |  类型  | 解释 |
