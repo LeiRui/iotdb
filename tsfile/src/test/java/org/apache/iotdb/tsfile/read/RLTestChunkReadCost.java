@@ -47,7 +47,7 @@ public class RLTestChunkReadCost {
     String sensorName = "s1";
     Path mypath = new Path(deviceName, sensorName);
 
-    int numOfPagesInChunk = 2;
+    int numOfPagesInChunk = 3;
     int numOfChunksWritten = 1;
     int pagePointNum = 2;
 
