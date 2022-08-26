@@ -18,11 +18,6 @@
  */
 package org.apache.iotdb.tsfile.read.reader.page;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
 import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
@@ -38,37 +33,33 @@ import org.apache.iotdb.tsfile.read.reader.IPageReader;
 import org.apache.iotdb.tsfile.utils.Binary;
 import org.apache.iotdb.tsfile.utils.ReadWriteForEncodingUtils;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 public class PageReader implements IPageReader {
 
   private PageHeader pageHeader;
 
   protected TSDataType dataType;
 
-  /**
-   * decoder for value column
-   */
+  /** decoder for value column */
   protected Decoder valueDecoder;
 
-  /**
-   * decoder for time column
-   */
+  /** decoder for time column */
   protected Decoder timeDecoder;
 
-  /**
-   * time column in memory
-   */
+  /** time column in memory */
   protected ByteBuffer timeBuffer;
 
-  /**
-   * value column in memory
-   */
+  /** value column in memory */
   protected ByteBuffer valueBuffer;
 
   protected Filter filter;
 
-  /**
-   * A list of deleted intervals.
-   */
+  /** A list of deleted intervals. */
   private List<TimeRange> deleteIntervalList;
 
   private int deleteCursor = 0;
@@ -131,9 +122,7 @@ public class PageReader implements IPageReader {
     valueBuffer.position(timeBufferLength);
   }
 
-  /**
-   * @return the returned BatchData may be empty, but never be null
-   */
+  /** @return the returned BatchData may be empty, but never be null */
   @SuppressWarnings("squid:S3776") // Suppress high Cognitive Complexity warning
   @Override
   public BatchData getAllSatisfiedPageData(boolean ascending) throws IOException {
@@ -148,8 +137,8 @@ public class PageReader implements IPageReader {
           switch (dataType) {
             case BOOLEAN:
               boolean aBoolean = valueDecoder.readBoolean(valueBuffer);
-              if (!isDeleted(timestamp) && (filter == null || filter
-                  .satisfy(timestamp, aBoolean))) {
+              if (!isDeleted(timestamp)
+                  && (filter == null || filter.satisfy(timestamp, aBoolean))) {
                 pageData.putBoolean(timestamp, aBoolean);
               }
               break;
@@ -193,10 +182,13 @@ public class PageReader implements IPageReader {
       if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.data_decode_time_value_Buffer)) {
         elapsedTimeInNanoSec.put(TsFileConstant.data_decode_time_value_Buffer, new ArrayList<>());
       }
-      elapsedTimeInNanoSec.get(TsFileConstant.data_decode_time_value_Buffer)
-          .add(elapsedTime);
-      System.out.println("done:" + TsFileConstant.data_decode_time_value_Buffer + ","
-          + elapsedTime / 1000.0 + "us");
+      elapsedTimeInNanoSec.get(TsFileConstant.data_decode_time_value_Buffer).add(elapsedTime);
+      System.out.println(
+          "done:"
+              + TsFileConstant.data_decode_time_value_Buffer
+              + ","
+              + elapsedTime / 1000.0
+              + "us");
     } else {
       pageData = BatchDataFactory.createBatchData(dataType, ascending, false);
       if (filter == null || filter.satisfy(getStatistics())) {
@@ -205,8 +197,8 @@ public class PageReader implements IPageReader {
           switch (dataType) {
             case BOOLEAN:
               boolean aBoolean = valueDecoder.readBoolean(valueBuffer);
-              if (!isDeleted(timestamp) && (filter == null || filter
-                  .satisfy(timestamp, aBoolean))) {
+              if (!isDeleted(timestamp)
+                  && (filter == null || filter.satisfy(timestamp, aBoolean))) {
                 pageData.putBoolean(timestamp, aBoolean);
               }
               break;

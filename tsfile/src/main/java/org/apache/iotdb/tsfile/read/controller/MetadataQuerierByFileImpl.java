@@ -70,27 +70,30 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
         };
   }
 
-  public MetadataQuerierByFileImpl(TsFileSequenceReader tsFileReader,
-      Map<String, List<Long>> elapsedTimeInNanoSec) throws IOException {
+  public MetadataQuerierByFileImpl(
+      TsFileSequenceReader tsFileReader, Map<String, List<Long>> elapsedTimeInNanoSec)
+      throws IOException {
     this.tsFileReader = tsFileReader;
 
     if (TsFileConstant.decomposeMeasureTime) {
       long start = System.nanoTime();
       this.fileMetaData = tsFileReader.readFileMetadata();
       long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec
-          .containsKey(
-              TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)) {
-        elapsedTimeInNanoSec
-            .put(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter,
-                new ArrayList<>());
+      if (!elapsedTimeInNanoSec.containsKey(
+          TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)) {
+        elapsedTimeInNanoSec.put(
+            TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter,
+            new ArrayList<>());
       }
       elapsedTimeInNanoSec
           .get(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)
           .add(elapsedTime);
       System.out.println(
-          "done:" + TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter + ","
-              + elapsedTime / 1000.0 + "us");
+          "done:"
+              + TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter
+              + ","
+              + elapsedTime / 1000.0
+              + "us");
     } else {
       this.fileMetaData = tsFileReader.readFileMetadata();
     }
@@ -109,28 +112,29 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
     return new ArrayList<>(chunkMetaDataCache.get(timeseriesPath));
   }
 
-  public List<IChunkMetadata> getChunkMetaDataList(Path timeseriesPath,
-      Map<String, List<Long>> elapsedTimeInNanoSec) throws IOException {
+  public List<IChunkMetadata> getChunkMetaDataList(
+      Path timeseriesPath, Map<String, List<Long>> elapsedTimeInNanoSec) throws IOException {
     List<IChunkMetadata> iChunkMetadataList;
     if (TsFileConstant.decomposeMeasureTime) {
       long start = System.nanoTime();
       iChunkMetadataList = new ArrayList<>(chunkMetaDataCache.get(timeseriesPath));
       long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec
-          .containsKey(
-              TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)) {
-        elapsedTimeInNanoSec
-            .put(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata,
-                new ArrayList<>());
+      if (!elapsedTimeInNanoSec.containsKey(
+          TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
+        elapsedTimeInNanoSec.put(
+            TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet,
+            new ArrayList<>());
       }
       elapsedTimeInNanoSec
-          .get(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)
+          .get(
+              TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)
           .add(elapsedTime);
       System.out.println(
           "done:"
-              + TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata
+              + TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet
               + ","
-              + elapsedTime / 1000.0 + "us");
+              + elapsedTime / 1000.0
+              + "us");
     } else {
       iChunkMetadataList = new ArrayList<>(chunkMetaDataCache.get(timeseriesPath));
     }
@@ -255,21 +259,22 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
       }
 
       long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec
-          .containsKey(
-              TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)) {
-        elapsedTimeInNanoSec
-            .put(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata,
-                new ArrayList<>());
+      if (!elapsedTimeInNanoSec.containsKey(
+          TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)) {
+        elapsedTimeInNanoSec.put(
+            TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp,
+            new ArrayList<>());
       }
       elapsedTimeInNanoSec
-          .get(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)
+          .get(
+              TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
           .add(elapsedTime);
       System.out.println(
           "done:"
-              + TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata
+              + TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp
               + ","
-              + elapsedTime / 1000.0 + "us");
+              + elapsedTime / 1000.0
+              + "us");
     } else {
       // group measurements by device
       TreeMap<String, Set<String>> deviceMeasurementsMap = new TreeMap<>();
