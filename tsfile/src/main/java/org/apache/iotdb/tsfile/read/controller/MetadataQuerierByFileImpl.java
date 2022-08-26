@@ -74,18 +74,26 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
       Map<String, List<Long>> elapsedTimeInNanoSec) throws IOException {
     this.tsFileReader = tsFileReader;
 
-    long start = System.nanoTime();
-    this.fileMetaData = tsFileReader.readFileMetadata();
-    long elapsedTime = System.nanoTime() - start;
-    if (!elapsedTimeInNanoSec
-        .containsKey(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)) {
+    if (TsFileConstant.decomposeMeasureTime) {
+      long start = System.nanoTime();
+      this.fileMetaData = tsFileReader.readFileMetadata();
+      long elapsedTime = System.nanoTime() - start;
+      if (!elapsedTimeInNanoSec
+          .containsKey(
+              TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)) {
+        elapsedTimeInNanoSec
+            .put(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter,
+                new ArrayList<>());
+      }
       elapsedTimeInNanoSec
-          .put(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter,
-              new ArrayList<>());
+          .get(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)
+          .add(elapsedTime);
+      System.out.println(
+          "done:" + TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter + ","
+              + elapsedTime / 1000.0 + "us");
+    } else {
+      this.fileMetaData = tsFileReader.readFileMetadata();
     }
-    elapsedTimeInNanoSec
-        .get(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)
-        .add(elapsedTime);
 
     chunkMetaDataCache =
         new LRUCache<Path, List<IChunkMetadata>>(CACHED_ENTRY_NUMBER) {
@@ -104,19 +112,28 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
   public List<IChunkMetadata> getChunkMetaDataList(Path timeseriesPath,
       Map<String, List<Long>> elapsedTimeInNanoSec) throws IOException {
     List<IChunkMetadata> iChunkMetadataList;
-    long start = System.nanoTime();
-    iChunkMetadataList = new ArrayList<>(chunkMetaDataCache.get(timeseriesPath));
-    long elapsedTime = System.nanoTime() - start;
-    if (!elapsedTimeInNanoSec
-        .containsKey(
-            TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)) {
+    if (TsFileConstant.decomposeMeasureTime) {
+      long start = System.nanoTime();
+      iChunkMetadataList = new ArrayList<>(chunkMetaDataCache.get(timeseriesPath));
+      long elapsedTime = System.nanoTime() - start;
+      if (!elapsedTimeInNanoSec
+          .containsKey(
+              TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)) {
+        elapsedTimeInNanoSec
+            .put(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata,
+                new ArrayList<>());
+      }
       elapsedTimeInNanoSec
-          .put(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata,
-              new ArrayList<>());
+          .get(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)
+          .add(elapsedTime);
+      System.out.println(
+          "done:"
+              + TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata
+              + ","
+              + elapsedTime / 1000.0 + "us");
+    } else {
+      iChunkMetadataList = new ArrayList<>(chunkMetaDataCache.get(timeseriesPath));
     }
-    elapsedTimeInNanoSec
-        .get(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)
-        .add(elapsedTime);
     return iChunkMetadataList;
   }
 
@@ -189,65 +206,117 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
 
   public void loadChunkMetaDatas(List<Path> paths, Map<String, List<Long>> elapsedTimeInNanoSec)
       throws IOException {
-    long start = System.nanoTime();
-
-    // group measurements by device
-    TreeMap<String, Set<String>> deviceMeasurementsMap = new TreeMap<>();
-    for (Path path : paths) {
-      if (!deviceMeasurementsMap.containsKey(path.getDevice())) {
-        deviceMeasurementsMap.put(path.getDevice(), new HashSet<>());
-      }
-      deviceMeasurementsMap.get(path.getDevice()).add(path.getMeasurement());
-    }
-    int count = 0;
-    boolean enough = false;
-    for (Map.Entry<String, Set<String>> deviceMeasurements : deviceMeasurementsMap.entrySet()) {
-      if (enough) {
-        break;
-      }
-      String selectedDevice = deviceMeasurements.getKey();
-      Set<String> selectedMeasurements = deviceMeasurements.getValue();
-      List<String> devices = this.tsFileReader.getAllDevices(); // TODO: is this step repeated
-      String[] deviceNames = devices.toArray(new String[0]);
-      if (Arrays.binarySearch(deviceNames, selectedDevice) < 0) {
-        continue;
-      }
-
-      List<ITimeSeriesMetadata> timeseriesMetaDataList =
-          tsFileReader.readITimeseriesMetadata(selectedDevice, selectedMeasurements);
-      for (ITimeSeriesMetadata timeseriesMetadata : timeseriesMetaDataList) {
-        List<IChunkMetadata> chunkMetadataList =
-            tsFileReader.readIChunkMetaDataList(timeseriesMetadata);
-        String measurementId;
-        if (timeseriesMetadata instanceof AlignedTimeSeriesMetadata) {
-          measurementId =
-              ((AlignedTimeSeriesMetadata) timeseriesMetadata)
-                  .getValueTimeseriesMetadataList()
-                  .get(0)
-                  .getMeasurementId();
-        } else {
-          measurementId = ((TimeseriesMetadata) timeseriesMetadata).getMeasurementId();
+    if (TsFileConstant.decomposeMeasureTime) {
+      long start = System.nanoTime();
+      // group measurements by device
+      TreeMap<String, Set<String>> deviceMeasurementsMap = new TreeMap<>();
+      for (Path path : paths) {
+        if (!deviceMeasurementsMap.containsKey(path.getDevice())) {
+          deviceMeasurementsMap.put(path.getDevice(), new HashSet<>());
         }
-        this.chunkMetaDataCache.put(new Path(selectedDevice, measurementId), chunkMetadataList);
-        count += chunkMetadataList.size();
-        if (count == CACHED_ENTRY_NUMBER) {
-          enough = true;
+        deviceMeasurementsMap.get(path.getDevice()).add(path.getMeasurement());
+      }
+      int count = 0;
+      boolean enough = false;
+      for (Map.Entry<String, Set<String>> deviceMeasurements : deviceMeasurementsMap.entrySet()) {
+        if (enough) {
           break;
         }
+        String selectedDevice = deviceMeasurements.getKey();
+        Set<String> selectedMeasurements = deviceMeasurements.getValue();
+        List<String> devices = this.tsFileReader.getAllDevices(); // TODO: is this step repeated
+        String[] deviceNames = devices.toArray(new String[0]);
+        if (Arrays.binarySearch(deviceNames, selectedDevice) < 0) {
+          continue;
+        }
+
+        List<ITimeSeriesMetadata> timeseriesMetaDataList =
+            tsFileReader.readITimeseriesMetadata(selectedDevice, selectedMeasurements);
+        for (ITimeSeriesMetadata timeseriesMetadata : timeseriesMetaDataList) {
+          List<IChunkMetadata> chunkMetadataList =
+              tsFileReader.readIChunkMetaDataList(timeseriesMetadata);
+          String measurementId;
+          if (timeseriesMetadata instanceof AlignedTimeSeriesMetadata) {
+            measurementId =
+                ((AlignedTimeSeriesMetadata) timeseriesMetadata)
+                    .getValueTimeseriesMetadataList()
+                    .get(0)
+                    .getMeasurementId();
+          } else {
+            measurementId = ((TimeseriesMetadata) timeseriesMetadata).getMeasurementId();
+          }
+          this.chunkMetaDataCache.put(new Path(selectedDevice, measurementId), chunkMetadataList);
+          count += chunkMetadataList.size();
+          if (count == CACHED_ENTRY_NUMBER) {
+            enough = true;
+            break;
+          }
+        }
+      }
+
+      long elapsedTime = System.nanoTime() - start;
+      if (!elapsedTimeInNanoSec
+          .containsKey(
+              TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)) {
+        elapsedTimeInNanoSec
+            .put(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata,
+                new ArrayList<>());
+      }
+      elapsedTimeInNanoSec
+          .get(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)
+          .add(elapsedTime);
+      System.out.println(
+          "done:"
+              + TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata
+              + ","
+              + elapsedTime / 1000.0 + "us");
+    } else {
+      // group measurements by device
+      TreeMap<String, Set<String>> deviceMeasurementsMap = new TreeMap<>();
+      for (Path path : paths) {
+        if (!deviceMeasurementsMap.containsKey(path.getDevice())) {
+          deviceMeasurementsMap.put(path.getDevice(), new HashSet<>());
+        }
+        deviceMeasurementsMap.get(path.getDevice()).add(path.getMeasurement());
+      }
+      int count = 0;
+      boolean enough = false;
+      for (Map.Entry<String, Set<String>> deviceMeasurements : deviceMeasurementsMap.entrySet()) {
+        if (enough) {
+          break;
+        }
+        String selectedDevice = deviceMeasurements.getKey();
+        Set<String> selectedMeasurements = deviceMeasurements.getValue();
+        List<String> devices = this.tsFileReader.getAllDevices(); // TODO: is this step repeated
+        String[] deviceNames = devices.toArray(new String[0]);
+        if (Arrays.binarySearch(deviceNames, selectedDevice) < 0) {
+          continue;
+        }
+
+        List<ITimeSeriesMetadata> timeseriesMetaDataList =
+            tsFileReader.readITimeseriesMetadata(selectedDevice, selectedMeasurements);
+        for (ITimeSeriesMetadata timeseriesMetadata : timeseriesMetaDataList) {
+          List<IChunkMetadata> chunkMetadataList =
+              tsFileReader.readIChunkMetaDataList(timeseriesMetadata);
+          String measurementId;
+          if (timeseriesMetadata instanceof AlignedTimeSeriesMetadata) {
+            measurementId =
+                ((AlignedTimeSeriesMetadata) timeseriesMetadata)
+                    .getValueTimeseriesMetadataList()
+                    .get(0)
+                    .getMeasurementId();
+          } else {
+            measurementId = ((TimeseriesMetadata) timeseriesMetadata).getMeasurementId();
+          }
+          this.chunkMetaDataCache.put(new Path(selectedDevice, measurementId), chunkMetadataList);
+          count += chunkMetadataList.size();
+          if (count == CACHED_ENTRY_NUMBER) {
+            enough = true;
+            break;
+          }
+        }
       }
     }
-
-    long elapsedTime = System.nanoTime() - start;
-    if (!elapsedTimeInNanoSec
-        .containsKey(
-            TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)) {
-      elapsedTimeInNanoSec
-          .put(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata,
-              new ArrayList<>());
-    }
-    elapsedTimeInNanoSec
-        .get(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)
-        .add(elapsedTime);
   }
 
   @Override

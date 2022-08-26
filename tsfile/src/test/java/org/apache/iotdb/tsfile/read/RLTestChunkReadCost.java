@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 import org.apache.iotdb.tsfile.common.conf.TSFileConfig;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
@@ -26,8 +27,7 @@ import org.apache.iotdb.tsfile.read.reader.series.FileSeriesReader;
 import org.apache.iotdb.tsfile.utils.BloomFilter;
 import org.apache.iotdb.tsfile.utils.TsFileGeneratorForTest;
 import org.apache.iotdb.tsfile.write.TsFileWriter;
-import org.apache.iotdb.tsfile.write.record.TSRecord;
-import org.apache.iotdb.tsfile.write.record.datapoint.IntDataPoint;
+import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.apache.iotdb.tsfile.write.schema.Schema;
 import org.junit.Assert;
@@ -42,26 +42,62 @@ public class RLTestChunkReadCost {
       Assert.assertTrue(file.getParentFile().mkdirs());
     }
 
-    TSFileConfig tsFileConfig = TSFileDescriptor.getInstance().getConfig();
-    tsFileConfig.setMaxNumberOfPointsInPage(1000); // set small pages
-    tsFileConfig.setGroupSizeInByte(100 * 1024 * 1024);
-    TsFileWriter tsFileWriter = new TsFileWriter(file, new Schema(), tsFileConfig);
-    Path mypath = new Path("t", "id");
-    tsFileWriter.registerTimeseries(
-        new Path(mypath.getDevice()),
-        new MeasurementSchema("id", TSDataType.INT32, TSEncoding.PLAIN, CompressionType.LZ4));
+    // only consider one time series here
+    String deviceName = "d1";
+    String sensorName = "s1";
+    Path mypath = new Path(deviceName, sensorName);
 
-    for (int i = 0; i < 100000; i++) {
-      TSRecord t = new TSRecord(i, "t");
-      t.addTuple(new IntDataPoint("id", i));
-      tsFileWriter.write(t);
+    int numOfPagesInChunk = 2;
+    int numOfChunksWritten = 1;
+    int pagePointNum = 2;
+
+    int chunkPointNum = pagePointNum * numOfPagesInChunk;
+    int rowNum = chunkPointNum * numOfChunksWritten; // 写数据点数
+
+    TSFileConfig tsFileConfig = TSFileDescriptor.getInstance().getConfig();
+    tsFileConfig.setMaxNumberOfPointsInPage(pagePointNum);
+    tsFileConfig.setGroupSizeInByte(
+        Integer.MAX_VALUE); // 把chunkGroupSizeThreshold设够大，使得不会因为这个限制而flush，但是使用手动地提前flushAllChunkGroups来控制一个chunk里的数据量。
+
+    TsFileWriter tsFileWriter = new TsFileWriter(file, new Schema(), tsFileConfig);
+    MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
+        TSEncoding.PLAIN, CompressionType.LZ4);
+    tsFileWriter.registerTimeseries(new Path(mypath.getDevice()), measurementSchema);
+
+    List<MeasurementSchema> schemaList = new ArrayList<>();
+    schemaList.add(measurementSchema);
+    Tablet tablet = new Tablet(deviceName, schemaList,
+        chunkPointNum); // 设置Tablet的maxRowNumber等于一个chunk里想要的数据量大小，因为tablet是flush的最小单位
+    long[] timestamps = tablet.timestamps;
+    Object[] values = tablet.values;
+
+    long timestamp = 1;
+    Random ran = new Random();
+    for (int r = 0; r < rowNum; r++) {
+      int row = tablet.rowSize++;
+      timestamps[row] = timestamp++;
+      int[] sensor = (int[]) values[0];
+      sensor[row] = ran.nextInt(100);
+      if (tablet.rowSize == tablet.getMaxRowNumber()) {
+        tsFileWriter.write(tablet);
+        tablet.reset();
+        tsFileWriter
+            .flushAllChunkGroups(); // 把chunkGroupSizeThreshold设够大，使得不会因为这个限制而flush，但是使用手动地提前flushAllChunkGroups来控制一个chunk里的数据量。
+      }
+    }
+    // write Tablet to TsFile
+    if (tablet.rowSize != 0) {
+      tsFileWriter.write(tablet);
+      tablet.reset();
     }
     tsFileWriter.flushAllChunkGroups();
     tsFileWriter.close();
+    System.out.println("TsFile written!");
 
     //==============read tsfile==============
 
     Map<String, List<Long>> elapsedTimeInNanoSec = new TreeMap<>();
+    long totalStart = System.nanoTime();
 
     // read 【tailMagic】 and 【metadataSize】
     TsFileSequenceReader fileReader = new TsFileSequenceReader(filePath, true,
@@ -71,7 +107,7 @@ public class RLTestChunkReadCost {
     MetadataQuerierByFileImpl metadataQuerier = new MetadataQuerierByFileImpl(fileReader,
         elapsedTimeInNanoSec);
 
-    long start = System.nanoTime();
+//    long start = System.nanoTime();
 
     // instantiate an empty chunkCache
     CachedChunkLoaderImpl chunkLoader = new CachedChunkLoaderImpl(fileReader);
@@ -96,18 +132,19 @@ public class RLTestChunkReadCost {
       selectedSeries = filteredSeriesPath;
     }
 
-    long elapsedTime = System.nanoTime() - start;
-    if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.other_cpu_time)) {
-      elapsedTimeInNanoSec.put(TsFileConstant.other_cpu_time, new ArrayList<>());
-    }
-    elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time).add(elapsedTime);
+//    long elapsedTime = System.nanoTime() - start;
+//    if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.other_cpu_time)) {
+//      elapsedTimeInNanoSec.put(TsFileConstant.other_cpu_time, new ArrayList<>());
+//    }
+//    elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time).add(elapsedTime);
 
     // fill up chunkMetaDataCache by reading 【TimeseriesIndex】
     metadataQuerier.loadChunkMetaDatas(selectedSeries, elapsedTimeInNanoSec);
 
     List<AbstractFileSeriesReader> readersOfSelectedSeries = new ArrayList<>();
     List<TSDataType> dataTypes = new ArrayList<>();
-    for (Path path : selectedSeries) {
+    for (
+        Path path : selectedSeries) {
       // try to get 【ChunkIndex】 from chunkMetaDataCache. Probably cache hit.
       List<IChunkMetadata> chunkMetadataList = metadataQuerier
           .getChunkMetaDataList(path, elapsedTimeInNanoSec);
@@ -123,6 +160,7 @@ public class RLTestChunkReadCost {
       }
       readersOfSelectedSeries.add(seriesReader);
     }
+
     // loading and deserializing 【ChunkHeader】,
     // loading 【ChunkData】 buffer,
     // get pageReaderList by deserializing 【PageHeader】,
@@ -134,27 +172,45 @@ public class RLTestChunkReadCost {
     while (queryDataSet.hasNext()) {
       // pageReader getAllSatisfiedPageData by timeDecoding and valueDecoding the timeBuffer and valueBuffer respectively
       RowRecord next = queryDataSet.next();
-//      System.out.println(next);
+      System.out.println(next);
       cnt++;
     }
+
+    long totalTime = System.nanoTime() - totalStart;
+    if (!TsFileConstant.decomposeMeasureTime) {
+      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.total_time)) {
+        elapsedTimeInNanoSec.put(TsFileConstant.total_time, new ArrayList<>());
+      }
+      elapsedTimeInNanoSec.get(TsFileConstant.total_time).add(totalTime);
+    }
+
     System.out.println(cnt);
 
     //==============close and delete tsfile==============
     tsFileReader.close();
-    file.delete();
+//    file.delete();
 
-    //==============print elapsed time results==============
-    for (Map.Entry<String, List<Long>> entry : elapsedTimeInNanoSec.entrySet()) {
+    //==============print elapsed time rechsults==============
+    double totalSum = 0;
+    for (
+        Map.Entry<String, List<Long>> entry : elapsedTimeInNanoSec.entrySet()) {
       String key = entry.getKey();
       List<Long> elapsedTimes = entry.getValue();
       System.out.print(key + ":");
       double sum = 0;
       StringBuilder stringBuilder = new StringBuilder();
       for (Long t : elapsedTimes) {
-        sum += t / 1000000.0;
-        stringBuilder.append(t / 1000000.0 + ",");
+        sum += t / 1000.0;
+        stringBuilder.append(t / 1000.0 + ", ");
       }
-      System.out.println("[" + sum + "ms(SUM)," + elapsedTimes.size() + "(CNT)]:" + stringBuilder.toString());
+      System.out.println(
+          "[" + sum + "us(SUM)," + elapsedTimes.size() + "(CNT)]:" + stringBuilder.toString());
+      System.out.println();
+
+      if (!key.equals(TsFileConstant.total_time)) {
+        totalSum += sum;
+      }
     }
+    System.out.println("sum 1-8: " + totalSum + "us");
   }
 }

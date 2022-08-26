@@ -101,31 +101,54 @@ public class ChunkReader implements IChunkReader {
   }
 
   private void initAllPageReaders(Statistics chunkStatistic) throws IOException {
-    // construct next satisfied page header
-    while (chunkDataBuffer.remaining() > 0) {
+    if (TsFileConstant.decomposeMeasureTime) {
+      // construct next satisfied page header
+      while (chunkDataBuffer.remaining() > 0) {
 
-      long start = System.nanoTime();
-      // deserialize a PageHeader from chunkDataBuffer
-      PageHeader pageHeader;
-      if (((byte) (chunkHeader.getChunkType() & 0x3F)) == MetaMarker.ONLY_ONE_PAGE_CHUNK_HEADER) {
-        pageHeader = PageHeader.deserializeFrom(chunkDataBuffer, chunkStatistic);
-      } else {
-        pageHeader = PageHeader.deserializeFrom(chunkDataBuffer, chunkHeader.getDataType());
-      }
-      long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec
-          .containsKey(TsFileConstant.data_deserialize_PageHeader)) {
-        elapsedTimeInNanoSec
-            .put(TsFileConstant.data_deserialize_PageHeader, new ArrayList<>());
-      }
-      elapsedTimeInNanoSec.get(TsFileConstant.data_deserialize_PageHeader)
-          .add(elapsedTime);
+        long start = System.nanoTime();
+        // deserialize a PageHeader from chunkDataBuffer
+        PageHeader pageHeader;
+        if (((byte) (chunkHeader.getChunkType() & 0x3F)) == MetaMarker.ONLY_ONE_PAGE_CHUNK_HEADER) {
+          pageHeader = PageHeader.deserializeFrom(chunkDataBuffer, chunkStatistic);
+        } else {
+          pageHeader = PageHeader.deserializeFrom(chunkDataBuffer, chunkHeader.getDataType());
+        }
+        long elapsedTime = System.nanoTime() - start;
+        if (!elapsedTimeInNanoSec
+            .containsKey(TsFileConstant.data_deserialize_PageHeader)) {
+          elapsedTimeInNanoSec
+              .put(TsFileConstant.data_deserialize_PageHeader, new ArrayList<>());
+        }
+        elapsedTimeInNanoSec.get(TsFileConstant.data_deserialize_PageHeader)
+            .add(elapsedTime);
+        System.out.println("done:" + TsFileConstant.data_deserialize_PageHeader + ","
+            + elapsedTime / 1000.0 + "us");
 
-      // if the current page satisfies
-      if (pageSatisfied(pageHeader)) {
-        pageReaderList.add(constructPageReaderForNextPage(pageHeader));
-      } else {
-        skipBytesInStreamByLength(pageHeader.getCompressedSize());
+        // if the current page satisfies
+        if (pageSatisfied(pageHeader)) {
+          pageReaderList.add(constructPageReaderForNextPage(pageHeader));
+        } else {
+          skipBytesInStreamByLength(pageHeader.getCompressedSize());
+        }
+      }
+    } else {
+      // construct next satisfied page header
+      while (chunkDataBuffer.remaining() > 0) {
+
+        // deserialize a PageHeader from chunkDataBuffer
+        PageHeader pageHeader;
+        if (((byte) (chunkHeader.getChunkType() & 0x3F)) == MetaMarker.ONLY_ONE_PAGE_CHUNK_HEADER) {
+          pageHeader = PageHeader.deserializeFrom(chunkDataBuffer, chunkStatistic);
+        } else {
+          pageHeader = PageHeader.deserializeFrom(chunkDataBuffer, chunkHeader.getDataType());
+        }
+
+        // if the current page satisfies
+        if (pageSatisfied(pageHeader)) {
+          pageReaderList.add(constructPageReaderForNextPage(pageHeader));
+        } else {
+          skipBytesInStreamByLength(pageHeader.getCompressedSize());
+        }
       }
     }
   }
@@ -171,55 +194,98 @@ public class ChunkReader implements IChunkReader {
   }
 
   private PageReader constructPageReaderForNextPage(PageHeader pageHeader) throws IOException {
-    long start = System.nanoTime();
+    PageReader reader;
+    if (TsFileConstant.decomposeMeasureTime) {
+      long start = System.nanoTime();
 
-    int compressedPageBodyLength = pageHeader.getCompressedSize();
-    byte[] compressedPageBody = new byte[compressedPageBodyLength];
+      int compressedPageBodyLength = pageHeader.getCompressedSize();
+      byte[] compressedPageBody = new byte[compressedPageBodyLength];
 
-    // doesn't has a complete page body
-    if (compressedPageBodyLength > chunkDataBuffer.remaining()) {
-      throw new IOException(
-          "do not has a complete page body. Expected:"
-              + compressedPageBodyLength
-              + ". Actual:"
-              + chunkDataBuffer.remaining());
+      // doesn't has a complete page body
+      if (compressedPageBodyLength > chunkDataBuffer.remaining()) {
+        throw new IOException(
+            "do not has a complete page body. Expected:"
+                + compressedPageBodyLength
+                + ". Actual:"
+                + chunkDataBuffer.remaining());
+      }
+
+      chunkDataBuffer.get(compressedPageBody);
+      Decoder valueDecoder =
+          Decoder.getDecoderByType(chunkHeader.getEncodingType(), chunkHeader.getDataType());
+      byte[] uncompressedPageData = new byte[pageHeader.getUncompressedSize()];
+      try {
+        unCompressor.uncompress(
+            compressedPageBody, 0, compressedPageBodyLength, uncompressedPageData, 0);
+      } catch (Exception e) {
+        throw new IOException(
+            "Uncompress error! uncompress size: "
+                + pageHeader.getUncompressedSize()
+                + "compressed size: "
+                + pageHeader.getCompressedSize()
+                + "page header: "
+                + pageHeader
+                + e.getMessage());
+      }
+
+      ByteBuffer pageData = ByteBuffer.wrap(uncompressedPageData);
+      reader =
+          new PageReader(
+              pageHeader, pageData, chunkHeader.getDataType(), valueDecoder, timeDecoder, filter,
+              elapsedTimeInNanoSec);
+      reader.setDeleteIntervalList(deleteIntervalList);
+
+      long elapsedTime = System.nanoTime() - start;
+      if (!elapsedTimeInNanoSec
+          .containsKey(TsFileConstant.data_decompress_PageData_split_timeBuffer_valueBuffer)) {
+        elapsedTimeInNanoSec
+            .put(TsFileConstant.data_decompress_PageData_split_timeBuffer_valueBuffer,
+                new ArrayList<>());
+      }
+      elapsedTimeInNanoSec.get(TsFileConstant.data_decompress_PageData_split_timeBuffer_valueBuffer)
+          .add(elapsedTime);
+      System.out
+          .println(
+              "done:" + TsFileConstant.data_decompress_PageData_split_timeBuffer_valueBuffer + ","
+                  + elapsedTime / 1000.0 + "us");
+    } else {
+      int compressedPageBodyLength = pageHeader.getCompressedSize();
+      byte[] compressedPageBody = new byte[compressedPageBodyLength];
+
+      // doesn't has a complete page body
+      if (compressedPageBodyLength > chunkDataBuffer.remaining()) {
+        throw new IOException(
+            "do not has a complete page body. Expected:"
+                + compressedPageBodyLength
+                + ". Actual:"
+                + chunkDataBuffer.remaining());
+      }
+
+      chunkDataBuffer.get(compressedPageBody);
+      Decoder valueDecoder =
+          Decoder.getDecoderByType(chunkHeader.getEncodingType(), chunkHeader.getDataType());
+      byte[] uncompressedPageData = new byte[pageHeader.getUncompressedSize()];
+      try {
+        unCompressor.uncompress(
+            compressedPageBody, 0, compressedPageBodyLength, uncompressedPageData, 0);
+      } catch (Exception e) {
+        throw new IOException(
+            "Uncompress error! uncompress size: "
+                + pageHeader.getUncompressedSize()
+                + "compressed size: "
+                + pageHeader.getCompressedSize()
+                + "page header: "
+                + pageHeader
+                + e.getMessage());
+      }
+
+      ByteBuffer pageData = ByteBuffer.wrap(uncompressedPageData);
+      reader =
+          new PageReader(
+              pageHeader, pageData, chunkHeader.getDataType(), valueDecoder, timeDecoder, filter,
+              elapsedTimeInNanoSec);
+      reader.setDeleteIntervalList(deleteIntervalList);
     }
-
-    chunkDataBuffer.get(compressedPageBody);
-    Decoder valueDecoder =
-        Decoder.getDecoderByType(chunkHeader.getEncodingType(), chunkHeader.getDataType());
-    byte[] uncompressedPageData = new byte[pageHeader.getUncompressedSize()];
-    try {
-      unCompressor.uncompress(
-          compressedPageBody, 0, compressedPageBodyLength, uncompressedPageData, 0);
-    } catch (Exception e) {
-      throw new IOException(
-          "Uncompress error! uncompress size: "
-              + pageHeader.getUncompressedSize()
-              + "compressed size: "
-              + pageHeader.getCompressedSize()
-              + "page header: "
-              + pageHeader
-              + e.getMessage());
-    }
-
-    ByteBuffer pageData = ByteBuffer.wrap(uncompressedPageData);
-    PageReader reader =
-        new PageReader(
-            pageHeader, pageData, chunkHeader.getDataType(), valueDecoder, timeDecoder, filter,
-            elapsedTimeInNanoSec);
-    reader.setDeleteIntervalList(deleteIntervalList);
-
-    long elapsedTime = System.nanoTime() - start;
-    if (!elapsedTimeInNanoSec
-        .containsKey(TsFileConstant.data_decompress_PageData_split_timeBuffer_valueBuffer)) {
-      elapsedTimeInNanoSec
-          .put(TsFileConstant.data_decompress_PageData_split_timeBuffer_valueBuffer,
-              new ArrayList<>());
-    }
-    elapsedTimeInNanoSec.get(TsFileConstant.data_decompress_PageData_split_timeBuffer_valueBuffer)
-        .add(elapsedTime);
-
     return reader;
   }
 

@@ -155,17 +155,25 @@ public class TsFileSequenceReader implements AutoCloseable {
     tsFileInput = FSFactoryProducer.getFileInputFactory().getTsFileInput(file);
     try {
       if (loadMetadataSize) {
-        long start = System.nanoTime();
-        loadMetadataSize();
-        long elapsedTime = System.nanoTime() - start;
-        if (!elapsedTimeInNanoSec
-            .containsKey(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize)) {
+        if (TsFileConstant.decomposeMeasureTime) {
+          long start = System.nanoTime();
+          loadMetadataSize();
+          long elapsedTime = System.nanoTime() - start;
+          if (!elapsedTimeInNanoSec
+              .containsKey(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize)) {
+            elapsedTimeInNanoSec
+                .put(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize,
+                    new ArrayList<>());
+          }
           elapsedTimeInNanoSec
-              .put(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize,
-                  new ArrayList<>());
+              .get(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize)
+              .add(elapsedTime);
+          System.out.println(
+              "done:" + TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize + ","
+                  + elapsedTime / 1000.0 + "us");
+        } else {
+          loadMetadataSize();
         }
-        elapsedTimeInNanoSec.get(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize)
-            .add(elapsedTime);
       }
     } catch (Throwable e) {
       tsFileInput.close();
@@ -1136,34 +1144,46 @@ public class TsFileSequenceReader implements AutoCloseable {
    * @return chunk
    */
   public Chunk readMemChunk(CachedChunkLoaderImpl.ChunkCacheKey chunkCacheKey) throws IOException {
-    long start = System.nanoTime();
-    int chunkHeadSize = ChunkHeader.getSerializedSize(chunkCacheKey.getMeasurementUid());
-    ChunkHeader header = readChunkHeader(chunkCacheKey.getOffsetOfChunkHeader(), chunkHeadSize);
-    long elapsedTime = System.nanoTime() - start;
-    if (!elapsedTimeInNanoSec
-        .containsKey(TsFileConstant.data_read_deserialize_ChunkHeader)) {
-      elapsedTimeInNanoSec
-          .put(TsFileConstant.data_read_deserialize_ChunkHeader,
-              new ArrayList<>());
-    }
-    elapsedTimeInNanoSec.get(TsFileConstant.data_read_deserialize_ChunkHeader)
-        .add(elapsedTime);
+    ChunkHeader header;
+    ByteBuffer buffer;
+    if (TsFileConstant.decomposeMeasureTime) {
+      long start = System.nanoTime();
+      int chunkHeadSize = ChunkHeader.getSerializedSize(chunkCacheKey.getMeasurementUid());
+      header = readChunkHeader(chunkCacheKey.getOffsetOfChunkHeader(), chunkHeadSize);
+      long elapsedTime = System.nanoTime() - start;
+      if (!elapsedTimeInNanoSec
+          .containsKey(TsFileConstant.data_read_deserialize_ChunkHeader)) {
+        elapsedTimeInNanoSec
+            .put(TsFileConstant.data_read_deserialize_ChunkHeader,
+                new ArrayList<>());
+      }
+      elapsedTimeInNanoSec.get(TsFileConstant.data_read_deserialize_ChunkHeader)
+          .add(elapsedTime);
+      System.out.println("done:" + TsFileConstant.data_read_deserialize_ChunkHeader + ","
+          + elapsedTime / 1000.0 + "us");
 
-    start = System.nanoTime();
-    ByteBuffer buffer =
-        readChunk(
-            chunkCacheKey.getOffsetOfChunkHeader() + header.getSerializedSize(),
-            header.getDataSize());
-    elapsedTime = System.nanoTime() - start;
-    if (!elapsedTimeInNanoSec
-        .containsKey(TsFileConstant.data_read_ChunkData)) {
-      elapsedTimeInNanoSec
-          .put(TsFileConstant.data_read_ChunkData,
-              new ArrayList<>());
+      start = System.nanoTime();
+      buffer =
+          readChunk(
+              chunkCacheKey.getOffsetOfChunkHeader() + header.getSerializedSize(),
+              header.getDataSize());
+      elapsedTime = System.nanoTime() - start;
+      if (!elapsedTimeInNanoSec
+          .containsKey(TsFileConstant.data_read_ChunkData)) {
+        elapsedTimeInNanoSec
+            .put(TsFileConstant.data_read_ChunkData,
+                new ArrayList<>());
+      }
+      elapsedTimeInNanoSec.get(TsFileConstant.data_read_ChunkData)
+          .add(elapsedTime);
+      System.out.println("done:" + TsFileConstant.data_read_ChunkData + ","
+          + elapsedTime / 1000.0 + "us");
+    } else {
+      int chunkHeadSize = ChunkHeader.getSerializedSize(chunkCacheKey.getMeasurementUid());
+      header = readChunkHeader(chunkCacheKey.getOffsetOfChunkHeader(), chunkHeadSize);
+      buffer = readChunk(chunkCacheKey.getOffsetOfChunkHeader() + header.getSerializedSize(),
+          header.getDataSize());
     }
-    elapsedTimeInNanoSec.get(TsFileConstant.data_read_ChunkData)
-        .add(elapsedTime);
-
     return new Chunk(
         header, buffer, chunkCacheKey.getDeleteIntervalList(), chunkCacheKey.getStatistics());
   }

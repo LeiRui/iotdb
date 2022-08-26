@@ -34,6 +34,9 @@ public class TsFileConstant {
   public static final byte VALUE_COLUMN_MASK = (byte) 0x40;
 
   // list all the key operations that need time measuring
+
+  public static boolean decomposeMeasureTime = true; // false to measure the total time only
+
   // [index part]
   public static String index_read_deserialize_MagicString_FileMetadataSize = "1_index_read_deserialize_MagicString_FileMetadataSize";
   // these three components constitue the so-called TsFileMetadata
@@ -49,6 +52,7 @@ public class TsFileConstant {
   public static String data_decode_time_value_Buffer = "8_data_decode_time_value_Buffer";
 
   public static String other_cpu_time = "other_cpu_time";
+  public static String total_time = "total_time";
 
   private TsFileConstant() {
   }
