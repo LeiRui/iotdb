@@ -18,6 +18,10 @@
  */
 package org.apache.iotdb.tsfile.read.reader.series;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.apache.iotdb.tsfile.file.metadata.AlignedChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.IChunkMetadata;
@@ -27,26 +31,31 @@ import org.apache.iotdb.tsfile.read.filter.basic.Filter;
 import org.apache.iotdb.tsfile.read.reader.chunk.AlignedChunkReader;
 import org.apache.iotdb.tsfile.read.reader.chunk.ChunkReader;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Series reader is used to query one series of one TsFile, and this reader has a filter operating
  * on the same series.
  */
 public class FileSeriesReader extends AbstractFileSeriesReader {
 
+  Map<String, List<Long>> elapsedTimeInNanoSec;
+
   public FileSeriesReader(
       IChunkLoader chunkLoader, List<IChunkMetadata> chunkMetadataList, Filter filter) {
     super(chunkLoader, chunkMetadataList, filter);
+  }
+
+  public FileSeriesReader(
+      IChunkLoader chunkLoader, List<IChunkMetadata> chunkMetadataList, Filter filter,
+      Map<String, List<Long>> elapsedTimeInNanoSec) {
+    super(chunkLoader, chunkMetadataList, filter);
+    this.elapsedTimeInNanoSec = elapsedTimeInNanoSec;
   }
 
   @Override
   protected void initChunkReader(IChunkMetadata chunkMetaData) throws IOException {
     if (chunkMetaData instanceof ChunkMetadata) {
       Chunk chunk = chunkLoader.loadChunk((ChunkMetadata) chunkMetaData);
-      this.chunkReader = new ChunkReader(chunk, filter);
+      this.chunkReader = new ChunkReader(chunk, filter, elapsedTimeInNanoSec);
     } else {
       AlignedChunkMetadata alignedChunkMetadata = (AlignedChunkMetadata) chunkMetaData;
       Chunk timeChunk =

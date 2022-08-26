@@ -152,6 +152,7 @@ public class TsFileSketchTool {
   private void printTsFileMetadata(TsFileMetadata tsFileMetaData) {
     try {
       printlnBoth(pw, String.format("%20s", reader.getFileMetadataPos()) + "|\t[TsFileMetadata]");
+      // TODO: TsFileMetadata里meta offset应该出现在metadataIndexNode之后、Bloom filter之前
       printlnBoth(
           pw, String.format("%20s", "") + "|\t\t[meta offset] " + tsFileMetaData.getMetaOffset());
       printlnBoth(
@@ -201,6 +202,7 @@ public class TsFileSketchTool {
   }
 
   private void printIndexOfTimerseriesIndex(TreeMap<Long, MetadataIndexNode> metadataIndexNodeMap) {
+    // TODO: 好像没有打印全部的entry
     for (Map.Entry<Long, MetadataIndexNode> entry : metadataIndexNodeMap.entrySet()) {
       printlnBoth(
           pw,
@@ -301,6 +303,7 @@ public class TsFileSketchTool {
             pageHeader =
                 PageHeader.deserializeFrom(chunk.getData(), chunk.getHeader().getDataType());
           }
+          // TODO: seems lose multiple pages
           printlnBoth(
               pw,
               String.format("%20s", "")
@@ -379,6 +382,7 @@ public class TsFileSketchTool {
       List<String> treeOutputStringBuffer,
       int deep)
       throws IOException {
+    // TODO: 排版以及内容是有问题的，排版体现的关系不清晰，内容没有列出node里所有的entry条目，似乎只列出了第一个
     StringBuilder tableWriter = new StringBuilder("\t");
     for (int i = 0; i < deep; i++) {
       tableWriter.append("\t\t");
@@ -414,7 +418,7 @@ public class TsFileSketchTool {
   }
 
   private static Pair<String, String> checkArgs(String[] args) {
-    String filename = "test.tsfile";
+    String filename = "G:\\tmp5.tsfile";
     String outFile = "TsFile_sketch_view.txt";
     if (args.length == 1) {
       filename = args[0];

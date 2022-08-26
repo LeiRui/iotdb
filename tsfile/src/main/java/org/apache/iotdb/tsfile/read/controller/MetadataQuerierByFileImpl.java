@@ -18,17 +18,30 @@
  */
 package org.apache.iotdb.tsfile.read.controller;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 import org.apache.iotdb.tsfile.common.cache.LRUCache;
-import org.apache.iotdb.tsfile.file.metadata.*;
+import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
+import org.apache.iotdb.tsfile.file.metadata.AlignedTimeSeriesMetadata;
+import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
+import org.apache.iotdb.tsfile.file.metadata.IChunkMetadata;
+import org.apache.iotdb.tsfile.file.metadata.ITimeSeriesMetadata;
+import org.apache.iotdb.tsfile.file.metadata.TimeseriesMetadata;
+import org.apache.iotdb.tsfile.file.metadata.TsFileMetadata;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.TsFileSequenceReader;
 import org.apache.iotdb.tsfile.read.TsFileSequenceReader.LocateStatus;
 import org.apache.iotdb.tsfile.read.common.Path;
 import org.apache.iotdb.tsfile.read.common.TimeRange;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
 
 public class MetadataQuerierByFileImpl implements IMetadataQuerier {
 
@@ -42,7 +55,9 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
 
   private TsFileSequenceReader tsFileReader;
 
-  /** Constructor of MetadataQuerierByFileImpl. */
+  /**
+   * Constructor of MetadataQuerierByFileImpl.
+   */
   public MetadataQuerierByFileImpl(TsFileSequenceReader tsFileReader) throws IOException {
     this.tsFileReader = tsFileReader;
     this.fileMetaData = tsFileReader.readFileMetadata();
@@ -55,9 +70,54 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
         };
   }
 
+  public MetadataQuerierByFileImpl(TsFileSequenceReader tsFileReader,
+      Map<String, List<Long>> elapsedTimeInNanoSec) throws IOException {
+    this.tsFileReader = tsFileReader;
+
+    long start = System.nanoTime();
+    this.fileMetaData = tsFileReader.readFileMetadata();
+    long elapsedTime = System.nanoTime() - start;
+    if (!elapsedTimeInNanoSec
+        .containsKey(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)) {
+      elapsedTimeInNanoSec
+          .put(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter,
+              new ArrayList<>());
+    }
+    elapsedTimeInNanoSec
+        .get(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)
+        .add(elapsedTime);
+
+    chunkMetaDataCache =
+        new LRUCache<Path, List<IChunkMetadata>>(CACHED_ENTRY_NUMBER) {
+          @Override
+          public List<IChunkMetadata> loadObjectByKey(Path key) throws IOException {
+            return loadChunkMetadata(key);
+          }
+        };
+  }
+
   @Override
   public List<IChunkMetadata> getChunkMetaDataList(Path timeseriesPath) throws IOException {
     return new ArrayList<>(chunkMetaDataCache.get(timeseriesPath));
+  }
+
+  public List<IChunkMetadata> getChunkMetaDataList(Path timeseriesPath,
+      Map<String, List<Long>> elapsedTimeInNanoSec) throws IOException {
+    List<IChunkMetadata> iChunkMetadataList;
+    long start = System.nanoTime();
+    iChunkMetadataList = new ArrayList<>(chunkMetaDataCache.get(timeseriesPath));
+    long elapsedTime = System.nanoTime() - start;
+    if (!elapsedTimeInNanoSec
+        .containsKey(
+            TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)) {
+      elapsedTimeInNanoSec
+          .put(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata,
+              new ArrayList<>());
+    }
+    elapsedTimeInNanoSec
+        .get(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)
+        .add(elapsedTime);
+    return iChunkMetadataList;
   }
 
   @Override
@@ -96,7 +156,7 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
       }
       String selectedDevice = deviceMeasurements.getKey();
       Set<String> selectedMeasurements = deviceMeasurements.getValue();
-      List<String> devices = this.tsFileReader.getAllDevices();
+      List<String> devices = this.tsFileReader.getAllDevices(); // TODO: is this step repeated
       String[] deviceNames = devices.toArray(new String[0]);
       if (Arrays.binarySearch(deviceNames, selectedDevice) < 0) {
         continue;
@@ -125,6 +185,69 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
         }
       }
     }
+  }
+
+  public void loadChunkMetaDatas(List<Path> paths, Map<String, List<Long>> elapsedTimeInNanoSec)
+      throws IOException {
+    long start = System.nanoTime();
+
+    // group measurements by device
+    TreeMap<String, Set<String>> deviceMeasurementsMap = new TreeMap<>();
+    for (Path path : paths) {
+      if (!deviceMeasurementsMap.containsKey(path.getDevice())) {
+        deviceMeasurementsMap.put(path.getDevice(), new HashSet<>());
+      }
+      deviceMeasurementsMap.get(path.getDevice()).add(path.getMeasurement());
+    }
+    int count = 0;
+    boolean enough = false;
+    for (Map.Entry<String, Set<String>> deviceMeasurements : deviceMeasurementsMap.entrySet()) {
+      if (enough) {
+        break;
+      }
+      String selectedDevice = deviceMeasurements.getKey();
+      Set<String> selectedMeasurements = deviceMeasurements.getValue();
+      List<String> devices = this.tsFileReader.getAllDevices(); // TODO: is this step repeated
+      String[] deviceNames = devices.toArray(new String[0]);
+      if (Arrays.binarySearch(deviceNames, selectedDevice) < 0) {
+        continue;
+      }
+
+      List<ITimeSeriesMetadata> timeseriesMetaDataList =
+          tsFileReader.readITimeseriesMetadata(selectedDevice, selectedMeasurements);
+      for (ITimeSeriesMetadata timeseriesMetadata : timeseriesMetaDataList) {
+        List<IChunkMetadata> chunkMetadataList =
+            tsFileReader.readIChunkMetaDataList(timeseriesMetadata);
+        String measurementId;
+        if (timeseriesMetadata instanceof AlignedTimeSeriesMetadata) {
+          measurementId =
+              ((AlignedTimeSeriesMetadata) timeseriesMetadata)
+                  .getValueTimeseriesMetadataList()
+                  .get(0)
+                  .getMeasurementId();
+        } else {
+          measurementId = ((TimeseriesMetadata) timeseriesMetadata).getMeasurementId();
+        }
+        this.chunkMetaDataCache.put(new Path(selectedDevice, measurementId), chunkMetadataList);
+        count += chunkMetadataList.size();
+        if (count == CACHED_ENTRY_NUMBER) {
+          enough = true;
+          break;
+        }
+      }
+    }
+
+    long elapsedTime = System.nanoTime() - start;
+    if (!elapsedTimeInNanoSec
+        .containsKey(
+            TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)) {
+      elapsedTimeInNanoSec
+          .put(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata,
+              new ArrayList<>());
+    }
+    elapsedTimeInNanoSec
+        .get(TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata)
+        .add(elapsedTime);
   }
 
   @Override
@@ -218,9 +341,9 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
   /**
    * Check the location of a given chunkGroupMetaData with respect to a space partition constraint.
    *
-   * @param chunkMetaData the given chunkMetaData
+   * @param chunkMetaData          the given chunkMetaData
    * @param spacePartitionStartPos the start position of the space partition
-   * @param spacePartitionEndPos the end position of the space partition
+   * @param spacePartitionEndPos   the end position of the space partition
    * @return LocateStatus
    */
   public static LocateStatus checkLocateStatus(
