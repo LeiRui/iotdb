@@ -98,13 +98,39 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
       this.fileMetaData = tsFileReader.readFileMetadata();
     }
 
-    chunkMetaDataCache =
-        new LRUCache<Path, List<IChunkMetadata>>(CACHED_ENTRY_NUMBER) {
-          @Override
-          public List<IChunkMetadata> loadObjectByKey(Path key) throws IOException {
-            return loadChunkMetadata(key);
-          }
-        };
+    if (TsFileConstant.decomposeMeasureTime) {
+      long start = System.nanoTime();
+      chunkMetaDataCache =
+          new LRUCache<Path, List<IChunkMetadata>>(CACHED_ENTRY_NUMBER) {
+            @Override
+            public List<IChunkMetadata> loadObjectByKey(Path key) throws IOException {
+              return loadChunkMetadata(key);
+            }
+          };
+      long elapsedTime = System.nanoTime() - start;
+      if (!elapsedTimeInNanoSec
+          .containsKey(TsFileConstant.other_cpu_time)) {
+        elapsedTimeInNanoSec
+            .put(TsFileConstant.other_cpu_time,
+                new ArrayList<>());
+      }
+      elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time)
+          .add(elapsedTime);
+      System.out.println(
+          "done:"
+              + TsFileConstant.other_cpu_time
+              + ","
+              + elapsedTime / 1000.0
+              + "us");
+    } else {
+      chunkMetaDataCache =
+          new LRUCache<Path, List<IChunkMetadata>>(CACHED_ENTRY_NUMBER) {
+            @Override
+            public List<IChunkMetadata> loadObjectByKey(Path key) throws IOException {
+              return loadChunkMetadata(key);
+            }
+          };
+    }
   }
 
   @Override

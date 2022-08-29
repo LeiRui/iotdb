@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.iotdb.tsfile.common.conf.TSFileConfig;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
@@ -47,15 +48,16 @@ public class RLTestChunkReadCost {
     String sensorName = "s1";
     Path mypath = new Path(deviceName, sensorName);
 
-    int numOfPagesInChunk = 100;
+    int pagePointNum = 10000000;
+    int numOfPagesInChunk = 1;
     int numOfChunksWritten = 10;
-    int pagePointNum = 1000000;
 
     int chunkPointNum = pagePointNum * numOfPagesInChunk;
     int rowNum = chunkPointNum * numOfChunksWritten; // 写数据点数
 
     TSFileConfig tsFileConfig = TSFileDescriptor.getInstance().getConfig();
     tsFileConfig.setMaxNumberOfPointsInPage(pagePointNum);
+    tsFileConfig.setPageSizeInByte(Integer.MAX_VALUE);
     tsFileConfig.setGroupSizeInByte(
         Integer
             .MAX_VALUE); // 把chunkGroupSizeThreshold设够大，使得不会因为这个限制而flush，但是使用手动地提前flushAllChunkGroups来控制一个chunk里的数据量。
@@ -99,7 +101,7 @@ public class RLTestChunkReadCost {
     System.out.println("TsFile written!");
 
     // ==============warm up JIT==============
-    // warmUpJIT();
+    warmUpJIT();
     /*
     Why does the first method call always take the longest?
     应对尝试：先把大tsfile写了，然后写一个小的tsfile并且读一遍，然后紧跟着读大tsfile。
@@ -122,7 +124,7 @@ public class RLTestChunkReadCost {
     MetadataQuerierByFileImpl metadataQuerier =
         new MetadataQuerierByFileImpl(fileReader, elapsedTimeInNanoSec);
 
-    //    long start = System.nanoTime();
+    long start = System.nanoTime();
 
     // instantiate an empty chunkCache
     CachedChunkLoaderImpl chunkLoader = new CachedChunkLoaderImpl(fileReader);
@@ -147,11 +149,17 @@ public class RLTestChunkReadCost {
       selectedSeries = filteredSeriesPath;
     }
 
-    //    long elapsedTime = System.nanoTime() - start;
-    //    if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.other_cpu_time)) {
-    //      elapsedTimeInNanoSec.put(TsFileConstant.other_cpu_time, new ArrayList<>());
-    //    }
-    //    elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time).add(elapsedTime);
+    long elapsedTime = System.nanoTime() - start;
+    if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.other_cpu_time)) {
+      elapsedTimeInNanoSec.put(TsFileConstant.other_cpu_time, new ArrayList<>());
+    }
+    elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time).add(elapsedTime);
+    System.out.println(
+        "done:"
+            + TsFileConstant.other_cpu_time
+            + ","
+            + elapsedTime / 1000.0
+            + "us");
 
     // fill up chunkMetaDataCache by reading 【TimeseriesIndex】
     metadataQuerier.loadChunkMetaDatas(selectedSeries, elapsedTimeInNanoSec);
@@ -162,34 +170,99 @@ public class RLTestChunkReadCost {
       // try to get 【ChunkIndex】 from chunkMetaDataCache. Probably cache hit.
       List<IChunkMetadata> chunkMetadataList =
           metadataQuerier.getChunkMetaDataList(path, elapsedTimeInNanoSec);
-      AbstractFileSeriesReader seriesReader;
-      if (chunkMetadataList.isEmpty()) {
-        seriesReader = new EmptyFileSeriesReader();
-        dataTypes.add(metadataQuerier.getDataType(path));
+
+      if (TsFileConstant.decomposeMeasureTime) {
+        start = System.nanoTime();
+        AbstractFileSeriesReader seriesReader;
+        if (chunkMetadataList.isEmpty()) {
+          seriesReader = new EmptyFileSeriesReader();
+          dataTypes.add(metadataQuerier.getDataType(path));
+        } else {
+          // assume timeExpression == null
+          seriesReader =
+              new FileSeriesReader(
+                  chunkLoader, chunkMetadataList, null, elapsedTimeInNanoSec); // do nothing special
+          dataTypes.add(chunkMetadataList.get(0).getDataType());
+        }
+        readersOfSelectedSeries.add(seriesReader);
+        elapsedTime = System.nanoTime() - start;
+        if (!elapsedTimeInNanoSec
+            .containsKey(TsFileConstant.other_cpu_time)) {
+          elapsedTimeInNanoSec
+              .put(TsFileConstant.other_cpu_time,
+                  new ArrayList<>());
+        }
+        elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time)
+            .add(elapsedTime);
+        System.out.println(
+            "done:"
+                + TsFileConstant.other_cpu_time
+                + ","
+                + elapsedTime / 1000.0
+                + "us");
       } else {
-        // assume timeExpression == null
-        seriesReader =
-            new FileSeriesReader(
-                chunkLoader, chunkMetadataList, null, elapsedTimeInNanoSec); // do nothing special
-        dataTypes.add(chunkMetadataList.get(0).getDataType());
+        AbstractFileSeriesReader seriesReader;
+        if (chunkMetadataList.isEmpty()) {
+          seriesReader = new EmptyFileSeriesReader();
+          dataTypes.add(metadataQuerier.getDataType(path));
+        } else {
+          // assume timeExpression == null
+          seriesReader =
+              new FileSeriesReader(
+                  chunkLoader, chunkMetadataList, null, elapsedTimeInNanoSec); // do nothing special
+          dataTypes.add(chunkMetadataList.get(0).getDataType());
+        }
+        readersOfSelectedSeries.add(seriesReader);
       }
-      readersOfSelectedSeries.add(seriesReader);
     }
 
-    // loading and deserializing 【ChunkHeader】,
-    // loading 【ChunkData】 buffer,
-    // get pageReaderList by deserializing 【PageHeader】,
-    // uncompressing 【PageData】 and split into timeBuffer and valueBuffer for pageReader
-    QueryDataSet queryDataSet =
-        new DataSetWithoutTimeGenerator(selectedSeries, dataTypes, readersOfSelectedSeries);
-
     int cnt = 0;
-    while (queryDataSet.hasNext()) {
-      // pageReader getAllSatisfiedPageData by timeDecoding and valueDecoding the timeBuffer and
-      // valueBuffer respectively
-      RowRecord next = queryDataSet.next();
-      // System.out.println(next);
-      cnt++;
+    if (TsFileConstant.decomposeMeasureTime && TsFileConstant.DataSetWithoutTimeGenerator_total) {
+      start = System.nanoTime();
+      // loading and deserializing 【ChunkHeader】,
+      // loading 【ChunkData】 buffer,
+      // get pageReaderList by deserializing 【PageHeader】,
+      // uncompressing 【PageData】 and split into timeBuffer and valueBuffer for pageReader
+      QueryDataSet queryDataSet =
+          new DataSetWithoutTimeGenerator(selectedSeries, dataTypes, readersOfSelectedSeries);
+
+      while (queryDataSet.hasNext()) {
+        // pageReader getAllSatisfiedPageData by timeDecoding and valueDecoding the timeBuffer and
+        // valueBuffer respectively
+        RowRecord next = queryDataSet.next();
+        // System.out.println(next);
+        cnt++;
+      }
+      elapsedTime = System.nanoTime() - start;
+      if (!elapsedTimeInNanoSec
+          .containsKey(TsFileConstant.other_cpu_time)) {
+        elapsedTimeInNanoSec
+            .put(TsFileConstant.other_cpu_time,
+                new ArrayList<>());
+      }
+      elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time)
+          .add(elapsedTime);
+      System.out.println(
+          "done:"
+              + TsFileConstant.other_cpu_time
+              + ","
+              + elapsedTime / 1000.0
+              + "us");
+    } else {
+      // loading and deserializing 【ChunkHeader】,
+      // loading 【ChunkData】 buffer,
+      // get pageReaderList by deserializing 【PageHeader】,
+      // uncompressing 【PageData】 and split into timeBuffer and valueBuffer for pageReader
+      QueryDataSet queryDataSet =
+          new DataSetWithoutTimeGenerator(selectedSeries, dataTypes, readersOfSelectedSeries);
+
+      while (queryDataSet.hasNext()) {
+        // pageReader getAllSatisfiedPageData by timeDecoding and valueDecoding the timeBuffer and
+        // valueBuffer respectively
+        RowRecord next = queryDataSet.next();
+        // System.out.println(next);
+        cnt++;
+      }
     }
 
     long totalTime = System.nanoTime() - totalStart;
@@ -227,6 +300,56 @@ public class RLTestChunkReadCost {
       }
     }
     System.out.println("sum 1-8: " + totalSum + "us");
+    System.out.println("ALL FINISHED!");
+    System.out.println(
+        "====================================focus results====================================");
+
+    System.out.println("- pagePointNum=" + pagePointNum);
+    System.out.println("- numOfPagesInChunk=" + numOfPagesInChunk);
+    System.out.println("- numOfChunksWritten=" + numOfChunksWritten);
+    // calculate statistics for step 4-8
+    List<String> focus = new ArrayList<>();
+    // focus.add(TsFileConstant.data_read_deserialize_ChunkHeader);
+    focus.add(TsFileConstant.data_read_ChunkData);
+    // focus.add(TsFileConstant.data_deserialize_PageHeader);
+    focus.add(TsFileConstant.data_ByteBuffer_to_ByteArray);
+    focus.add(TsFileConstant.data_decompress_PageData);
+    // focus.add(TsFileConstant.data_ByteArray_to_ByteBuffer);
+    // focus.add(TsFileConstant.data_split_time_value_Buffer);
+    focus.add(TsFileConstant.data_decode_time_value_Buffer);
+    StringBuilder stringBuilder = new StringBuilder();
+    for (String key : focus) {
+      DescriptiveStatistics stats = new DescriptiveStatistics();
+      for (long t : elapsedTimeInNanoSec.get(key)) {
+        stats.addValue(t);
+      }
+      long num = stats.getN();
+      double max = stats.getMax() / 1000.0;
+      double min = stats.getMin() / 1000.0;
+      double mean = stats.getMean() / 1000.0;
+      double std = stats.getStandardDeviation() / 1000.0;
+      double p25 = stats.getPercentile(25) / 1000.0;
+      double p50 = stats.getPercentile(50) / 1000.0;
+      double p75 = stats.getPercentile(75) / 1000.0;
+      double p90 = stats.getPercentile(90) / 1000.0;
+      double p95 = stats.getPercentile(95) / 1000.0;
+      System.out.println(
+          "- " + key + ": "
+              + "mean=" + mean + "us, "
+              + "num=" + num + ", "
+              + "min=" + min + "us, "
+              + "max=" + max + "us, "
+              + "std=" + std + "us, "
+              + "p25=" + p25 + "us, "
+              + "p50=" + p50 + "us, "
+              + "p75=" + p75 + "us, "
+              + "p90=" + p90 + "us, "
+              + "p95=" + p95 + "us, "
+      );
+      stringBuilder.append(mean);
+      stringBuilder.append(", ");
+    }
+    System.out.println(stringBuilder.toString());
   }
 
   /**
@@ -246,9 +369,9 @@ public class RLTestChunkReadCost {
     String sensorName = "s1";
     Path mypath = new Path(deviceName, sensorName);
 
+    int pagePointNum = 10;
     int numOfPagesInChunk = 20;
     int numOfChunksWritten = 10;
-    int pagePointNum = 10;
 
     int chunkPointNum = pagePointNum * numOfPagesInChunk;
     int rowNum = chunkPointNum * numOfChunksWritten; // 写数据点数

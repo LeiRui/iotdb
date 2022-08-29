@@ -36,6 +36,7 @@ public class TsFileConstant {
   // list all the key operations that need time measuring
 
   public static boolean decomposeMeasureTime = true; // false to measure the total time only
+  public static boolean DataSetWithoutTimeGenerator_total = false; // true to measure init, hasNext, next, instead of lower-level api such as readMemChunk
 
   // [index part]
   public static String index_read_deserialize_MagicString_FileMetadataSize =
@@ -52,9 +53,15 @@ public class TsFileConstant {
   // [data part]
   public static String data_read_deserialize_ChunkHeader = "4_data_read_deserialize_ChunkHeader";
   public static String data_read_ChunkData = "5_data_read_ChunkData";
+
   public static String data_deserialize_PageHeader = "6_data_deserialize_PageHeader";
-  public static String data_decompress_PageData_split_timeBuffer_valueBuffer =
-      "7_data_decompress_PageData_split_timeBuffer_valueBuffer";
+
+  // public static String data_decompress_PageData_split_timeBuffer_valueBuffer = "7_data_decompress_PageData_split_timeBuffer_valueBuffer";
+  public static String data_ByteBuffer_to_ByteArray = "7_1_data_ByteBuffer_to_ByteArray";
+  public static String data_decompress_PageData = "7_2_data_decompress_PageData";
+  public static String data_ByteArray_to_ByteBuffer = "7_3_data_ByteArray_to_ByteBuffer";
+  public static String data_split_time_value_Buffer = "7_4_data_split_time_value_Buffer";
+
   public static String data_decode_time_value_Buffer = "8_data_decode_time_value_Buffer";
 
   public static String other_cpu_time = "other_cpu_time";
