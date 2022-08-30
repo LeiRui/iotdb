@@ -36,8 +36,14 @@ import org.junit.Assert;
 public class RLTestChunkReadCost {
 
   public static void main(String[] args) throws Exception {
+    int pagePointNum = 10000;
+    int numOfPagesInChunk = 1000;
+    int numOfChunksWritten = 10;
+
     // ==============write tsfile==============
-    final String filePath = TsFileGeneratorForTest.getTestTsFilePath("root.sg1", 0, 0, 1);
+    // final String filePath = TsFileGeneratorForTest.getTestTsFilePath("root.sg1", 0, 0, 1);
+    String filePath = "testTsFile" + File.separator + pagePointNum + "_" + numOfPagesInChunk + "_"
+        + numOfChunksWritten + ".tsfile";
     File file = new File(filePath);
     if (!file.getParentFile().exists()) {
       Assert.assertTrue(file.getParentFile().mkdirs());
@@ -47,10 +53,6 @@ public class RLTestChunkReadCost {
     String deviceName = "d1";
     String sensorName = "s1";
     Path mypath = new Path(deviceName, sensorName);
-
-    int pagePointNum = 10000000;
-    int numOfPagesInChunk = 1;
-    int numOfChunksWritten = 10;
 
     int chunkPointNum = pagePointNum * numOfPagesInChunk;
     int rowNum = chunkPointNum * numOfChunksWritten; // 写数据点数
@@ -101,7 +103,7 @@ public class RLTestChunkReadCost {
     System.out.println("TsFile written!");
 
     // ==============warm up JIT==============
-    warmUpJIT();
+    // warmUpJIT();
     /*
     Why does the first method call always take the longest?
     应对尝试：先把大tsfile写了，然后写一个小的tsfile并且读一遍，然后紧跟着读大tsfile。
@@ -154,12 +156,7 @@ public class RLTestChunkReadCost {
       elapsedTimeInNanoSec.put(TsFileConstant.other_cpu_time, new ArrayList<>());
     }
     elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time).add(elapsedTime);
-    System.out.println(
-        "done:"
-            + TsFileConstant.other_cpu_time
-            + ","
-            + elapsedTime / 1000.0
-            + "us");
+    System.out.println("done:" + TsFileConstant.other_cpu_time + "," + elapsedTime / 1000.0 + "us");
 
     // fill up chunkMetaDataCache by reading 【TimeseriesIndex】
     metadataQuerier.loadChunkMetaDatas(selectedSeries, elapsedTimeInNanoSec);
@@ -291,9 +288,9 @@ public class RLTestChunkReadCost {
         sum += t / 1000.0;
         stringBuilder.append(t / 1000.0 + ", ");
       }
-      System.out.println(
-          "[" + sum + "us(SUM)," + elapsedTimes.size() + "(CNT)]:" + stringBuilder.toString());
-      System.out.println();
+      System.out.print(
+          "[" + sum + "us(SUM)," + elapsedTimes.size() + "(CNT)]:");
+      System.out.println(stringBuilder.toString());
 
       if (!key.equals(TsFileConstant.total_time)) {
         totalSum += sum;

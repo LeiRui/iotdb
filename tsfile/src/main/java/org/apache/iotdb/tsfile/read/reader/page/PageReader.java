@@ -195,10 +195,7 @@ public class PageReader implements IPageReader {
       }
       elapsedTimeInNanoSec.get(TsFileConstant.data_decode_time_value_Buffer).add(elapsedTime);
       System.out.println(
-          "done:"
-              + TsFileConstant.data_decode_time_value_Buffer
-              + ","
-              + elapsedTime / 1000.0
+          "done:" + TsFileConstant.data_decode_time_value_Buffer + "," + elapsedTime / 1000.0
               + "us");
     } else {
       pageData = BatchDataFactory.createBatchData(dataType, ascending, false);
