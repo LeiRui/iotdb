@@ -65,8 +65,14 @@ public class RLTestChunkReadCost {
             .MAX_VALUE); // 把chunkGroupSizeThreshold设够大，使得不会因为这个限制而flush，但是使用手动地提前flushAllChunkGroups来控制一个chunk里的数据量。
 
     TsFileWriter tsFileWriter = new TsFileWriter(file, new Schema(), tsFileConfig);
-    MeasurementSchema measurementSchema =
-        new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.PLAIN, CompressionType.LZ4);
+    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,TSEncoding.PLAIN, CompressionType.LZ4);
+    MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.RLE, CompressionType.LZ4);
+    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.DIFF, CompressionType.LZ4);
+    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.TS_2DIFF, CompressionType.LZ4);
+    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.BITMAP, CompressionType.LZ4);
+    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.GORILLA_V1, CompressionType.LZ4);
+    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.REGULAR, CompressionType.LZ4);
+    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.GORILLA, CompressionType.LZ4);
     tsFileWriter.registerTimeseries(new Path(mypath.getDevice()), measurementSchema);
 
     List<MeasurementSchema> schemaList = new ArrayList<>();
@@ -276,7 +282,7 @@ public class RLTestChunkReadCost {
     tsFileReader.close();
     //    file.delete();
 
-    // ==============print elapsed time rechsults==============
+    // ==============print elapsed time results==============
     double totalSum = 0;
     for (Map.Entry<String, List<Long>> entry : elapsedTimeInNanoSec.entrySet()) {
       String key = entry.getKey();
@@ -347,6 +353,66 @@ public class RLTestChunkReadCost {
       stringBuilder.append(", ");
     }
     System.out.println(stringBuilder.toString());
+
+    System.out.println(
+        "====================================sum results====================================");
+    double A_get_chunkMetadatas = 0;
+    double B_load_on_disk_chunkData = 0;
+    double C_get_pageHeader = 0;
+    double D_1_decompress_pageData_in_batch = 0;
+    double D_2_decode_pageData_point_by_point = 0;
+    for (Map.Entry<String, List<Long>> entry : elapsedTimeInNanoSec.entrySet()) {
+      String key = entry.getKey();
+      List<Long> elapsedTimes = entry.getValue();
+      double sum = 0;
+      for (Long t : elapsedTimes) {
+        sum += t / 1000.0;
+      }
+      if (key.equals(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize)
+          || key.equals(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)
+          || key.equals(
+          TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
+          || key.equals(
+          TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
+        A_get_chunkMetadatas += sum;
+      }
+      if (key.equals(TsFileConstant.data_read_deserialize_ChunkHeader)
+          || key.equals(TsFileConstant.data_read_ChunkData)) {
+        B_load_on_disk_chunkData += sum;
+      }
+      if (key.equals(TsFileConstant.data_deserialize_PageHeader)) {
+        C_get_pageHeader += sum;
+      }
+      if (key.equals(TsFileConstant.data_ByteBuffer_to_ByteArray)
+          || key.equals(TsFileConstant.data_decompress_PageData)
+          || key.equals(TsFileConstant.data_ByteArray_to_ByteBuffer)
+          || key.equals(TsFileConstant.data_split_time_value_Buffer)) {
+        D_1_decompress_pageData_in_batch += sum;
+      }
+      if (key.equals(TsFileConstant.data_decode_time_value_Buffer)) {
+        D_2_decode_pageData_point_by_point += sum;
+      }
+    }
+    double total = 0;
+    total += A_get_chunkMetadatas;
+    total += B_load_on_disk_chunkData;
+    total += C_get_pageHeader;
+    total += D_1_decompress_pageData_in_batch;
+    total += D_2_decode_pageData_point_by_point;
+    System.out.println(
+        "A_get_chunkMetadatas = " + A_get_chunkMetadatas + "us "
+            + A_get_chunkMetadatas / total * 100 + "%");
+    System.out.println("B_load_on_disk_chunkData = " + B_load_on_disk_chunkData + "us "
+        + B_load_on_disk_chunkData / total * 100 + "%");
+    System.out
+        .println("C_get_pageHeader = " + C_get_pageHeader + "us " + C_get_pageHeader / total * 100
+            + "%");
+    System.out
+        .println("D_1_decompress_pageData_in_batch = " + D_1_decompress_pageData_in_batch + "us "
+            + D_1_decompress_pageData_in_batch / total * 100 + "%");
+    System.out.println(
+        "D_2_decode_pageData_point_by_point = " + D_2_decode_pageData_point_by_point + "us "
+            + D_2_decode_pageData_point_by_point / total * 100 + "%");
   }
 
   /**
