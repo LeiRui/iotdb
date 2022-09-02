@@ -36,7 +36,8 @@ public class TsFileConstant {
   // list all the key operations that need time measuring
 
   public static boolean decomposeMeasureTime = true; // false to measure the total time only
-  public static boolean DataSetWithoutTimeGenerator_total = false; // true to measure init, hasNext, next, instead of lower-level api such as readMemChunk
+  public static boolean DataSetWithoutTimeGenerator_total =
+      false; // true to measure init, hasNext, next, instead of lower-level api such as readMemChunk
 
   // [index part]
   public static String index_read_deserialize_MagicString_FileMetadataSize =
@@ -45,10 +46,12 @@ public class TsFileConstant {
   public static String index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter =
       "2_index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter";
   // from the IndexRootNode to the TimeseriesMetadata
-  public static String index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp =
-      "3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp";
-  public static String index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet =
-      "3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet";
+  public static String
+      index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp =
+          "3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp";
+  public static String
+      index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet =
+          "3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet";
 
   // [data part]
   public static String data_read_deserialize_ChunkHeader = "4_data_read_deserialize_ChunkHeader";
@@ -56,7 +59,8 @@ public class TsFileConstant {
 
   public static String data_deserialize_PageHeader = "6_data_deserialize_PageHeader";
 
-  // public static String data_decompress_PageData_split_timeBuffer_valueBuffer = "7_data_decompress_PageData_split_timeBuffer_valueBuffer";
+  // public static String data_decompress_PageData_split_timeBuffer_valueBuffer =
+  // "7_data_decompress_PageData_split_timeBuffer_valueBuffer";
   public static String data_ByteBuffer_to_ByteArray = "7_1_data_ByteBuffer_to_ByteArray";
   public static String data_decompress_PageData = "7_2_data_decompress_PageData";
   public static String data_ByteArray_to_ByteBuffer = "7_3_data_ByteArray_to_ByteBuffer";
@@ -67,6 +71,5 @@ public class TsFileConstant {
   public static String other_cpu_time = "other_cpu_time";
   public static String total_time = "total_time";
 
-  private TsFileConstant() {
-  }
+  private TsFileConstant() {}
 }

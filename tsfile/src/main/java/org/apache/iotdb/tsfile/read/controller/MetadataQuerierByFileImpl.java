@@ -18,17 +18,6 @@
  */
 package org.apache.iotdb.tsfile.read.controller;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
 import org.apache.iotdb.tsfile.common.cache.LRUCache;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.file.metadata.AlignedTimeSeriesMetadata;
@@ -43,6 +32,18 @@ import org.apache.iotdb.tsfile.read.TsFileSequenceReader.LocateStatus;
 import org.apache.iotdb.tsfile.read.common.Path;
 import org.apache.iotdb.tsfile.read.common.TimeRange;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+
 public class MetadataQuerierByFileImpl implements IMetadataQuerier {
 
   // number of cache entries (path -> List<ChunkMetadata>)
@@ -55,9 +56,7 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
 
   private TsFileSequenceReader tsFileReader;
 
-  /**
-   * Constructor of MetadataQuerierByFileImpl.
-   */
+  /** Constructor of MetadataQuerierByFileImpl. */
   public MetadataQuerierByFileImpl(TsFileSequenceReader tsFileReader) throws IOException {
     this.tsFileReader = tsFileReader;
     this.fileMetaData = tsFileReader.readFileMetadata();
@@ -108,20 +107,12 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
             }
           };
       long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec
-          .containsKey(TsFileConstant.other_cpu_time)) {
-        elapsedTimeInNanoSec
-            .put(TsFileConstant.other_cpu_time,
-                new ArrayList<>());
+      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.other_cpu_time)) {
+        elapsedTimeInNanoSec.put(TsFileConstant.other_cpu_time, new ArrayList<>());
       }
-      elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time)
-          .add(elapsedTime);
+      elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time).add(elapsedTime);
       System.out.println(
-          "done:"
-              + TsFileConstant.other_cpu_time
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
+          "done:" + TsFileConstant.other_cpu_time + "," + elapsedTime / 1000.0 + "us");
     } else {
       chunkMetaDataCache =
           new LRUCache<Path, List<IChunkMetadata>>(CACHED_ENTRY_NUMBER) {
@@ -146,18 +137,22 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
       iChunkMetadataList = new ArrayList<>(chunkMetaDataCache.get(timeseriesPath));
       long elapsedTime = System.nanoTime() - start;
       if (!elapsedTimeInNanoSec.containsKey(
-          TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
+          TsFileConstant
+              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
         elapsedTimeInNanoSec.put(
-            TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet,
+            TsFileConstant
+                .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet,
             new ArrayList<>());
       }
       elapsedTimeInNanoSec
           .get(
-              TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)
+              TsFileConstant
+                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)
           .add(elapsedTime);
       System.out.println(
           "done:"
-              + TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet
+              + TsFileConstant
+                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet
               + ","
               + elapsedTime / 1000.0
               + "us");
@@ -286,18 +281,22 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
 
       long elapsedTime = System.nanoTime() - start;
       if (!elapsedTimeInNanoSec.containsKey(
-          TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)) {
+          TsFileConstant
+              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)) {
         elapsedTimeInNanoSec.put(
-            TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp,
+            TsFileConstant
+                .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp,
             new ArrayList<>());
       }
       elapsedTimeInNanoSec
           .get(
-              TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
+              TsFileConstant
+                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
           .add(elapsedTime);
       System.out.println(
           "done:"
-              + TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp
+              + TsFileConstant
+                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp
               + ","
               + elapsedTime / 1000.0
               + "us");
@@ -441,9 +440,9 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
   /**
    * Check the location of a given chunkGroupMetaData with respect to a space partition constraint.
    *
-   * @param chunkMetaData          the given chunkMetaData
+   * @param chunkMetaData the given chunkMetaData
    * @param spacePartitionStartPos the start position of the space partition
-   * @param spacePartitionEndPos   the end position of the space partition
+   * @param spacePartitionEndPos the end position of the space partition
    * @return LocateStatus
    */
   public static LocateStatus checkLocateStatus(

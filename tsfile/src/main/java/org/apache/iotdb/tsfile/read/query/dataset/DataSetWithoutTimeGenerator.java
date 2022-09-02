@@ -18,14 +18,6 @@
  */
 package org.apache.iotdb.tsfile.read.query.dataset;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Set;
-import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.BatchData;
@@ -34,9 +26,15 @@ import org.apache.iotdb.tsfile.read.common.Path;
 import org.apache.iotdb.tsfile.read.common.RowRecord;
 import org.apache.iotdb.tsfile.read.reader.series.AbstractFileSeriesReader;
 
-/**
- * multi-way merging data set, no need to use TimeGenerator.
- */
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
+
+/** multi-way merging data set, no need to use TimeGenerator. */
 public class DataSetWithoutTimeGenerator extends QueryDataSet {
 
   private List<AbstractFileSeriesReader> readers;
@@ -45,9 +43,7 @@ public class DataSetWithoutTimeGenerator extends QueryDataSet {
 
   private List<Boolean> hasDataRemaining;
 
-  /**
-   * heap only need to store time.
-   */
+  /** heap only need to store time. */
   private PriorityQueue<Long> timeHeap;
 
   private Set<Long> timeSet;
@@ -57,9 +53,9 @@ public class DataSetWithoutTimeGenerator extends QueryDataSet {
   /**
    * constructor of DataSetWithoutTimeGenerator.
    *
-   * @param paths     paths in List structure
+   * @param paths paths in List structure
    * @param dataTypes TSDataTypes in List structure
-   * @param readers   readers in List(FileSeriesReaderByTimestamp) structure
+   * @param readers readers in List(FileSeriesReaderByTimestamp) structure
    * @throws IOException IOException
    */
   public DataSetWithoutTimeGenerator(
@@ -142,9 +138,7 @@ public class DataSetWithoutTimeGenerator extends QueryDataSet {
     return record;
   }
 
-  /**
-   * keep heap from storing duplicate time.
-   */
+  /** keep heap from storing duplicate time. */
   private void timeHeapPut(long time) {
     if (!timeSet.contains(time)) {
       timeSet.add(time);

@@ -38,12 +38,21 @@ public class RLTestChunkReadCost {
   public static void main(String[] args) throws Exception {
     int pagePointNum = 10000;
     int numOfPagesInChunk = 1000;
-    int numOfChunksWritten = 10;
+    int numOfChunksWritten = 10 * 5;
 
     // ==============write tsfile==============
     // final String filePath = TsFileGeneratorForTest.getTestTsFilePath("root.sg1", 0, 0, 1);
-    String filePath = "testTsFile" + File.separator + pagePointNum + "_" + numOfPagesInChunk + "_"
-        + numOfChunksWritten + ".tsfile";
+    String filePath =
+        "testTsFile"
+            + File.separator
+            + pagePointNum
+            + "_"
+            + numOfPagesInChunk
+            + "_"
+            + numOfChunksWritten
+            + "_"
+            + System.currentTimeMillis()
+            + ".tsfile";
     File file = new File(filePath);
     if (!file.getParentFile().exists()) {
       Assert.assertTrue(file.getParentFile().mkdirs());
@@ -64,15 +73,27 @@ public class RLTestChunkReadCost {
         Integer
             .MAX_VALUE); // 把chunkGroupSizeThreshold设够大，使得不会因为这个限制而flush，但是使用手动地提前flushAllChunkGroups来控制一个chunk里的数据量。
 
+//    tsFileConfig.setTimeEncoder("PLAIN"); // 设置时间戳列的编码方式 TS_2DIFF, PLAIN and RLE(run-length encoding). Default value is TS_2DIFF.
+//    tsFileConfig.setTimeEncoder(
+//        "RLE"); // 设置时间戳列的编码方式 TS_2DIFF, PLAIN and RLE(run-length encoding). Default value is TS_2DIFF.
+
     TsFileWriter tsFileWriter = new TsFileWriter(file, new Schema(), tsFileConfig);
-    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,TSEncoding.PLAIN, CompressionType.LZ4);
-    MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.RLE, CompressionType.LZ4);
-    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.DIFF, CompressionType.LZ4);
-    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.TS_2DIFF, CompressionType.LZ4);
-    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.BITMAP, CompressionType.LZ4);
-    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.GORILLA_V1, CompressionType.LZ4);
-    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.REGULAR, CompressionType.LZ4);
-    // MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.GORILLA, CompressionType.LZ4);
+    MeasurementSchema measurementSchema = new MeasurementSchema(sensorName,
+        TSDataType.INT32, TSEncoding.PLAIN, CompressionType.LZ4);
+//    MeasurementSchema measurementSchema =
+//        new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.RLE, CompressionType.LZ4);
+//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
+//     TSEncoding.DIFF, CompressionType.LZ4);
+//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
+//     TSEncoding.TS_2DIFF, CompressionType.LZ4);
+//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
+//     TSEncoding.BITMAP, CompressionType.LZ4);
+//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
+//     TSEncoding.GORILLA_V1, CompressionType.LZ4);
+//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
+//     TSEncoding.REGULAR, CompressionType.LZ4);
+//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
+//     TSEncoding.GORILLA, CompressionType.LZ4);
     tsFileWriter.registerTimeseries(new Path(mypath.getDevice()), measurementSchema);
 
     List<MeasurementSchema> schemaList = new ArrayList<>();
@@ -189,20 +210,12 @@ public class RLTestChunkReadCost {
         }
         readersOfSelectedSeries.add(seriesReader);
         elapsedTime = System.nanoTime() - start;
-        if (!elapsedTimeInNanoSec
-            .containsKey(TsFileConstant.other_cpu_time)) {
-          elapsedTimeInNanoSec
-              .put(TsFileConstant.other_cpu_time,
-                  new ArrayList<>());
+        if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.other_cpu_time)) {
+          elapsedTimeInNanoSec.put(TsFileConstant.other_cpu_time, new ArrayList<>());
         }
-        elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time)
-            .add(elapsedTime);
+        elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time).add(elapsedTime);
         System.out.println(
-            "done:"
-                + TsFileConstant.other_cpu_time
-                + ","
-                + elapsedTime / 1000.0
-                + "us");
+            "done:" + TsFileConstant.other_cpu_time + "," + elapsedTime / 1000.0 + "us");
       } else {
         AbstractFileSeriesReader seriesReader;
         if (chunkMetadataList.isEmpty()) {
@@ -237,20 +250,12 @@ public class RLTestChunkReadCost {
         cnt++;
       }
       elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec
-          .containsKey(TsFileConstant.other_cpu_time)) {
-        elapsedTimeInNanoSec
-            .put(TsFileConstant.other_cpu_time,
-                new ArrayList<>());
+      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.other_cpu_time)) {
+        elapsedTimeInNanoSec.put(TsFileConstant.other_cpu_time, new ArrayList<>());
       }
-      elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time)
-          .add(elapsedTime);
+      elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time).add(elapsedTime);
       System.out.println(
-          "done:"
-              + TsFileConstant.other_cpu_time
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
+          "done:" + TsFileConstant.other_cpu_time + "," + elapsedTime / 1000.0 + "us");
     } else {
       // loading and deserializing 【ChunkHeader】,
       // loading 【ChunkData】 buffer,
@@ -294,9 +299,9 @@ public class RLTestChunkReadCost {
         sum += t / 1000.0;
         stringBuilder.append(t / 1000.0 + ", ");
       }
-      System.out.print(
-          "[" + sum + "us(SUM)," + elapsedTimes.size() + "(CNT)]:");
-      System.out.println(stringBuilder.toString());
+      System.out.print("[" + sum + "us(SUM)," + elapsedTimes.size() + "(CNT)]:");
+      System.out.println();
+//      System.out.println(stringBuilder.toString());
 
       if (!key.equals(TsFileConstant.total_time)) {
         totalSum += sum;
@@ -337,18 +342,9 @@ public class RLTestChunkReadCost {
       double p90 = stats.getPercentile(90) / 1000.0;
       double p95 = stats.getPercentile(95) / 1000.0;
       System.out.println(
-          "- " + key + ": "
-              + "mean=" + mean + "us, "
-              + "num=" + num + ", "
-              + "min=" + min + "us, "
-              + "max=" + max + "us, "
-              + "std=" + std + "us, "
-              + "p25=" + p25 + "us, "
-              + "p50=" + p50 + "us, "
-              + "p75=" + p75 + "us, "
-              + "p90=" + p90 + "us, "
-              + "p95=" + p95 + "us, "
-      );
+          "- " + key + ": " + "mean=" + mean + "us, " + "num=" + num + ", " + "min=" + min + "us, "
+              + "max=" + max + "us, " + "std=" + std + "us, " + "p25=" + p25 + "us, " + "p50=" + p50
+              + "us, " + "p75=" + p75 + "us, " + "p90=" + p90 + "us, " + "p95=" + p95 + "us, ");
       stringBuilder.append(mean);
       stringBuilder.append(", ");
     }
@@ -371,9 +367,11 @@ public class RLTestChunkReadCost {
       if (key.equals(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize)
           || key.equals(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)
           || key.equals(
-          TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
+          TsFileConstant
+              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
           || key.equals(
-          TsFileConstant.index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
+          TsFileConstant
+              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
         A_get_chunkMetadatas += sum;
       }
       if (key.equals(TsFileConstant.data_read_deserialize_ChunkHeader)
@@ -400,19 +398,31 @@ public class RLTestChunkReadCost {
     total += D_1_decompress_pageData_in_batch;
     total += D_2_decode_pageData_point_by_point;
     System.out.println(
-        "A_get_chunkMetadatas = " + A_get_chunkMetadatas + "us "
-            + A_get_chunkMetadatas / total * 100 + "%");
-    System.out.println("B_load_on_disk_chunkData = " + B_load_on_disk_chunkData + "us "
-        + B_load_on_disk_chunkData / total * 100 + "%");
-    System.out
-        .println("C_get_pageHeader = " + C_get_pageHeader + "us " + C_get_pageHeader / total * 100
+        "A_get_chunkMetadatas = "
+            + A_get_chunkMetadatas
+            + "us "
+            + A_get_chunkMetadatas / total * 100
             + "%");
-    System.out
-        .println("D_1_decompress_pageData_in_batch = " + D_1_decompress_pageData_in_batch + "us "
-            + D_1_decompress_pageData_in_batch / total * 100 + "%");
     System.out.println(
-        "D_2_decode_pageData_point_by_point = " + D_2_decode_pageData_point_by_point + "us "
-            + D_2_decode_pageData_point_by_point / total * 100 + "%");
+        "B_load_on_disk_chunkData = "
+            + B_load_on_disk_chunkData
+            + "us "
+            + B_load_on_disk_chunkData / total * 100
+            + "%");
+    System.out.println(
+        "C_get_pageHeader = " + C_get_pageHeader + "us " + C_get_pageHeader / total * 100 + "%");
+    System.out.println(
+        "D_1_decompress_pageData_in_batch = "
+            + D_1_decompress_pageData_in_batch
+            + "us "
+            + D_1_decompress_pageData_in_batch / total * 100
+            + "%");
+    System.out.println(
+        "D_2_decode_pageData_point_by_point = "
+            + D_2_decode_pageData_point_by_point
+            + "us "
+            + D_2_decode_pageData_point_by_point / total * 100
+            + "%");
   }
 
   /**
@@ -598,6 +608,4 @@ public class RLTestChunkReadCost {
     System.out.println("==============warmUpJIT finishes==============");
     System.out.println();
   }
-
-
 }

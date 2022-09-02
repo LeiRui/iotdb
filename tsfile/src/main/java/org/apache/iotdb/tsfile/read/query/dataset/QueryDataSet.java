@@ -18,13 +18,14 @@
  */
 package org.apache.iotdb.tsfile.read.query.dataset;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.Field;
 import org.apache.iotdb.tsfile.read.common.Path;
 import org.apache.iotdb.tsfile.read.common.RowRecord;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 
 public abstract class QueryDataSet {
 
@@ -43,27 +44,18 @@ public abstract class QueryDataSet {
    */
   protected EndPoint endPoint = null;
 
-  /**
-   * if any column is null, we don't need that row
-   */
+  /** if any column is null, we don't need that row */
   protected boolean withoutAnyNull;
 
-  /**
-   * Only if all columns are null, we don't need that row
-   */
+  /** Only if all columns are null, we don't need that row */
   protected boolean withoutAllNull;
 
-  /**
-   * index set that withoutNullColumns for output data columns
-   */
+  /** index set that withoutNullColumns for output data columns */
   protected Set<Integer> withoutNullColumnsIndex;
 
   protected int columnNum;
 
-
-  /**
-   * For redirect query. Need keep consistent with EndPoint in rpc.thrift.
-   */
+  /** For redirect query. Need keep consistent with EndPoint in rpc.thrift. */
   public static class EndPoint {
 
     private String ip = null;
@@ -74,8 +66,7 @@ public abstract class QueryDataSet {
       this.port = port;
     }
 
-    public EndPoint() {
-    }
+    public EndPoint() {}
 
     public String getIp() {
       return ip;
@@ -99,8 +90,7 @@ public abstract class QueryDataSet {
     }
   }
 
-  public QueryDataSet() {
-  }
+  public QueryDataSet() {}
 
   public QueryDataSet(List<Path> paths, List<TSDataType> dataTypes) {
     initQueryDataSetFields(paths, dataTypes, true);
@@ -163,9 +153,9 @@ public abstract class QueryDataSet {
   public boolean withoutNullFilter(RowRecord rowRecord) {
     boolean
         anyNullFlag =
-        (withoutNullColumnsIndex == null)
-            ? rowRecord.hasNullField()
-            : (withoutNullColumnsIndex.isEmpty() && rowRecord.hasNullField()),
+            (withoutNullColumnsIndex == null)
+                ? rowRecord.hasNullField()
+                : (withoutNullColumnsIndex.isEmpty() && rowRecord.hasNullField()),
         allNullFlag = (withoutNullColumnsIndex != null) || rowRecord.isAllNull();
 
     if (withoutNullColumnsIndex != null) {
@@ -193,9 +183,7 @@ public abstract class QueryDataSet {
 
   public abstract boolean hasNextWithoutConstraint() throws IOException;
 
-  /**
-   * This method is used for batch query, return RowRecord.
-   */
+  /** This method is used for batch query, return RowRecord. */
   public RowRecord next() throws IOException {
     if (rowLimit > 0) {
       alreadyReturnedRowNum++;
