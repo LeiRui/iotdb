@@ -146,14 +146,16 @@ public class PageReader implements IPageReader {
       long elapsedTime = System.nanoTime() - start;
       if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_createBatchData)) {
         elapsedTimeInNanoSec.put(TsFileConstant.D_2_createBatchData, new ArrayList<>());
+        elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).add(0L);
       }
-      elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).add(elapsedTime);
-      System.out.println(
-          "done:"
-              + TsFileConstant.D_2_createBatchData
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
+      elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).set(0,
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).get(0) + elapsedTime);
+//      System.out.println(
+//          "done:"
+//              + TsFileConstant.D_2_createBatchData
+//              + ","
+//              + elapsedTime / 1000.0
+//              + "us");
 
       if (filter == null || filter.satisfy(getStatistics())) {
         while (true) {
@@ -162,8 +164,11 @@ public class PageReader implements IPageReader {
           elapsedTime = System.nanoTime() - start;
           if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_timeDecoder_hasNext)) {
             elapsedTimeInNanoSec.put(TsFileConstant.D_2_timeDecoder_hasNext, new ArrayList<>());
+            elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).add(0L);
           }
-          elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).add(elapsedTime);
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).set(0,
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).get(0)
+                  + elapsedTime);
 
           if (!hasNext) {
             break;
@@ -174,8 +179,11 @@ public class PageReader implements IPageReader {
           elapsedTime = System.nanoTime() - start;
           if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_timeDecoder_readLong)) {
             elapsedTimeInNanoSec.put(TsFileConstant.D_2_timeDecoder_readLong, new ArrayList<>());
+            elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).add(0L);
           }
-          elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).add(elapsedTime);
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).set(0,
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).get(0)
+                  + elapsedTime);
 
           switch (dataType) {
             case BOOLEAN:
@@ -184,8 +192,11 @@ public class PageReader implements IPageReader {
               elapsedTime = System.nanoTime() - start;
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
                 elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
+                      + elapsedTime);
 
               start = System.nanoTime();
               boolean statisfy =
@@ -194,8 +205,11 @@ public class PageReader implements IPageReader {
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
                 elapsedTimeInNanoSec
                     .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
+                      + elapsedTime);
 
               if (statisfy) {
                 start = System.nanoTime();
@@ -203,8 +217,11 @@ public class PageReader implements IPageReader {
                 elapsedTime = System.nanoTime() - start;
                 if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
                   elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
                 }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(elapsedTime);
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
+                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
+                        + elapsedTime);
               }
 
               break;
@@ -214,8 +231,11 @@ public class PageReader implements IPageReader {
               elapsedTime = System.nanoTime() - start;
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
                 elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
+                      + elapsedTime);
 
               start = System.nanoTime();
               statisfy =
@@ -224,8 +244,11 @@ public class PageReader implements IPageReader {
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
                 elapsedTimeInNanoSec
                     .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
+                      + elapsedTime);
 
               if (statisfy) {
                 start = System.nanoTime();
@@ -233,8 +256,12 @@ public class PageReader implements IPageReader {
                 elapsedTime = System.nanoTime() - start;
                 if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
                   elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
                 }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(elapsedTime);
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
+                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
+                        + elapsedTime);
+
               }
               break;
 
@@ -244,8 +271,11 @@ public class PageReader implements IPageReader {
               elapsedTime = System.nanoTime() - start;
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
                 elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
+                      + elapsedTime);
 
               start = System.nanoTime();
               statisfy =
@@ -254,8 +284,11 @@ public class PageReader implements IPageReader {
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
                 elapsedTimeInNanoSec
                     .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
+                      + elapsedTime);
 
               if (statisfy) {
                 start = System.nanoTime();
@@ -263,8 +296,11 @@ public class PageReader implements IPageReader {
                 elapsedTime = System.nanoTime() - start;
                 if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
                   elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
                 }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(elapsedTime);
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
+                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
+                        + elapsedTime);
               }
               break;
 
@@ -274,8 +310,11 @@ public class PageReader implements IPageReader {
               elapsedTime = System.nanoTime() - start;
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
                 elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
+                      + elapsedTime);
 
               start = System.nanoTime();
               statisfy =
@@ -284,8 +323,11 @@ public class PageReader implements IPageReader {
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
                 elapsedTimeInNanoSec
                     .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
+                      + elapsedTime);
 
               if (statisfy) {
                 start = System.nanoTime();
@@ -293,8 +335,11 @@ public class PageReader implements IPageReader {
                 elapsedTime = System.nanoTime() - start;
                 if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
                   elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
                 }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(elapsedTime);
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
+                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
+                        + elapsedTime);
               }
               break;
 
@@ -304,8 +349,11 @@ public class PageReader implements IPageReader {
               elapsedTime = System.nanoTime() - start;
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
                 elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
+                      + elapsedTime);
 
               start = System.nanoTime();
               statisfy =
@@ -314,8 +362,11 @@ public class PageReader implements IPageReader {
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
                 elapsedTimeInNanoSec
                     .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
+                      + elapsedTime);
 
               if (statisfy) {
                 start = System.nanoTime();
@@ -323,8 +374,11 @@ public class PageReader implements IPageReader {
                 elapsedTime = System.nanoTime() - start;
                 if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
                   elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
                 }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(elapsedTime);
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
+                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
+                        + elapsedTime);
               }
               break;
 
@@ -334,8 +388,11 @@ public class PageReader implements IPageReader {
               elapsedTime = System.nanoTime() - start;
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
                 elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
+                      + elapsedTime);
 
               start = System.nanoTime();
               statisfy =
@@ -344,8 +401,11 @@ public class PageReader implements IPageReader {
               if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
                 elapsedTimeInNanoSec
                     .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
               }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(elapsedTime);
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
+                      + elapsedTime);
 
               if (statisfy) {
                 start = System.nanoTime();
@@ -353,8 +413,11 @@ public class PageReader implements IPageReader {
                 elapsedTime = System.nanoTime() - start;
                 if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
                   elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
+                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
                 }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(elapsedTime);
+                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
+                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
+                        + elapsedTime);
               }
               break;
             default:
@@ -362,6 +425,18 @@ public class PageReader implements IPageReader {
           }
         }
       }
+      System.out.println(
+          "done:"
+              + TsFileConstant.data_decode_time_value_Buffer
+              + ", cumulative: "
+              + (elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).get(0) +
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).get(0) +
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).get(0) +
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0) +
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0) +
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)) / 1000.0
+              + "us");
+
     } else if (TsFileConstant.decomposeMeasureTime
         && !TsFileConstant.DataSetWithoutTimeGenerator_total) {
       long start = System.nanoTime();

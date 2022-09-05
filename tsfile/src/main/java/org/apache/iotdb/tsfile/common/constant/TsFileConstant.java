@@ -38,7 +38,6 @@ public class TsFileConstant {
   public static boolean decomposeMeasureTime = true; // false to measure the total time only
   public static boolean DataSetWithoutTimeGenerator_total =
       false; // true to measure init, hasNext, next, instead of lower-level api such as readMemChunk
-  public static boolean D_2_decompose_each_step = true;
 
   // [index part]
   public static String index_read_deserialize_MagicString_FileMetadataSize =
@@ -60,14 +59,15 @@ public class TsFileConstant {
 
   public static String data_deserialize_PageHeader = "6_data_deserialize_PageHeader";
 
-  // public static String data_decompress_PageData_split_timeBuffer_valueBuffer =
-  // "7_data_decompress_PageData_split_timeBuffer_valueBuffer";
   public static String data_ByteBuffer_to_ByteArray = "7_1_data_ByteBuffer_to_ByteArray";
   public static String data_decompress_PageData = "7_2_data_decompress_PageData";
   public static String data_ByteArray_to_ByteBuffer = "7_3_data_ByteArray_to_ByteBuffer";
   public static String data_split_time_value_Buffer = "7_4_data_split_time_value_Buffer";
 
   public static String data_decode_time_value_Buffer = "8_data_decode_time_value_Buffer";
+
+  // false to measure 8_data_decode_time_value_Buffer as a whole, true to measure each step in 8_data_decode_time_value_Buffer
+  public static boolean D_2_decompose_each_step = true;
   public static String D_2_createBatchData = "D_2_1_createBatchData";
   public static String D_2_timeDecoder_hasNext = "D_2_2_timeDecoder_hasNext";
   public static String D_2_timeDecoder_readLong = "D_2_3_timeDecoder_readLong";

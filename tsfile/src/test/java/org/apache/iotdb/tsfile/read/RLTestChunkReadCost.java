@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.iotdb.tsfile.common.conf.TSFileConfig;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
@@ -75,12 +74,15 @@ public class RLTestChunkReadCost {
             .MAX_VALUE); // 把chunkGroupSizeThreshold设够大，使得不会因为这个限制而flush，但是使用手动地提前flushAllChunkGroups来控制一个chunk里的数据量。
 
     // 设置时间戳列的编码方式 TS_2DIFF, PLAIN and RLE(run-length encoding). Default value is TS_2DIFF.
-//    tsFileConfig.setTimeEncoder("PLAIN");
-    tsFileConfig.setTimeEncoder("RLE");
+    String timeEncoding = "TS_2DIFF";
+    tsFileConfig.setTimeEncoder(timeEncoding);
 
     TsFileWriter tsFileWriter = new TsFileWriter(file, new Schema(), tsFileConfig);
+    TSDataType valueDataType = TSDataType.INT32;
+    TSEncoding valueEncoding = TSEncoding.PLAIN;
+    CompressionType compressionType = CompressionType.LZ4;
     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName,
-        TSDataType.INT32, TSEncoding.PLAIN, CompressionType.LZ4);
+        valueDataType, valueEncoding, compressionType);
 //    MeasurementSchema measurementSchema =
 //        new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.RLE, CompressionType.LZ4);
 //     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
@@ -310,46 +312,46 @@ public class RLTestChunkReadCost {
     }
     System.out.println("sum 1-8: " + totalSum + "us");
     System.out.println("ALL FINISHED!");
-    System.out.println(
-        "====================================focus results====================================");
 
-    System.out.println("- pagePointNum=" + pagePointNum);
-    System.out.println("- numOfPagesInChunk=" + numOfPagesInChunk);
-    System.out.println("- numOfChunksWritten=" + numOfChunksWritten);
-    // calculate statistics for step 4-8
-    List<String> focus = new ArrayList<>();
-    // focus.add(TsFileConstant.data_read_deserialize_ChunkHeader);
-    focus.add(TsFileConstant.data_read_ChunkData);
-    // focus.add(TsFileConstant.data_deserialize_PageHeader);
-    focus.add(TsFileConstant.data_ByteBuffer_to_ByteArray);
-    focus.add(TsFileConstant.data_decompress_PageData);
-    // focus.add(TsFileConstant.data_ByteArray_to_ByteBuffer);
-    // focus.add(TsFileConstant.data_split_time_value_Buffer);
-    focus.add(TsFileConstant.data_decode_time_value_Buffer);
-    StringBuilder stringBuilder = new StringBuilder();
-    for (String key : focus) {
-      DescriptiveStatistics stats = new DescriptiveStatistics();
-      for (long t : elapsedTimeInNanoSec.get(key)) {
-        stats.addValue(t);
-      }
-      long num = stats.getN();
-      double max = stats.getMax() / 1000.0;
-      double min = stats.getMin() / 1000.0;
-      double mean = stats.getMean() / 1000.0;
-      double std = stats.getStandardDeviation() / 1000.0;
-      double p25 = stats.getPercentile(25) / 1000.0;
-      double p50 = stats.getPercentile(50) / 1000.0;
-      double p75 = stats.getPercentile(75) / 1000.0;
-      double p90 = stats.getPercentile(90) / 1000.0;
-      double p95 = stats.getPercentile(95) / 1000.0;
-      System.out.println(
-          "- " + key + ": " + "mean=" + mean + "us, " + "num=" + num + ", " + "min=" + min + "us, "
-              + "max=" + max + "us, " + "std=" + std + "us, " + "p25=" + p25 + "us, " + "p50=" + p50
-              + "us, " + "p75=" + p75 + "us, " + "p90=" + p90 + "us, " + "p95=" + p95 + "us, ");
-      stringBuilder.append(mean);
-      stringBuilder.append(", ");
-    }
-    System.out.println(stringBuilder.toString());
+//    System.out.println(
+//        "====================================focus results====================================");
+//    System.out.println("- pagePointNum=" + pagePointNum);
+//    System.out.println("- numOfPagesInChunk=" + numOfPagesInChunk);
+//    System.out.println("- numOfChunksWritten=" + numOfChunksWritten);
+//    // calculate statistics for step 4-8
+//    List<String> focus = new ArrayList<>();
+//    // focus.add(TsFileConstant.data_read_deserialize_ChunkHeader);
+//    focus.add(TsFileConstant.data_read_ChunkData);
+//    // focus.add(TsFileConstant.data_deserialize_PageHeader);
+//    focus.add(TsFileConstant.data_ByteBuffer_to_ByteArray);
+//    focus.add(TsFileConstant.data_decompress_PageData);
+//    // focus.add(TsFileConstant.data_ByteArray_to_ByteBuffer);
+//    // focus.add(TsFileConstant.data_split_time_value_Buffer);
+//    focus.add(TsFileConstant.data_decode_time_value_Buffer);
+//    StringBuilder stringBuilder = new StringBuilder();
+//    for (String key : focus) {
+//      DescriptiveStatistics stats = new DescriptiveStatistics();
+//      for (long t : elapsedTimeInNanoSec.get(key)) {
+//        stats.addValue(t);
+//      }
+//      long num = stats.getN();
+//      double max = stats.getMax() / 1000.0;
+//      double min = stats.getMin() / 1000.0;
+//      double mean = stats.getMean() / 1000.0;
+//      double std = stats.getStandardDeviation() / 1000.0;
+//      double p25 = stats.getPercentile(25) / 1000.0;
+//      double p50 = stats.getPercentile(50) / 1000.0;
+//      double p75 = stats.getPercentile(75) / 1000.0;
+//      double p90 = stats.getPercentile(90) / 1000.0;
+//      double p95 = stats.getPercentile(95) / 1000.0;
+//      System.out.println(
+//          "- " + key + ": " + "mean=" + mean + "us, " + "num=" + num + ", " + "min=" + min + "us, "
+//              + "max=" + max + "us, " + "std=" + std + "us, " + "p25=" + p25 + "us, " + "p50=" + p50
+//              + "us, " + "p75=" + p75 + "us, " + "p90=" + p90 + "us, " + "p95=" + p95 + "us, ");
+//      stringBuilder.append(mean);
+//      stringBuilder.append(", ");
+//    }
+//    System.out.println(stringBuilder.toString());
 
     System.out.println(
         "====================================sum results====================================");
@@ -388,7 +390,14 @@ public class RLTestChunkReadCost {
           || key.equals(TsFileConstant.data_split_time_value_Buffer)) {
         D_1_decompress_pageData_in_batch += sum;
       }
-      if (key.equals(TsFileConstant.data_decode_time_value_Buffer)) {
+      if (key.equals(TsFileConstant.data_decode_time_value_Buffer)
+          || key.equals(TsFileConstant.D_2_createBatchData)
+          || key.equals(TsFileConstant.D_2_timeDecoder_hasNext)
+          || key.equals(TsFileConstant.D_2_timeDecoder_readLong)
+          || key.equals(TsFileConstant.D_2_valueDecoder_read)
+          || key.equals(TsFileConstant.D_2_checkValueSatisfyOrNot)
+          || key.equals(TsFileConstant.D_2_putIntoBatchData)
+      ) {
         D_2_decode_pageData_point_by_point += sum;
       }
     }
@@ -426,6 +435,71 @@ public class RLTestChunkReadCost {
             + "us, "
             + df.format(D_2_decode_pageData_point_by_point / total * 100)
             + "%");
+
+    if (TsFileConstant.D_2_decompose_each_step) {
+      System.out.println(
+          "====================================D_2_decompose_each_step====================================");
+      long total_D2 = elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).get(0) +
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).get(0) +
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).get(0) +
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0) +
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0) +
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0);
+      System.out.println(TsFileConstant.D_2_createBatchData + ": "
+          + df.format(elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).get(0) / 1000.0)
+          + "us, "
+          + df.format(
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).get(0) * 100.0 / total_D2)
+          + "%");
+      System.out.println(TsFileConstant.D_2_timeDecoder_hasNext + ": "
+          + df
+          .format(elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).get(0) / 1000.0)
+          + "us, "
+          + df.format(
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).get(0) * 100.0
+              / total_D2)
+          + "%");
+      System.out.println(TsFileConstant.D_2_timeDecoder_readLong + ": "
+          + df
+          .format(elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).get(0) / 1000.0)
+          + "us, "
+          + df.format(
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).get(0) * 100.0
+              / total_D2)
+          + "%");
+      System.out.println(TsFileConstant.D_2_valueDecoder_read + ": "
+          + df
+          .format(elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0) / 1000.0)
+          + "us, "
+          + df.format(
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0) * 100.0 / total_D2)
+          + "%");
+      System.out.println(TsFileConstant.D_2_checkValueSatisfyOrNot + ": "
+          + df
+          .format(
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0) / 1000.0)
+          + "us, "
+          + df.format(
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0) * 100.0
+              / total_D2) + "%");
+      System.out.println(TsFileConstant.D_2_putIntoBatchData + ": "
+          + df
+          .format(
+              elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0) / 1000.0)
+          + "us, "
+          + df.format(
+          elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0) * 100.0 / total_D2)
+          + "%");
+    }
+    System.out.println(
+        "====================================parameters====================================");
+    System.out.println("pagePointNum = " + pagePointNum);
+    System.out.println("numOfPagesInChunk = " + numOfPagesInChunk);
+    System.out.println("numOfChunksWritten = " + numOfChunksWritten);
+    System.out.println("time encoding: " + timeEncoding);
+    System.out.println("value data type: " + valueDataType);
+    System.out.println("value encoding: " + valueEncoding);
+    System.out.println("compression: " + compressionType);
   }
 
   /**
