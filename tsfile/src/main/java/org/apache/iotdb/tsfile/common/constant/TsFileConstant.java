@@ -38,6 +38,7 @@ public class TsFileConstant {
   public static boolean decomposeMeasureTime = true; // false to measure the total time only
   public static boolean DataSetWithoutTimeGenerator_total =
       false; // true to measure init, hasNext, next, instead of lower-level api such as readMemChunk
+  public static boolean D_2_decompose_each_step = true;
 
   // [index part]
   public static String index_read_deserialize_MagicString_FileMetadataSize =
@@ -67,6 +68,13 @@ public class TsFileConstant {
   public static String data_split_time_value_Buffer = "7_4_data_split_time_value_Buffer";
 
   public static String data_decode_time_value_Buffer = "8_data_decode_time_value_Buffer";
+  public static String D_2_createBatchData = "D_2_1_createBatchData";
+  public static String D_2_timeDecoder_hasNext = "D_2_2_timeDecoder_hasNext";
+  public static String D_2_timeDecoder_readLong = "D_2_3_timeDecoder_readLong";
+  public static String D_2_valueDecoder_read = "D_2_4_valueDecoder_read";
+  public static String D_2_checkValueSatisfyOrNot = "D_2_5_checkValueSatisfyOrNot";
+  public static String D_2_putIntoBatchData = "D_2_6_putIntoBatchData";
+
 
   public static String other_cpu_time = "other_cpu_time";
   public static String total_time = "total_time";
