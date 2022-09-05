@@ -1,6 +1,7 @@
 package org.apache.iotdb.tsfile.read;
 
 import java.io.File;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,7 +39,7 @@ public class RLTestChunkReadCost {
   public static void main(String[] args) throws Exception {
     int pagePointNum = 10000;
     int numOfPagesInChunk = 1000;
-    int numOfChunksWritten = 10 * 5;
+    int numOfChunksWritten = 10;
 
     // ==============write tsfile==============
     // final String filePath = TsFileGeneratorForTest.getTestTsFilePath("root.sg1", 0, 0, 1);
@@ -73,9 +74,9 @@ public class RLTestChunkReadCost {
         Integer
             .MAX_VALUE); // 把chunkGroupSizeThreshold设够大，使得不会因为这个限制而flush，但是使用手动地提前flushAllChunkGroups来控制一个chunk里的数据量。
 
-//    tsFileConfig.setTimeEncoder("PLAIN"); // 设置时间戳列的编码方式 TS_2DIFF, PLAIN and RLE(run-length encoding). Default value is TS_2DIFF.
-//    tsFileConfig.setTimeEncoder(
-//        "RLE"); // 设置时间戳列的编码方式 TS_2DIFF, PLAIN and RLE(run-length encoding). Default value is TS_2DIFF.
+    // 设置时间戳列的编码方式 TS_2DIFF, PLAIN and RLE(run-length encoding). Default value is TS_2DIFF.
+//    tsFileConfig.setTimeEncoder("PLAIN");
+    tsFileConfig.setTimeEncoder("RLE");
 
     TsFileWriter tsFileWriter = new TsFileWriter(file, new Schema(), tsFileConfig);
     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName,
@@ -397,31 +398,33 @@ public class RLTestChunkReadCost {
     total += C_get_pageHeader;
     total += D_1_decompress_pageData_in_batch;
     total += D_2_decode_pageData_point_by_point;
+    DecimalFormat df = new DecimalFormat("0.00");
     System.out.println(
         "A_get_chunkMetadatas = "
-            + A_get_chunkMetadatas
-            + "us "
-            + A_get_chunkMetadatas / total * 100
+            + df.format(A_get_chunkMetadatas)
+            + "us, "
+            + df.format(A_get_chunkMetadatas / total * 100)
             + "%");
     System.out.println(
         "B_load_on_disk_chunkData = "
-            + B_load_on_disk_chunkData
-            + "us "
-            + B_load_on_disk_chunkData / total * 100
+            + df.format(B_load_on_disk_chunkData)
+            + "us, "
+            + df.format(B_load_on_disk_chunkData / total * 100)
             + "%");
     System.out.println(
-        "C_get_pageHeader = " + C_get_pageHeader + "us " + C_get_pageHeader / total * 100 + "%");
+        "C_get_pageHeader = " + df.format(C_get_pageHeader) + "us, " + df
+            .format(C_get_pageHeader / total * 100) + "%");
     System.out.println(
         "D_1_decompress_pageData_in_batch = "
-            + D_1_decompress_pageData_in_batch
-            + "us "
-            + D_1_decompress_pageData_in_batch / total * 100
+            + df.format(D_1_decompress_pageData_in_batch)
+            + "us, "
+            + df.format(D_1_decompress_pageData_in_batch / total * 100)
             + "%");
     System.out.println(
         "D_2_decode_pageData_point_by_point = "
-            + D_2_decode_pageData_point_by_point
-            + "us "
-            + D_2_decode_pageData_point_by_point / total * 100
+            + df.format(D_2_decode_pageData_point_by_point)
+            + "us, "
+            + df.format(D_2_decode_pageData_point_by_point / total * 100)
             + "%");
   }
 

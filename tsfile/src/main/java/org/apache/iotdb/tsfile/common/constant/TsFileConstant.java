@@ -48,10 +48,10 @@ public class TsFileConstant {
   // from the IndexRootNode to the TimeseriesMetadata
   public static String
       index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp =
-          "3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp";
+      "3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp";
   public static String
       index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet =
-          "3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet";
+      "3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet";
 
   // [data part]
   public static String data_read_deserialize_ChunkHeader = "4_data_read_deserialize_ChunkHeader";
@@ -71,5 +71,6 @@ public class TsFileConstant {
   public static String other_cpu_time = "other_cpu_time";
   public static String total_time = "total_time";
 
-  private TsFileConstant() {}
+  private TsFileConstant() {
+  }
 }
