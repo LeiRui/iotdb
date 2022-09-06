@@ -67,7 +67,7 @@ public class TsFileConstant {
   public static String data_decode_time_value_Buffer = "8_data_decode_time_value_Buffer";
 
   // false to measure 8_data_decode_time_value_Buffer as a whole, true to measure each step in 8_data_decode_time_value_Buffer
-  public static boolean D_2_decompose_each_step = true;
+  public static boolean D_2_decompose_each_step = false;
   public static String D_2_createBatchData = "D_2_1_createBatchData";
   public static String D_2_timeDecoder_hasNext = "D_2_2_timeDecoder_hasNext";
   public static String D_2_timeDecoder_readLong = "D_2_3_timeDecoder_readLong";

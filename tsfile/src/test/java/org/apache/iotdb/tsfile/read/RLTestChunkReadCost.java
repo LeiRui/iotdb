@@ -78,25 +78,11 @@ public class RLTestChunkReadCost {
     tsFileConfig.setTimeEncoder(timeEncoding);
 
     TsFileWriter tsFileWriter = new TsFileWriter(file, new Schema(), tsFileConfig);
-    TSDataType valueDataType = TSDataType.INT32;
-    TSEncoding valueEncoding = TSEncoding.PLAIN;
-    CompressionType compressionType = CompressionType.LZ4;
+    TSDataType valueDataType = TSDataType.INT64;
+    TSEncoding valueEncoding = TSEncoding.PLAIN; // PLAIN / RLE / TS_2DIFF / GORILLA
+    CompressionType compressionType = CompressionType.UNCOMPRESSED; // UNCOMPRESSED / SNAPPY / GZIP / LZ4
     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName,
         valueDataType, valueEncoding, compressionType);
-//    MeasurementSchema measurementSchema =
-//        new MeasurementSchema(sensorName, TSDataType.INT32, TSEncoding.RLE, CompressionType.LZ4);
-//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
-//     TSEncoding.DIFF, CompressionType.LZ4);
-//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
-//     TSEncoding.TS_2DIFF, CompressionType.LZ4);
-//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
-//     TSEncoding.BITMAP, CompressionType.LZ4);
-//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
-//     TSEncoding.GORILLA_V1, CompressionType.LZ4);
-//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
-//     TSEncoding.REGULAR, CompressionType.LZ4);
-//     MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, TSDataType.INT32,
-//     TSEncoding.GORILLA, CompressionType.LZ4);
     tsFileWriter.registerTimeseries(new Path(mypath.getDevice()), measurementSchema);
 
     List<MeasurementSchema> schemaList = new ArrayList<>();
@@ -114,7 +100,7 @@ public class RLTestChunkReadCost {
     for (int r = 0; r < rowNum; r++) {
       int row = tablet.rowSize++;
       timestamps[row] = timestamp++;
-      int[] sensor = (int[]) values[0];
+      long[] sensor = (long[]) values[0];
       sensor[row] = ran.nextInt(100);
       if (tablet.rowSize == tablet.getMaxRowNumber()) {
         tsFileWriter.write(tablet);
@@ -249,7 +235,7 @@ public class RLTestChunkReadCost {
         // pageReader getAllSatisfiedPageData by timeDecoding and valueDecoding the timeBuffer and
         // valueBuffer respectively
         RowRecord next = queryDataSet.next();
-        // System.out.println(next);
+//        System.out.println(next);
         cnt++;
       }
       elapsedTime = System.nanoTime() - start;
@@ -271,7 +257,7 @@ public class RLTestChunkReadCost {
         // pageReader getAllSatisfiedPageData by timeDecoding and valueDecoding the timeBuffer and
         // valueBuffer respectively
         RowRecord next = queryDataSet.next();
-        // System.out.println(next);
+//        System.out.println(next);
         cnt++;
       }
     }
@@ -435,6 +421,7 @@ public class RLTestChunkReadCost {
             + "us, "
             + df.format(D_2_decode_pageData_point_by_point / total * 100)
             + "%");
+    System.out.println("total time = " + total + "us");
 
     if (TsFileConstant.D_2_decompose_each_step) {
       System.out.println(
@@ -493,6 +480,7 @@ public class RLTestChunkReadCost {
     }
     System.out.println(
         "====================================parameters====================================");
+    System.out.println("file: " + filePath);
     System.out.println("pagePointNum = " + pagePointNum);
     System.out.println("numOfPagesInChunk = " + numOfPagesInChunk);
     System.out.println("numOfChunksWritten = " + numOfChunksWritten);
