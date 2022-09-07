@@ -100,7 +100,7 @@ public class ChunkReader implements IChunkReader {
   }
 
   private void initAllPageReaders(Statistics chunkStatistic) throws IOException {
-    if (TsFileConstant.decomposeMeasureTime && !TsFileConstant.DataSetWithoutTimeGenerator_total) {
+    if (TsFileConstant.decomposeMeasureTime) {
       // construct next satisfied page header
       while (chunkDataBuffer.remaining() > 0) {
 
@@ -193,7 +193,7 @@ public class ChunkReader implements IChunkReader {
 
   private PageReader constructPageReaderForNextPage(PageHeader pageHeader) throws IOException {
     PageReader reader;
-    if (TsFileConstant.decomposeMeasureTime && !TsFileConstant.DataSetWithoutTimeGenerator_total) {
+    if (TsFileConstant.decomposeMeasureTime) {
       int compressedPageBodyLength = pageHeader.getCompressedSize();
       byte[] compressedPageBody = new byte[compressedPageBodyLength];
 

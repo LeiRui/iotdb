@@ -18,11 +18,6 @@
  */
 package org.apache.iotdb.tsfile.read.reader.page;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
 import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
@@ -38,37 +33,32 @@ import org.apache.iotdb.tsfile.read.reader.IPageReader;
 import org.apache.iotdb.tsfile.utils.Binary;
 import org.apache.iotdb.tsfile.utils.ReadWriteForEncodingUtils;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
+
 public class PageReader implements IPageReader {
 
   private PageHeader pageHeader;
 
   protected TSDataType dataType;
 
-  /**
-   * decoder for value column
-   */
+  /** decoder for value column */
   protected Decoder valueDecoder;
 
-  /**
-   * decoder for time column
-   */
+  /** decoder for time column */
   protected Decoder timeDecoder;
 
-  /**
-   * time column in memory
-   */
+  /** time column in memory */
   protected ByteBuffer timeBuffer;
 
-  /**
-   * value column in memory
-   */
+  /** value column in memory */
   protected ByteBuffer valueBuffer;
 
   protected Filter filter;
 
-  /**
-   * A list of deleted intervals.
-   */
+  /** A list of deleted intervals. */
   private List<TimeRange> deleteIntervalList;
 
   private int deleteCursor = 0;
@@ -131,293 +121,273 @@ public class PageReader implements IPageReader {
     valueBuffer.position(timeBufferLength);
   }
 
-  /**
-   * @return the returned BatchData may be empty, but never be null
-   */
+  /** @return the returned BatchData may be empty, but never be null */
   @SuppressWarnings("squid:S3776") // Suppress high Cognitive Complexity warning
   @Override
   public BatchData getAllSatisfiedPageData(boolean ascending) throws IOException {
     BatchData pageData;
     if (TsFileConstant.decomposeMeasureTime && TsFileConstant.D_2_decompose_each_step) {
+      // 【D_2_1_createBatchData】
       long start = System.nanoTime();
-
       pageData = BatchDataFactory.createBatchData(dataType, ascending, false);
-
       long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_createBatchData)) {
-        elapsedTimeInNanoSec.put(TsFileConstant.D_2_createBatchData, new ArrayList<>());
-        elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).add(0L);
-      }
-      elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).set(0,
-          elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).get(0) + elapsedTime);
-//      System.out.println(
-//          "done:"
-//              + TsFileConstant.D_2_createBatchData
-//              + ","
-//              + elapsedTime / 1000.0
-//              + "us");
+      TsFileConstant.record(
+          elapsedTimeInNanoSec, TsFileConstant.D_2_createBatchData, elapsedTime, false, false);
 
       if (filter == null || filter.satisfy(getStatistics())) {
         while (true) {
+          // 【D_2_2_timeDecoder_hasNext】
           start = System.nanoTime();
           boolean hasNext = timeDecoder.hasNext(timeBuffer);
           elapsedTime = System.nanoTime() - start;
-          if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_timeDecoder_hasNext)) {
-            elapsedTimeInNanoSec.put(TsFileConstant.D_2_timeDecoder_hasNext, new ArrayList<>());
-            elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).add(0L);
-          }
-          elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).set(0,
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).get(0)
-                  + elapsedTime);
+          TsFileConstant.record(
+              elapsedTimeInNanoSec,
+              TsFileConstant.D_2_timeDecoder_hasNext,
+              elapsedTime,
+              false,
+              false);
 
           if (!hasNext) {
             break;
           }
 
+          // 【D_2_3_timeDecoder_readLong】
           start = System.nanoTime();
           long timestamp = timeDecoder.readLong(timeBuffer);
           elapsedTime = System.nanoTime() - start;
-          if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_timeDecoder_readLong)) {
-            elapsedTimeInNanoSec.put(TsFileConstant.D_2_timeDecoder_readLong, new ArrayList<>());
-            elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).add(0L);
-          }
-          elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).set(0,
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).get(0)
-                  + elapsedTime);
+          TsFileConstant.record(
+              elapsedTimeInNanoSec,
+              TsFileConstant.D_2_timeDecoder_readLong,
+              elapsedTime,
+              false,
+              false);
 
           switch (dataType) {
             case BOOLEAN:
+              // 【D_2_4_valueDecoder_read】
               start = System.nanoTime();
               boolean aBoolean = valueDecoder.readBoolean(valueBuffer);
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
-                elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_valueDecoder_read,
+                  elapsedTime,
+                  false,
+                  false);
 
+              // 【D_2_5_checkValueSatisfyOrNot】
               start = System.nanoTime();
               boolean statisfy =
                   !isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aBoolean));
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
-                elapsedTimeInNanoSec
-                    .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_checkValueSatisfyOrNot,
+                  elapsedTime,
+                  false,
+                  false);
 
               if (statisfy) {
+                // 【D_2_6_putIntoBatchData】
                 start = System.nanoTime();
                 pageData.putBoolean(timestamp, aBoolean);
                 elapsedTime = System.nanoTime() - start;
-                if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
-                  elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
-                }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
-                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
-                        + elapsedTime);
+                TsFileConstant.record(
+                    elapsedTimeInNanoSec,
+                    TsFileConstant.D_2_putIntoBatchData,
+                    elapsedTime,
+                    false,
+                    false);
               }
-
               break;
+
             case INT32:
+              // 【D_2_4_valueDecoder_read】
               start = System.nanoTime();
               int anInt = valueDecoder.readInt(valueBuffer);
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
-                elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_valueDecoder_read,
+                  elapsedTime,
+                  false,
+                  false);
 
+              // 【D_2_5_checkValueSatisfyOrNot】
               start = System.nanoTime();
               statisfy =
                   !isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, anInt));
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
-                elapsedTimeInNanoSec
-                    .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_checkValueSatisfyOrNot,
+                  elapsedTime,
+                  false,
+                  false);
 
               if (statisfy) {
+                // 【D_2_6_putIntoBatchData】
                 start = System.nanoTime();
                 pageData.putInt(timestamp, anInt);
                 elapsedTime = System.nanoTime() - start;
-                if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
-                  elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
-                }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
-                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
-                        + elapsedTime);
-
+                TsFileConstant.record(
+                    elapsedTimeInNanoSec,
+                    TsFileConstant.D_2_putIntoBatchData,
+                    elapsedTime,
+                    false,
+                    false);
               }
               break;
 
             case INT64:
+              // 【D_2_4_valueDecoder_read】
               start = System.nanoTime();
               long aLong = valueDecoder.readLong(valueBuffer);
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
-                elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_valueDecoder_read,
+                  elapsedTime,
+                  false,
+                  false);
 
+              // 【D_2_5_checkValueSatisfyOrNot】
               start = System.nanoTime();
               statisfy =
                   !isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aLong));
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
-                elapsedTimeInNanoSec
-                    .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_checkValueSatisfyOrNot,
+                  elapsedTime,
+                  false,
+                  false);
 
               if (statisfy) {
+                // 【D_2_6_putIntoBatchData】
                 start = System.nanoTime();
                 pageData.putLong(timestamp, aLong);
                 elapsedTime = System.nanoTime() - start;
-                if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
-                  elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
-                }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
-                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
-                        + elapsedTime);
+                TsFileConstant.record(
+                    elapsedTimeInNanoSec,
+                    TsFileConstant.D_2_putIntoBatchData,
+                    elapsedTime,
+                    false,
+                    false);
               }
               break;
 
             case FLOAT:
+              // 【D_2_4_valueDecoder_read】
               start = System.nanoTime();
               float aFloat = valueDecoder.readFloat(valueBuffer);
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
-                elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_valueDecoder_read,
+                  elapsedTime,
+                  false,
+                  false);
 
+              // 【D_2_5_checkValueSatisfyOrNot】
               start = System.nanoTime();
               statisfy =
                   !isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aFloat));
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
-                elapsedTimeInNanoSec
-                    .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_checkValueSatisfyOrNot,
+                  elapsedTime,
+                  false,
+                  false);
 
               if (statisfy) {
+                // 【D_2_6_putIntoBatchData】
                 start = System.nanoTime();
                 pageData.putFloat(timestamp, aFloat);
                 elapsedTime = System.nanoTime() - start;
-                if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
-                  elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
-                }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
-                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
-                        + elapsedTime);
+                TsFileConstant.record(
+                    elapsedTimeInNanoSec,
+                    TsFileConstant.D_2_putIntoBatchData,
+                    elapsedTime,
+                    false,
+                    false);
               }
               break;
 
             case DOUBLE:
+              // 【D_2_4_valueDecoder_read】
               start = System.nanoTime();
               double aDouble = valueDecoder.readDouble(valueBuffer);
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
-                elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_valueDecoder_read,
+                  elapsedTime,
+                  false,
+                  false);
 
+              // 【D_2_5_checkValueSatisfyOrNot】
               start = System.nanoTime();
               statisfy =
                   !isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aDouble));
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
-                elapsedTimeInNanoSec
-                    .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_checkValueSatisfyOrNot,
+                  elapsedTime,
+                  false,
+                  false);
 
               if (statisfy) {
+                // 【D_2_6_putIntoBatchData】
                 start = System.nanoTime();
                 pageData.putDouble(timestamp, aDouble);
                 elapsedTime = System.nanoTime() - start;
-                if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
-                  elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
-                }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
-                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
-                        + elapsedTime);
+                TsFileConstant.record(
+                    elapsedTimeInNanoSec,
+                    TsFileConstant.D_2_putIntoBatchData,
+                    elapsedTime,
+                    false,
+                    false);
               }
               break;
 
             case TEXT:
+              // 【D_2_4_valueDecoder_read】
               start = System.nanoTime();
               Binary aBinary = valueDecoder.readBinary(valueBuffer);
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_valueDecoder_read)) {
-                elapsedTimeInNanoSec.put(TsFileConstant.D_2_valueDecoder_read, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_valueDecoder_read,
+                  elapsedTime,
+                  false,
+                  false);
 
+              // 【D_2_5_checkValueSatisfyOrNot】
               start = System.nanoTime();
               statisfy =
                   !isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aBinary));
               elapsedTime = System.nanoTime() - start;
-              if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_checkValueSatisfyOrNot)) {
-                elapsedTimeInNanoSec
-                    .put(TsFileConstant.D_2_checkValueSatisfyOrNot, new ArrayList<>());
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).add(0L);
-              }
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).set(0,
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
-                      + elapsedTime);
+              TsFileConstant.record(
+                  elapsedTimeInNanoSec,
+                  TsFileConstant.D_2_checkValueSatisfyOrNot,
+                  elapsedTime,
+                  false,
+                  false);
 
               if (statisfy) {
+                // 【D_2_6_putIntoBatchData】
                 start = System.nanoTime();
                 pageData.putBinary(timestamp, aBinary);
                 elapsedTime = System.nanoTime() - start;
-                if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_2_putIntoBatchData)) {
-                  elapsedTimeInNanoSec.put(TsFileConstant.D_2_putIntoBatchData, new ArrayList<>());
-                  elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).add(0L);
-                }
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).set(0,
-                    elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
-                        + elapsedTime);
+                TsFileConstant.record(
+                    elapsedTimeInNanoSec,
+                    TsFileConstant.D_2_putIntoBatchData,
+                    elapsedTime,
+                    false,
+                    false);
               }
               break;
             default:
@@ -425,22 +395,11 @@ public class PageReader implements IPageReader {
           }
         }
       }
-      System.out.println(
-          "done:"
-              + TsFileConstant.data_decode_time_value_Buffer
-              + ", cumulative: "
-              + (elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).get(0) +
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).get(0) +
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).get(0) +
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0) +
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0) +
-              elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)) / 1000.0
-              + "us");
+      System.out.println("done: " + TsFileConstant.data_decode_time_value_Buffer);
 
-    } else if (TsFileConstant.decomposeMeasureTime
-        && !TsFileConstant.DataSetWithoutTimeGenerator_total) {
+    } else if (TsFileConstant.decomposeMeasureTime) {
+      // 【8_data_decode_time_value_Buffer】
       long start = System.nanoTime();
-
       pageData = BatchDataFactory.createBatchData(dataType, ascending, false);
       if (filter == null || filter.satisfy(getStatistics())) {
         while (timeDecoder.hasNext(timeBuffer)) {
@@ -490,16 +449,12 @@ public class PageReader implements IPageReader {
       }
 
       long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.data_decode_time_value_Buffer)) {
-        elapsedTimeInNanoSec.put(TsFileConstant.data_decode_time_value_Buffer, new ArrayList<>());
-      }
-      elapsedTimeInNanoSec.get(TsFileConstant.data_decode_time_value_Buffer).add(elapsedTime);
-      System.out.println(
-          "done:"
-              + TsFileConstant.data_decode_time_value_Buffer
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
+      TsFileConstant.record(
+          elapsedTimeInNanoSec,
+          TsFileConstant.data_decode_time_value_Buffer,
+          elapsedTime,
+          true,
+          true);
     } else {
       pageData = BatchDataFactory.createBatchData(dataType, ascending, false);
       if (filter == null || filter.satisfy(getStatistics())) {

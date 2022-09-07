@@ -1,10 +1,5 @@
 package org.apache.iotdb.tsfile.read;
 
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 import org.apache.iotdb.tsfile.common.conf.TSFileConfig;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
@@ -15,7 +10,14 @@ import org.apache.iotdb.tsfile.write.TsFileWriter;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.apache.iotdb.tsfile.write.schema.Schema;
+
 import org.junit.Assert;
+
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class RLTestReadDataSpeed {
 
@@ -67,8 +69,8 @@ public class RLTestReadDataSpeed {
     TSDataType valueDataType = TSDataType.INT32;
     TSEncoding valueEncoding = TSEncoding.PLAIN;
     CompressionType compressionType = CompressionType.LZ4;
-    MeasurementSchema measurementSchema = new MeasurementSchema(sensorName,
-        valueDataType, valueEncoding, compressionType);
+    MeasurementSchema measurementSchema =
+        new MeasurementSchema(sensorName, valueDataType, valueEncoding, compressionType);
     tsFileWriter.registerTimeseries(new Path(mypath.getDevice()), measurementSchema);
 
     List<MeasurementSchema> schemaList = new ArrayList<>();
@@ -108,7 +110,7 @@ public class RLTestReadDataSpeed {
     TsFileSequenceReader fileReader = new TsFileSequenceReader(filePath, true);
     long fileSize = fileReader.tsFileInput.size();
 
-//    long pos = fileSize; // 倒着读
+    //    long pos = fileSize; // 倒着读
     long pos = 0; // 顺着读
     long n = fileSize / (totalSize + headerSize);
     List<Double> times = new ArrayList<>();
@@ -137,5 +139,4 @@ public class RLTestReadDataSpeed {
     System.out.println("each op average time: " + averageTime + "us");
     System.out.println("speed: " + totalSize / averageTime + "Bytes/us");
   }
-
 }

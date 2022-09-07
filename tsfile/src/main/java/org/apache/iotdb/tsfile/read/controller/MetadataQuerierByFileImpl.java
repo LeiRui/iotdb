@@ -78,50 +78,23 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
       long start = System.nanoTime();
       this.fileMetaData = tsFileReader.readFileMetadata();
       long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(
-          TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)) {
-        elapsedTimeInNanoSec.put(
-            TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter,
-            new ArrayList<>());
-      }
-      elapsedTimeInNanoSec
-          .get(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)
-          .add(elapsedTime);
-      System.out.println(
-          "done:"
-              + TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
+      TsFileConstant.record(
+          elapsedTimeInNanoSec,
+          TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter,
+          elapsedTime,
+          true,
+          true);
     } else {
       this.fileMetaData = tsFileReader.readFileMetadata();
     }
 
-    if (TsFileConstant.decomposeMeasureTime) {
-      long start = System.nanoTime();
-      chunkMetaDataCache =
-          new LRUCache<Path, List<IChunkMetadata>>(CACHED_ENTRY_NUMBER) {
-            @Override
-            public List<IChunkMetadata> loadObjectByKey(Path key) throws IOException {
-              return loadChunkMetadata(key);
-            }
-          };
-      long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.other_cpu_time)) {
-        elapsedTimeInNanoSec.put(TsFileConstant.other_cpu_time, new ArrayList<>());
-      }
-      elapsedTimeInNanoSec.get(TsFileConstant.other_cpu_time).add(elapsedTime);
-      System.out.println(
-          "done:" + TsFileConstant.other_cpu_time + "," + elapsedTime / 1000.0 + "us");
-    } else {
-      chunkMetaDataCache =
-          new LRUCache<Path, List<IChunkMetadata>>(CACHED_ENTRY_NUMBER) {
-            @Override
-            public List<IChunkMetadata> loadObjectByKey(Path key) throws IOException {
-              return loadChunkMetadata(key);
-            }
-          };
-    }
+    chunkMetaDataCache =
+        new LRUCache<Path, List<IChunkMetadata>>(CACHED_ENTRY_NUMBER) {
+          @Override
+          public List<IChunkMetadata> loadObjectByKey(Path key) throws IOException {
+            return loadChunkMetadata(key);
+          }
+        };
   }
 
   @Override
@@ -136,26 +109,13 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
       long start = System.nanoTime();
       iChunkMetadataList = new ArrayList<>(chunkMetaDataCache.get(timeseriesPath));
       long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(
+      TsFileConstant.record(
+          elapsedTimeInNanoSec,
           TsFileConstant
-              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
-        elapsedTimeInNanoSec.put(
-            TsFileConstant
-                .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet,
-            new ArrayList<>());
-      }
-      elapsedTimeInNanoSec
-          .get(
-              TsFileConstant
-                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)
-          .add(elapsedTime);
-      System.out.println(
-          "done:"
-              + TsFileConstant
-                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
+              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet,
+          elapsedTime,
+          true,
+          true);
     } else {
       iChunkMetadataList = new ArrayList<>(chunkMetaDataCache.get(timeseriesPath));
     }
@@ -280,26 +240,13 @@ public class MetadataQuerierByFileImpl implements IMetadataQuerier {
       }
 
       long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(
+      TsFileConstant.record(
+          elapsedTimeInNanoSec,
           TsFileConstant
-              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)) {
-        elapsedTimeInNanoSec.put(
-            TsFileConstant
-                .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp,
-            new ArrayList<>());
-      }
-      elapsedTimeInNanoSec
-          .get(
-              TsFileConstant
-                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
-          .add(elapsedTime);
-      System.out.println(
-          "done:"
-              + TsFileConstant
-                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
+              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp,
+          elapsedTime,
+          true,
+          true);
     } else {
       // group measurements by device
       TreeMap<String, Set<String>> deviceMeasurementsMap = new TreeMap<>();
