@@ -293,7 +293,7 @@ public class RLTestChunkReadCost {
     System.out.println(
         "====================================sum results====================================");
     double A_get_chunkMetadatas = 0;
-    double B_load_on_disk_chunkData = 0;
+    double B_load_on_disk_chunk = 0;
     double C_get_pageHeader = 0;
     double D_1_decompress_pageData_in_batch = 0;
     double D_2_decode_pageData_point_by_point = 0;
@@ -316,7 +316,7 @@ public class RLTestChunkReadCost {
       }
       if (key.equals(TsFileConstant.data_read_deserialize_ChunkHeader)
           || key.equals(TsFileConstant.data_read_ChunkData)) {
-        B_load_on_disk_chunkData += sum;
+        B_load_on_disk_chunk += sum;
       }
       if (key.equals(TsFileConstant.data_deserialize_PageHeader)) {
         C_get_pageHeader += sum;
@@ -339,37 +339,37 @@ public class RLTestChunkReadCost {
     }
     double total = 0;
     total += A_get_chunkMetadatas;
-    total += B_load_on_disk_chunkData;
+    total += B_load_on_disk_chunk;
     total += C_get_pageHeader;
     total += D_1_decompress_pageData_in_batch;
     total += D_2_decode_pageData_point_by_point;
     DecimalFormat df = new DecimalFormat("0.00");
     System.out.println(
-        "A_get_chunkMetadatas = "
+        "(A)get_chunkMetadatas = "
             + df.format(A_get_chunkMetadatas)
             + "us, "
             + df.format(A_get_chunkMetadatas / total * 100)
             + "%");
     System.out.println(
-        "B_load_on_disk_chunkData = "
-            + df.format(B_load_on_disk_chunkData)
+        "(B)load_on_disk_chunk = "
+            + df.format(B_load_on_disk_chunk)
             + "us, "
-            + df.format(B_load_on_disk_chunkData / total * 100)
+            + df.format(B_load_on_disk_chunk / total * 100)
             + "%");
     System.out.println(
-        "C_get_pageHeader = "
+        "(C)get_pageHeader = "
             + df.format(C_get_pageHeader)
             + "us, "
             + df.format(C_get_pageHeader / total * 100)
             + "%");
     System.out.println(
-        "D_1_decompress_pageData_in_batch = "
+        "(D_1)decompress_pageData_in_batch = "
             + df.format(D_1_decompress_pageData_in_batch)
             + "us, "
             + df.format(D_1_decompress_pageData_in_batch / total * 100)
             + "%");
     System.out.println(
-        "D_2_decode_pageData_point_by_point = "
+        "(D_2)decode_pageData_point_by_point = "
             + df.format(D_2_decode_pageData_point_by_point)
             + "us, "
             + df.format(D_2_decode_pageData_point_by_point / total * 100)
