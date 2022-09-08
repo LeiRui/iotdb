@@ -35,7 +35,6 @@ import org.apache.iotdb.tsfile.write.TsFileWriter;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.apache.iotdb.tsfile.write.schema.Schema;
-import org.junit.Assert;
 
 public class RLTestChunkReadCostWithRealDataSet {
 
@@ -54,97 +53,129 @@ public class RLTestChunkReadCostWithRealDataSet {
   }
 
   /**
-   * - 1. WRITE_SYNC - 2. WRITE_REAL path_of_real_data_csv_to_write - 3. READ
-   * path_of_tsfile_to_read
+   * Three kinds of arguments for writing synthetic data, writing real data, and reading data
+   * respectively.
+   *
+   * <p>WRITE_SYNC [pagePointNum] [numOfPagesInChunk] [chunksWritten] [valueDataType]
+   * [valueEncoding] [compressionType]
+   *
+   * <p>WRITE_REAL path_of_real_data_csv_to_write [pagePointNum] [numOfPagesInChunk]
+   * [valueDataType]
+   * [valueEncoding] [compressionType]
+   *
+   * <p>WRITE_REAL "G:\实验室电脑同步\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT17.csv" 10000 10 FLOAT
+   * RLE LZ4
+   *
+   * <p>READ path_of_tsfile_to_read
+   *
+   * <p>READ
+   * D:\iotdb\testTsFile\ZT17_ppn_10000_pic_10_vt_DOUBLE_ve_PLAIN_co_UNCOMPRESSED_1662604242717.tsfile
    */
   public static void main(String[] args) throws Exception {
-    String exp = args[0].toUpperCase(Locale.ROOT);
+    String timeEncoding = "TS_2DIFF"; // 时间戳列的编码方式，默认即为TS_2DIFF，固定不变
+
     ExpType expType;
-    switch (exp) {
-      case "WRITE_SYNC":
-        expType = ExpType.WRITE_SYNC;
-        break;
-      case "WRITE_REAL":
-        expType = ExpType.WRITE_REAL;
-        break;
-      case "READ":
-        expType = ExpType.READ;
-        break;
-      default:
-        throw new IOException("Wrong expType. Only accept WRITE_SYNC/WRITE_REAL/READ");
-    }
-
-    int pagePointNum = 10000;
-    int numOfPagesInChunk = 10;
-    String timeEncoding = "TS_2DIFF"; // 时间戳列的编码方式，默认即为TS_2DIFF
-    TSDataType valueDataType = TSDataType.DOUBLE;
-    TSEncoding valueEncoding = TSEncoding.PLAIN; // PLAIN / RLE / TS_2DIFF / GORILLA
-    CompressionType compressionType =
-        CompressionType.UNCOMPRESSED; // UNCOMPRESSED / SNAPPY / GZIP / LZ4
-
-    //    String csvData = "D:\\LabSync\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT17.csv";
+    int pagePointNum = 0;
+    int numOfPagesInChunk = 0;
+    int chunksWritten = 0;
+    TSDataType valueDataType = null; // INT32, INT64, FLOAT, DOUBLE
+    TSEncoding valueEncoding = null; // PLAIN / RLE / TS_2DIFF / GORILLA
+    CompressionType compressionType = null; // UNCOMPRESSED / SNAPPY / GZIP / LZ4
     String csvData = "";
     String filePath = "";
-    if (expType.equals(ExpType.WRITE_REAL)) {
-      csvData = args[1]; // 要写的真实csv数据
-      filePath =
-          "testTsFile"
-              + File.separator
-              + FilenameUtils.removeExtension(new File(csvData).getName())
-              + "_ppn_"
-              + pagePointNum
-              + "_pic_"
-              + numOfPagesInChunk
-              + "_vt_"
-              + valueDataType
-              + "_ve_"
-              + valueEncoding
-              + "_co_"
-              + compressionType
-              + "_"
-              + System.currentTimeMillis()
-              + ".tsfile";
-      System.out.println("csvData: " + csvData);
-    } else if (expType.equals(ExpType.WRITE_SYNC)) {
-      filePath =
-          "testTsFile"
-              + File.separator
-              + "sync"
-              + "_ppn_"
-              + pagePointNum
-              + "_pic_"
-              + numOfPagesInChunk
-              + "_vt_"
-              + valueDataType
-              + "_ve_"
-              + valueEncoding
-              + "_co_"
-              + compressionType
-              + "_"
-              + System.currentTimeMillis()
-              + ".tsfile";
-    } else { // READ
-      filePath = args[1]; // 要读的tsfile路径
+
+    String exp = args[0].toUpperCase(Locale.ROOT);
+    switch (exp) {
+      case "WRITE_SYNC": // WRITE_SYNC [pagePointNum] [numOfPagesInChunk] [chunksWritten]
+        // [valueDataType] [valueEncoding] [compressionType]
+        expType = ExpType.WRITE_SYNC;
+        pagePointNum = Integer.parseInt(args[1]);
+        numOfPagesInChunk = Integer.parseInt(args[2]);
+        chunksWritten = Integer.parseInt(args[3]);
+        valueDataType =
+            TSDataType.valueOf(args[4].toUpperCase(Locale.ROOT)); // INT32, INT64, FLOAT, DOUBLE
+        valueEncoding =
+            TSEncoding.valueOf(
+                args[5].toUpperCase(Locale.ROOT)); // PLAIN / RLE / TS_2DIFF / GORILLA
+        compressionType =
+            CompressionType.valueOf(
+                args[6].toUpperCase(Locale.ROOT)); // UNCOMPRESSED / SNAPPY / GZIP / LZ4
+        filePath =
+            "testTsFile"
+                + File.separator
+                + "sync"
+                + "_ppn_"
+                + pagePointNum
+                + "_pic_"
+                + numOfPagesInChunk
+                + "_cw_"
+                + chunksWritten
+                + "_vt_"
+                + valueDataType
+                + "_ve_"
+                + valueEncoding
+                + "_co_"
+                + compressionType
+                + "_"
+                + System.currentTimeMillis()
+                + ".tsfile";
+        // TODO: write synthetic data
+        break;
+      case "WRITE_REAL": // WRITE_REAL path_of_real_data_csv_to_write [pagePointNum]
+        // [numOfPagesInChunk] [valueDataType] [valueEncoding] [compressionType]
+        expType = ExpType.WRITE_REAL;
+        csvData = args[1]; // 要写的真实csv数据
+        System.out.println("csvData: " + csvData);
+        pagePointNum = Integer.parseInt(args[2]);
+        numOfPagesInChunk = Integer.parseInt(args[3]);
+        valueDataType =
+            TSDataType.valueOf(args[4].toUpperCase(Locale.ROOT)); // INT32, INT64, FLOAT, DOUBLE
+        valueEncoding =
+            TSEncoding.valueOf(
+                args[5].toUpperCase(Locale.ROOT)); // PLAIN / RLE / TS_2DIFF / GORILLA
+        compressionType =
+            CompressionType.valueOf(
+                args[6].toUpperCase(Locale.ROOT)); // UNCOMPRESSED / SNAPPY / GZIP / LZ4
+        filePath =
+            "testTsFile"
+                + File.separator
+                + FilenameUtils.removeExtension(new File(csvData).getName())
+                + "_ppn_"
+                + pagePointNum
+                + "_pic_"
+                + numOfPagesInChunk
+                + "_vt_"
+                + valueDataType
+                + "_ve_"
+                + valueEncoding
+                + "_co_"
+                + compressionType
+                + "_"
+                + System.currentTimeMillis()
+                + ".tsfile";
+        int pointNum =
+            writeRealDataTsFile(
+                csvData,
+                pagePointNum,
+                numOfPagesInChunk,
+                timeEncoding,
+                valueDataType,
+                valueEncoding,
+                compressionType,
+                filePath);
+        System.out.println("write points: " + pointNum);
+        break;
+      case "READ": // READ path_of_tsfile_to_read
+        expType = ExpType.READ;
+        filePath = args[1]; // 要读的tsfile路径
+        break;
+      default:
+        throw new IOException("Wrong ExpType. Only accept WRITE_SYNC/WRITE_REAL/READ");
     }
     System.out.println("filePath: " + filePath);
 
-    // ==============write a TsFile from csv data==============
-    if (expType.equals(ExpType.WRITE_REAL)) {
-      int pointNum =
-          writeTsFile(
-              csvData,
-              pagePointNum,
-              numOfPagesInChunk,
-              timeEncoding,
-              valueDataType,
-              valueEncoding,
-              compressionType,
-              filePath);
-    } else if (expType.equals(ExpType.WRITE_SYNC)) {
-      // TODO
-
-    } else { // READ
-      // ==============begin read tsfile test==============
+    // ==============read tsfile test==============
+    if (expType.equals(ExpType.READ)) {
       int repeat = 1;
       PrintWriter pw =
           new PrintWriter(
@@ -269,8 +300,8 @@ public class RLTestChunkReadCostWithRealDataSet {
 
         long runTime = System.nanoTime() - totalStart;
         if (!TsFileConstant.decomposeMeasureTime) {
-          TsFileConstant
-              .record(elapsedTimeInNanoSec, TsFileConstant.total_time, runTime, true, true);
+          TsFileConstant.record(
+              elapsedTimeInNanoSec, TsFileConstant.total_time, runTime, true, true);
         }
 
         System.out.println("read points: " + cnt);
@@ -293,21 +324,23 @@ public class RLTestChunkReadCostWithRealDataSet {
             "TsFile size: " + df.format(new File(filePath).length() / 1024.0 / 1024.0) + "MB");
         DecimalFormat formatter = new DecimalFormat("#,###");
         System.out.println("pointNum: " + formatter.format(cnt));
-        System.out.println(
-            "====================================parameters====================================");
-        System.out.println("pagePointNum = " + pagePointNum);
-        System.out.println("numOfPagesInChunk = " + numOfPagesInChunk);
-        System.out.println("time encoding = " + timeEncoding);
-        System.out.println("value data type = " + valueDataType);
-        System.out.println("value encoding = " + valueEncoding);
-        System.out.println("compression = " + compressionType);
+        if (!expType.equals(ExpType.READ)) {
+          System.out.println(
+              "====================================write parameters====================================");
+          System.out.println("pagePointNum = " + pagePointNum);
+          System.out.println("numOfPagesInChunk = " + numOfPagesInChunk);
+          System.out.println("time encoding = " + timeEncoding);
+          System.out.println("value data type = " + valueDataType);
+          System.out.println("value encoding = " + valueEncoding);
+          System.out.println("compression = " + compressionType);
+        }
       }
       pw.close();
     }
   }
 
   // write tsfile from a real dataset csv
-  public static int writeTsFile(
+  public static int writeRealDataTsFile(
       String csvData,
       int pagePointNum,
       int numOfPagesInChunk,
@@ -321,7 +354,7 @@ public class RLTestChunkReadCostWithRealDataSet {
     int pointNum = 0;
     File file = new File(filePath);
     if (!file.getParentFile().exists()) {
-      Assert.assertTrue(file.getParentFile().mkdirs());
+      file.getParentFile().mkdirs();
     }
 
     TSFileConfig tsFileConfig = TSFileDescriptor.getInstance().getConfig();
@@ -353,13 +386,36 @@ public class RLTestChunkReadCostWithRealDataSet {
       for (String line; (line = br.readLine()) != null; ) {
         pointNum++;
         String[] tv = line.split(",");
-        long time = Long.parseLong(tv[0]);
-        double value = Double.parseDouble(tv[1]);
+        long time = Long.parseLong(tv[0]); // get timestamp from real data
 
         int row = tablet.rowSize++;
         timestamps[row] = time;
-        double[] sensor = (double[]) values[0];
-        sensor[row] = value;
+
+        switch (valueDataType) {
+          case INT32:
+            int int_value = Integer.parseInt(tv[1]); // get value from real data
+            int[] int_sensor = (int[]) values[0];
+            int_sensor[row] = int_value;
+            break;
+          case INT64:
+            long long_value = Long.parseLong(tv[1]); // get value from real data
+            long[] long_sensor = (long[]) values[0];
+            long_sensor[row] = long_value;
+            break;
+          case FLOAT:
+            float float_value = Float.parseFloat(tv[1]); // get value from real data
+            float[] float_sensor = (float[]) values[0];
+            float_sensor[row] = float_value;
+            break;
+          case DOUBLE:
+            double double_value = Double.parseDouble(tv[1]); // get value from real data
+            double[] double_sensor = (double[]) values[0];
+            double_sensor[row] = double_value;
+            break;
+          default:
+            throw new IOException("not supported data type!");
+        }
+
         if (tablet.rowSize == tablet.getMaxRowNumber()) {
           tsFileWriter.write(tablet);
           tablet.reset();
