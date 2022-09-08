@@ -46,7 +46,7 @@ public class RLTestChunkReadCost {
     TSDataType valueDataType = TSDataType.INT64;
     TSEncoding valueEncoding = TSEncoding.PLAIN; // PLAIN / RLE / TS_2DIFF / GORILLA
     CompressionType compressionType =
-        CompressionType.UNCOMPRESSED; // UNCOMPRESSED / SNAPPY / GZIP / LZ4
+        CompressionType.LZ4; // UNCOMPRESSED / SNAPPY / GZIP / LZ4
 
     // ==============write tsfile==============
     // final String filePath = TsFileGeneratorForTest.getTestTsFilePath("root.sg1", 0, 0, 1);
