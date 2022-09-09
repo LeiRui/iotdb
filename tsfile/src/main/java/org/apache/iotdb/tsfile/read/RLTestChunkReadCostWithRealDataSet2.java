@@ -3,16 +3,20 @@ package org.apache.iotdb.tsfile.read;
 import org.apache.iotdb.tsfile.common.conf.TSFileConfig;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
-import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.IChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
-import org.apache.iotdb.tsfile.read.common.BatchData;
-import org.apache.iotdb.tsfile.read.common.Chunk;
 import org.apache.iotdb.tsfile.read.common.Path;
+import org.apache.iotdb.tsfile.read.common.RowRecord;
+import org.apache.iotdb.tsfile.read.controller.CachedChunkLoaderImpl;
 import org.apache.iotdb.tsfile.read.controller.MetadataQuerierByFileImpl;
-import org.apache.iotdb.tsfile.read.reader.chunk.ChunkReader;
+import org.apache.iotdb.tsfile.read.query.dataset.DataSetWithoutTimeGenerator;
+import org.apache.iotdb.tsfile.read.query.dataset.QueryDataSet;
+import org.apache.iotdb.tsfile.read.reader.series.AbstractFileSeriesReader;
+import org.apache.iotdb.tsfile.read.reader.series.EmptyFileSeriesReader;
+import org.apache.iotdb.tsfile.read.reader.series.FileSeriesReader;
+import org.apache.iotdb.tsfile.utils.BloomFilter;
 import org.apache.iotdb.tsfile.write.TsFileWriter;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
@@ -27,13 +31,14 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
-public class RLTestChunkReadCostWithRealDataSet {
+public class RLTestChunkReadCostWithRealDataSet2 {
 
   // only consider one time series here
   public static String deviceName = "d1";
@@ -211,27 +216,65 @@ public class RLTestChunkReadCostWithRealDataSet {
         MetadataQuerierByFileImpl metadataQuerier =
             new MetadataQuerierByFileImpl(fileReader, elapsedTimeInNanoSec);
 
-        // 【3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet】
-        List<IChunkMetadata> chunkMetadataList =
-            metadataQuerier.getChunkMetaDataList(mypath, elapsedTimeInNanoSec);
+        // instantiate an empty chunkCache
+        CachedChunkLoaderImpl chunkLoader = new CachedChunkLoaderImpl(fileReader);
+        // do nothing special
+        //        TsFileExecutor tsFileExecutor = new TsFileExecutor(metadataQuerier, chunkLoader);
+        // do nothing special
+        //        tsFileReader = new TsFileReader(fileReader, metadataQuerier, chunkLoader,
+        // tsFileExecutor);
 
-        for (IChunkMetadata chunkMetadata : chunkMetadataList) {
-          // 【4_data_read_deserialize_ChunkHeader】
-          // 【5_data_read_ChunkData】
-          Chunk chunk = fileReader.readMemChunk((ChunkMetadata) chunkMetadata);
-
-          // 【6_data_deserialize_PageHeader】
-          // 【7_1_data_ByteBuffer_to_ByteArray】
-          // 【7_2_data_decompress_PageData】
-          // 【7_3_data_ByteArray_to_ByteBuffer】
-          // 【7_4_data_split_time_value_Buffer】
-          ChunkReader chunkReader = new ChunkReader(chunk, null, elapsedTimeInNanoSec);
-
-          // 【8_data_decode_time_value_Buffer】
-          while (chunkReader.hasNextSatisfiedPage()) {
-            BatchData batchData = chunkReader.nextPageData();
-            cnt += batchData.length();
+        List<Path> selectedSeries = Arrays.asList(mypath);
+        List<Path> filteredSeriesPath = new ArrayList<>();
+        // use BloomFilter in TsFileMetadata to filter
+        BloomFilter bloomFilter = metadataQuerier.getWholeFileMetadata().getBloomFilter();
+        if (bloomFilter != null) {
+          for (Path p : selectedSeries) {
+            if (bloomFilter.contains(p.getFullPath())) {
+              filteredSeriesPath.add(p);
+            }
           }
+          selectedSeries = filteredSeriesPath;
+        }
+
+        // 【3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp】
+        metadataQuerier.loadChunkMetaDatas(selectedSeries, elapsedTimeInNanoSec);
+
+        List<AbstractFileSeriesReader> readersOfSelectedSeries = new ArrayList<>();
+        List<TSDataType> dataTypes = new ArrayList<>();
+        for (Path path : selectedSeries) {
+          // 【3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet】
+          List<IChunkMetadata> chunkMetadataList =
+              metadataQuerier.getChunkMetaDataList(path, elapsedTimeInNanoSec);
+
+          AbstractFileSeriesReader seriesReader;
+          if (chunkMetadataList.isEmpty()) {
+            seriesReader = new EmptyFileSeriesReader();
+            dataTypes.add(metadataQuerier.getDataType(path));
+          } else {
+            // assume timeExpression == null
+            // do nothing special
+            seriesReader =
+                new FileSeriesReader(chunkLoader, chunkMetadataList, null, elapsedTimeInNanoSec);
+            dataTypes.add(chunkMetadataList.get(0).getDataType());
+          }
+          readersOfSelectedSeries.add(seriesReader);
+        }
+
+        // 【4_data_read_deserialize_ChunkHeader】
+        // 【5_data_read_ChunkData】
+        // 【6_data_deserialize_PageHeader】
+        // 【7_1_data_ByteBuffer_to_ByteArray】
+        // 【7_2_data_decompress_PageData】
+        // 【7_3_data_ByteArray_to_ByteBuffer】
+        // 【7_4_data_split_time_value_Buffer】
+        // 【8_data_decode_time_value_Buffer】
+        QueryDataSet queryDataSet =
+            new DataSetWithoutTimeGenerator(selectedSeries, dataTypes, readersOfSelectedSeries);
+        while (queryDataSet.hasNext()) {
+          RowRecord next = queryDataSet.next();
+          //        System.out.println(next);
+          cnt++;
         }
 
         long runTime = System.nanoTime() - totalStart;
@@ -295,16 +338,14 @@ public class RLTestChunkReadCostWithRealDataSet {
               + pagePointNum
               + "_pic_"
               + numOfPagesInChunk
-              + "_te_"
-              + timeEncoding
               + "_vt_"
               + valueDataType
               + "_ve_"
               + valueEncoding
               + "_co_"
               + compressionType
-              // + "_"
-              // + System.currentTimeMillis()
+              + "_"
+              + System.currentTimeMillis()
               + ".tsfile";
     } else { // WRITE_SYNC
       tsfilePath =
@@ -317,16 +358,14 @@ public class RLTestChunkReadCostWithRealDataSet {
               + numOfPagesInChunk
               + "_cw_"
               + chunksWritten // for WRITE_SYNC only
-              + "_te_"
-              + timeEncoding
               + "_vt_"
               + valueDataType
               + "_ve_"
               + valueEncoding
               + "_co_"
               + compressionType
-              // + "_"
-              // + System.currentTimeMillis()
+              + "_"
+              + System.currentTimeMillis()
               + ".tsfile";
     }
 

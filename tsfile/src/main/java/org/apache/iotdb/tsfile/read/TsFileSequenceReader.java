@@ -1112,12 +1112,37 @@ public class TsFileSequenceReader implements AutoCloseable {
    * @return -chunk
    */
   public Chunk readMemChunk(ChunkMetadata metaData) throws IOException {
+    ChunkHeader header;
+    ByteBuffer buffer;
     try {
-      int chunkHeadSize = ChunkHeader.getSerializedSize(metaData.getMeasurementUid());
-      ChunkHeader header = readChunkHeader(metaData.getOffsetOfChunkHeader(), chunkHeadSize);
-      ByteBuffer buffer =
-          readChunk(
-              metaData.getOffsetOfChunkHeader() + header.getSerializedSize(), header.getDataSize());
+      if (TsFileConstant.decomposeMeasureTime) {
+        long start = System.nanoTime();
+        int chunkHeadSize = ChunkHeader.getSerializedSize(metaData.getMeasurementUid());
+        header = readChunkHeader(metaData.getOffsetOfChunkHeader(), chunkHeadSize);
+        long elapsedTime = System.nanoTime() - start;
+        TsFileConstant.record(
+            elapsedTimeInNanoSec,
+            TsFileConstant.data_read_deserialize_ChunkHeader,
+            elapsedTime,
+            true,
+            true);
+
+        start = System.nanoTime();
+        buffer =
+            readChunk(
+                metaData.getOffsetOfChunkHeader() + header.getSerializedSize(),
+                header.getDataSize());
+        elapsedTime = System.nanoTime() - start;
+        TsFileConstant.record(
+            elapsedTimeInNanoSec, TsFileConstant.data_read_ChunkData, elapsedTime, true, true);
+      } else {
+        int chunkHeadSize = ChunkHeader.getSerializedSize(metaData.getMeasurementUid());
+        header = readChunkHeader(metaData.getOffsetOfChunkHeader(), chunkHeadSize);
+        buffer =
+            readChunk(
+                metaData.getOffsetOfChunkHeader() + header.getSerializedSize(),
+                header.getDataSize());
+      }
       return new Chunk(header, buffer, metaData.getDeleteIntervalList(), metaData.getStatistics());
     } catch (Throwable t) {
       logger.warn("Exception {} happened while reading chunk of {}", t.getMessage(), file);
