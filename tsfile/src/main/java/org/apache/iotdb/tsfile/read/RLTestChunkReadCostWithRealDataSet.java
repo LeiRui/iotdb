@@ -105,7 +105,7 @@ public class RLTestChunkReadCostWithRealDataSet {
         compressionType =
             CompressionType.valueOf(
                 args[7].toUpperCase(Locale.ROOT)); // UNCOMPRESSED / SNAPPY / GZIP / LZ4
-        int pointNum =
+        long pointNum =
             writeTsFile(
                 ExpType.WRITE_SYNC,
                 "",
@@ -317,7 +317,7 @@ public class RLTestChunkReadCostWithRealDataSet {
     }
   }
 
-  public static int writeTsFile(
+  public static long writeTsFile(
       ExpType expType,
       String csvData, // for WRITE_REAL only
       int pagePointNum,
@@ -378,7 +378,7 @@ public class RLTestChunkReadCostWithRealDataSet {
     }
 
     int chunkPointNum = pagePointNum * numOfPagesInChunk;
-    int pointNum = 0;
+    long pointNum = 0;
 
     TSFileConfig tsFileConfig = TSFileDescriptor.getInstance().getConfig();
     tsFileConfig.setMaxNumberOfPointsInPage(pagePointNum);
@@ -445,10 +445,10 @@ public class RLTestChunkReadCostWithRealDataSet {
         }
       }
     } else { // WRITE_SYNC
-      int rowNum = chunkPointNum * chunksWritten; // 写数据点数
+      long rowNum = chunkPointNum * chunksWritten; // 写数据点数
       long timestamp = 1;
       Random ran = new Random();
-      for (int r = 0; r < rowNum; r++) {
+      for (long r = 0; r < rowNum; r++) {
         pointNum++;
         int row = tablet.rowSize++;
         timestamps[row] = timestamp++;
