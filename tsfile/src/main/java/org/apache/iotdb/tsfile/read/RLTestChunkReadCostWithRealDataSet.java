@@ -59,35 +59,34 @@ public class RLTestChunkReadCostWithRealDataSet {
    * Three kinds of arguments for writing synthetic data, writing real data, and reading data
    * respectively.
    *
-   * <p>WRITE_SYNC [pagePointNum] [numOfPagesInChunk] [chunksWritten] [valueDataType]
+   * <p>WRITE_SYNC [pagePointNum] [numOfPagesInChunk] [chunksWritten] [timeEncoding] [valueDataType]
    * [valueEncoding] [compressionType]
    *
-   * <p>WRITE_SYNC 10000 1000 10 int32 PLAIN LZ4
+   * <p>WRITE_SYNC 10000 1000 10 TS_2DIFF int32 PLAIN LZ4
    *
-   * <p>WRITE_REAL path_of_real_data_csv_to_write [pagePointNum] [numOfPagesInChunk] [valueDataType]
-   * [valueEncoding] [compressionType]
+   * <p>WRITE_REAL path_of_real_data_csv_to_write [pagePointNum] [numOfPagesInChunk] [timeEncoding]
+   * [valueDataType] [valueEncoding] [compressionType]
    *
-   * <p>WRITE_REAL "G:\实验室电脑同步\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT17.csv" 10000 10 FLOAT
-   * RLE LZ4
+   * <p>WRITE_REAL "G:\实验室电脑同步\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT17.csv" 10000 10 TS_2DIFF
+   * FLOAT RLE LZ4
    *
-   * <p>READ path_of_tsfile_to_read
+   * <p>READ [path_of_tsfile_to_read] [decomposeMeasureTime] [D_2_decompose_each_step]
    *
    * <p>READ
    * D:\iotdb\testTsFile\ZT17_ppn_10000_pic_10_vt_DOUBLE_ve_PLAIN_co_UNCOMPRESSED_1662604242717.tsfile
+   * true false
    */
   public static void main(String[] args) throws Exception {
-    String timeEncoding = "TS_2DIFF"; // 时间戳列的编码方式，默认即为TS_2DIFF，固定不变
-
     ExpType expType;
     int pagePointNum = 0;
     int numOfPagesInChunk = 0;
     int chunksWritten = 0;
+    String timeEncoding = ""; // TS_2DIFF, PLAIN, RLE
     TSDataType valueDataType = null; // INT32, INT64, FLOAT, DOUBLE
     TSEncoding valueEncoding = null; // PLAIN / RLE / TS_2DIFF / GORILLA
     CompressionType compressionType = null; // UNCOMPRESSED / SNAPPY / GZIP / LZ4
     String csvData = "";
     String tsfilePath = "";
-    int pointNum;
 
     String exp = args[0].toUpperCase(Locale.ROOT);
     switch (exp) {
@@ -97,15 +96,16 @@ public class RLTestChunkReadCostWithRealDataSet {
         pagePointNum = Integer.parseInt(args[1]);
         numOfPagesInChunk = Integer.parseInt(args[2]);
         chunksWritten = Integer.parseInt(args[3]);
+        timeEncoding = args[4].toUpperCase(Locale.ROOT);
         valueDataType =
-            TSDataType.valueOf(args[4].toUpperCase(Locale.ROOT)); // INT32, INT64, FLOAT, DOUBLE
+            TSDataType.valueOf(args[5].toUpperCase(Locale.ROOT)); // INT32, INT64, FLOAT, DOUBLE
         valueEncoding =
             TSEncoding.valueOf(
-                args[5].toUpperCase(Locale.ROOT)); // PLAIN / RLE / TS_2DIFF / GORILLA
+                args[6].toUpperCase(Locale.ROOT)); // PLAIN / RLE / TS_2DIFF / GORILLA
         compressionType =
             CompressionType.valueOf(
-                args[6].toUpperCase(Locale.ROOT)); // UNCOMPRESSED / SNAPPY / GZIP / LZ4
-        pointNum =
+                args[7].toUpperCase(Locale.ROOT)); // UNCOMPRESSED / SNAPPY / GZIP / LZ4
+        int pointNum =
             writeTsFile(
                 ExpType.WRITE_SYNC,
                 "",
@@ -123,14 +123,15 @@ public class RLTestChunkReadCostWithRealDataSet {
         csvData = args[1]; // 要写的真实csv数据
         pagePointNum = Integer.parseInt(args[2]);
         numOfPagesInChunk = Integer.parseInt(args[3]);
+        timeEncoding = args[4].toUpperCase(Locale.ROOT);
         valueDataType =
-            TSDataType.valueOf(args[4].toUpperCase(Locale.ROOT)); // INT32, INT64, FLOAT, DOUBLE
+            TSDataType.valueOf(args[5].toUpperCase(Locale.ROOT)); // INT32, INT64, FLOAT, DOUBLE
         valueEncoding =
             TSEncoding.valueOf(
-                args[5].toUpperCase(Locale.ROOT)); // PLAIN / RLE / TS_2DIFF / GORILLA
+                args[6].toUpperCase(Locale.ROOT)); // PLAIN / RLE / TS_2DIFF / GORILLA
         compressionType =
             CompressionType.valueOf(
-                args[6].toUpperCase(Locale.ROOT)); // UNCOMPRESSED / SNAPPY / GZIP / LZ4
+                args[7].toUpperCase(Locale.ROOT)); // UNCOMPRESSED / SNAPPY / GZIP / LZ4
         pointNum =
             writeTsFile(
                 ExpType.WRITE_REAL,
@@ -146,6 +147,8 @@ public class RLTestChunkReadCostWithRealDataSet {
       case "READ": // READ path_of_tsfile_to_read
         expType = ExpType.READ;
         tsfilePath = args[1]; // 要读的tsfile路径
+        TsFileConstant.decomposeMeasureTime = Boolean.parseBoolean(args[2]);
+        TsFileConstant.D_2_decompose_each_step = Boolean.parseBoolean(args[3]);
         break;
       default:
         throw new IOException("Wrong ExpType. Only accept WRITE_SYNC/WRITE_REAL/READ");
@@ -153,56 +156,57 @@ public class RLTestChunkReadCostWithRealDataSet {
 
     // ==============read tsfile test==============
     if (expType.equals(ExpType.READ)) {
-      System.out.println("tsfilePath: " + tsfilePath);
-      int repeat = 1;
-      PrintWriter pw =
-          new PrintWriter(
-              new File(
-                      "testTsFile"
-                          + File.separator
-                          + FilenameUtils.removeExtension(new File(tsfilePath).getName()))
-                  + "_result.csv");
-      if (!TsFileConstant.decomposeMeasureTime) {
-        pw.println(
-            "data,totalPointNum,pagePointNum,numOfPagesInChunk,valueType,valueEncoding,compressionType,totalTime(us)");
-      } else if (!TsFileConstant.D_2_decompose_each_step) {
-        pw.println(
-            "data,totalPointNum,pagePointNum,numOfPagesInChunk,valueType,valueEncoding,compressionType,"
-                + "(A)1_index_read_deserialize_MagicString_FileMetadataSize(us),"
-                + "(A)2_index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter(us),"
-                + "(A)3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp(us),"
-                + "(A)3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet(us),"
-                + "(B)4_data_read_deserialize_ChunkHeader(us),"
-                + "(B)5_data_read_ChunkData(us),"
-                + "(C)6_data_deserialize_PageHeader(us),"
-                + "(D-1)7_1_data_ByteBuffer_to_ByteArray(us),"
-                + "(D-1)7_2_data_decompress_PageData(us),"
-                + "(D-1)7_3_data_ByteArray_to_ByteBuffer(us),"
-                + "(D-1)7_4_data_split_time_value_Buffer(us),"
-                + "(D-2)8_data_decode_time_value_Buffer(us)");
-      } else {
-        pw.println(
-            "data,totalPointNum,pagePointNum,numOfPagesInChunk,valueType,valueEncoding,compressionType,"
-                + "(A)1_index_read_deserialize_MagicString_FileMetadataSize(us),"
-                + "(A)2_index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter(us),"
-                + "(A)3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp(us),"
-                + "(A)3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet(us),"
-                + "(B)4_data_read_deserialize_ChunkHeader(us),"
-                + "(B)5_data_read_ChunkData(us),"
-                + "(C)6_data_deserialize_PageHeader(us),"
-                + "(D-1)7_1_data_ByteBuffer_to_ByteArray(us),"
-                + "(D-1)7_2_data_decompress_PageData(us),"
-                + "(D-1)7_3_data_ByteArray_to_ByteBuffer(us),"
-                + "(D-1)7_4_data_split_time_value_Buffer(us),"
-                + "(D-2)8_1_createBatchData(us),"
-                + "(D-2)8_2_timeDecoder_hasNext(us),"
-                + "(D-2)8_3_timeDecoder_readLong(us),"
-                + "(D-2)8_4_valueDecoder_read(us),"
-                + "(D-2)8_5_checkValueSatisfyOrNot(us),"
-                + "(D-2)8_6_putIntoBatchData(us),");
-      }
+      int cnt = 0;
+      TsFileReader tsFileReader = null;
+      PrintWriter pw = null;
+      try {
+        pw =
+            new PrintWriter(
+                new File(
+                        "testTsFile"
+                            + File.separator
+                            + FilenameUtils.removeExtension(new File(tsfilePath).getName()))
+                    + "_result.csv");
+        if (!TsFileConstant.decomposeMeasureTime) {
+          pw.println(
+              "data,totalPointNum,pagePointNum,numOfPagesInChunk,timeEncoding,valueType,valueEncoding,compressionType,totalTime(us)");
+        } else if (!TsFileConstant.D_2_decompose_each_step) {
+          pw.println(
+              "data,totalPointNum,pagePointNum,numOfPagesInChunk,timeEncoding,valueType,valueEncoding,compressionType,"
+                  + "(A)1_index_read_deserialize_MagicString_FileMetadataSize(us),"
+                  + "(A)2_index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter(us),"
+                  + "(A)3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp(us),"
+                  + "(A)3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet(us),"
+                  + "(B)4_data_read_deserialize_ChunkHeader(us),"
+                  + "(B)5_data_read_ChunkData(us),"
+                  + "(C)6_data_deserialize_PageHeader(us),"
+                  + "(D-1)7_1_data_ByteBuffer_to_ByteArray(us),"
+                  + "(D-1)7_2_data_decompress_PageData(us),"
+                  + "(D-1)7_3_data_ByteArray_to_ByteBuffer(us),"
+                  + "(D-1)7_4_data_split_time_value_Buffer(us),"
+                  + "(D-2)8_data_decode_time_value_Buffer(us)");
+        } else {
+          pw.println(
+              "data,totalPointNum,pagePointNum,numOfPagesInChunk,timeEncoding,valueType,valueEncoding,compressionType,"
+                  + "(A)1_index_read_deserialize_MagicString_FileMetadataSize(us),"
+                  + "(A)2_index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter(us),"
+                  + "(A)3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp(us),"
+                  + "(A)3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet(us),"
+                  + "(B)4_data_read_deserialize_ChunkHeader(us),"
+                  + "(B)5_data_read_ChunkData(us),"
+                  + "(C)6_data_deserialize_PageHeader(us),"
+                  + "(D-1)7_1_data_ByteBuffer_to_ByteArray(us),"
+                  + "(D-1)7_2_data_decompress_PageData(us),"
+                  + "(D-1)7_3_data_ByteArray_to_ByteBuffer(us),"
+                  + "(D-1)7_4_data_split_time_value_Buffer(us),"
+                  + "(D-2)8_1_createBatchData(us),"
+                  + "(D-2)8_2_timeDecoder_hasNext(us),"
+                  + "(D-2)8_3_timeDecoder_readLong(us),"
+                  + "(D-2)8_4_valueDecoder_read(us),"
+                  + "(D-2)8_5_checkValueSatisfyOrNot(us),"
+                  + "(D-2)8_6_putIntoBatchData(us),");
+        }
 
-      for (int n = 0; n < repeat; n++) {
         Map<String, List<Long>> elapsedTimeInNanoSec = new TreeMap<>();
         long totalStart = System.nanoTime();
 
@@ -219,8 +223,7 @@ public class RLTestChunkReadCostWithRealDataSet {
         // do nothing special
         TsFileExecutor tsFileExecutor = new TsFileExecutor(metadataQuerier, chunkLoader);
         // do nothing special
-        TsFileReader tsFileReader =
-            new TsFileReader(fileReader, metadataQuerier, chunkLoader, tsFileExecutor);
+        tsFileReader = new TsFileReader(fileReader, metadataQuerier, chunkLoader, tsFileExecutor);
 
         List<Path> selectedSeries = Arrays.asList(mypath);
         List<Path> filteredSeriesPath = new ArrayList<>();
@@ -259,7 +262,6 @@ public class RLTestChunkReadCostWithRealDataSet {
           readersOfSelectedSeries.add(seriesReader);
         }
 
-        int cnt = 0;
         // 【4_data_read_deserialize_ChunkHeader】
         // 【5_data_read_ChunkData】
         // 【6_data_deserialize_PageHeader】
@@ -302,8 +304,16 @@ public class RLTestChunkReadCostWithRealDataSet {
             "TsFile size: " + df.format(new File(tsfilePath).length() / 1024.0 / 1024.0) + "MB");
         DecimalFormat formatter = new DecimalFormat("#,###");
         System.out.println("pointNum: " + formatter.format(cnt));
+
+      } finally {
+        if (tsFileReader != null) {
+          tsFileReader.close();
+        }
+        if (pw != null) {
+          pw.close();
+        }
+        System.out.println("current read point num: " + cnt);
       }
-      pw.close();
     }
   }
 
@@ -498,7 +508,7 @@ public class RLTestChunkReadCostWithRealDataSet {
         "====================================write result====================================");
     System.out.println("output tsfilePath: " + tsfilePath);
     System.out.println("write points: " + pointNum);
-    System.out.println("tsfile size: " + new File(tsfilePath).length() / 1024.0 / 1024.0 + "MB");
+    System.out.println("tsfile size: " + new File(tsfilePath).length() / 1024.0 / 1024.0 + " MB");
     return pointNum;
   }
 

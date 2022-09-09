@@ -41,7 +41,7 @@ public class TsFileConstant {
 
   public static boolean decomposeMeasureTime = true; // false to measure the total time only
   public static boolean D_2_decompose_each_step =
-      false; // false to measure 8_data_decode_time_value_Buffer as a whole, true to measure each
+      true; // false to measure 8_data_decode_time_value_Buffer as a whole, true to measure each
   // step in 8_data_decode_time_value_Buffer
 
   // [index part]
