@@ -320,10 +320,10 @@ public class RLTestChunkReadCost {
       if (key.equals(TsFileConstant.data_deserialize_PageHeader)) {
         C_get_pageHeader += sum;
       }
-      if (key.equals(TsFileConstant.data_ByteBuffer_to_ByteArray)
-          || key.equals(TsFileConstant.data_decompress_PageData)
-          || key.equals(TsFileConstant.data_ByteArray_to_ByteBuffer)
-          || key.equals(TsFileConstant.data_split_time_value_Buffer)) {
+      if (key.equals(TsFileConstant.D_1_data_ByteBuffer_to_ByteArray)
+          || key.equals(TsFileConstant.D_1_data_decompress_PageDataByteArray)
+          || key.equals(TsFileConstant.D_1_data_ByteArray_to_ByteBuffer)
+          || key.equals(TsFileConstant.D_1_data_split_time_value_Buffer)) {
         D_1_decompress_pageData_in_batch += sum;
       }
       if (key.equals(TsFileConstant.data_decode_time_value_Buffer)
@@ -375,7 +375,7 @@ public class RLTestChunkReadCost {
             + "%");
     System.out.println("total time = " + total + "us");
 
-    if (TsFileConstant.D_2_decompose_each_step) {
+    if (TsFileConstant.D_decompose_each_step_further) {
       System.out.println(
           "====================================D_2_decompose_each_step====================================");
       long total_D2 =

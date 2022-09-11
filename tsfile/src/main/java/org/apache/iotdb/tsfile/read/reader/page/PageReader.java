@@ -138,7 +138,7 @@ public class PageReader implements IPageReader {
   @Override
   public BatchData getAllSatisfiedPageData(boolean ascending) throws IOException {
     BatchData pageData;
-    if (TsFileConstant.decomposeMeasureTime && TsFileConstant.D_2_decompose_each_step) {
+    if (TsFileConstant.decomposeMeasureTime && TsFileConstant.D_decompose_each_step_further) {
       // 【D_2_1_createBatchData】
       long start = System.nanoTime();
       pageData = BatchDataFactory.createBatchData(dataType, ascending, false);

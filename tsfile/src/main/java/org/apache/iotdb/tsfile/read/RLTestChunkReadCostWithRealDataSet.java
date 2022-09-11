@@ -1,5 +1,20 @@
 package org.apache.iotdb.tsfile.read;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Random;
+import java.util.TreeMap;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.iotdb.tsfile.common.conf.TSFileConfig;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
@@ -19,22 +34,6 @@ import org.apache.iotdb.tsfile.write.TsFileWriter;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.apache.iotdb.tsfile.write.schema.Schema;
-
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Random;
-import java.util.TreeMap;
 
 public class RLTestChunkReadCostWithRealDataSet {
 
@@ -64,8 +63,8 @@ public class RLTestChunkReadCostWithRealDataSet {
    * <p>WRITE_REAL path_of_real_data_csv_to_write [pagePointNum] [numOfPagesInChunk] [timeEncoding]
    * [valueDataType] [valueEncoding] [compressionType]
    *
-   * <p>WRITE_REAL "G:\实验室电脑同步\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT17.csv" 10000 10 TS_2DIFF
-   * FLOAT RLE LZ4
+   * <p>WRITE_REAL "G:\实验室电脑同步\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT17.csv" 10000 10
+   * TS_2DIFF FLOAT RLE LZ4
    *
    * <p>READ [path_of_tsfile_to_read] [decomposeMeasureTime] [D_2_decompose_each_step]
    *
@@ -145,7 +144,7 @@ public class RLTestChunkReadCostWithRealDataSet {
         expType = ExpType.READ;
         tsfilePath = args[1]; // 要读的tsfile路径
         TsFileConstant.decomposeMeasureTime = Boolean.parseBoolean(args[2]);
-        TsFileConstant.D_2_decompose_each_step = Boolean.parseBoolean(args[3]);
+        TsFileConstant.D_decompose_each_step_further = Boolean.parseBoolean(args[3]);
         break;
       default:
         throw new IOException("Wrong ExpType. Only accept WRITE_SYN/WRITE_REAL/READ");
@@ -157,51 +156,16 @@ public class RLTestChunkReadCostWithRealDataSet {
       TsFileSequenceReader fileReader = null;
       PrintWriter pw = null;
       try {
-        pw =
-            new PrintWriter(
-                "testTsFile"
-                    + File.separator
-                    + FilenameUtils.removeExtension(new File(tsfilePath).getName())
-                    + "_readResult.csv");
+        String name;
         if (!TsFileConstant.decomposeMeasureTime) {
-          pw.println(
-              "data,totalPointNum,pagePointNum,numOfPagesInChunk,timeEncoding,valueType,valueEncoding,compressionType,totalTime(us)");
-        } else if (!TsFileConstant.D_2_decompose_each_step) {
-          pw.println(
-              "data,totalPointNum,pagePointNum,numOfPagesInChunk,timeEncoding,valueType,valueEncoding,compressionType,"
-                  + "(A)1_index_read_deserialize_MagicString_FileMetadataSize(us),"
-                  + "(A)2_index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter(us),"
-                  + "(A)3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp(us),"
-                  + "(A)3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet(us),"
-                  + "(B)4_data_read_deserialize_ChunkHeader(us),"
-                  + "(B)5_data_read_ChunkData(us),"
-                  + "(C)6_data_deserialize_PageHeader(us),"
-                  + "(D-1)7_1_data_ByteBuffer_to_ByteArray(us),"
-                  + "(D-1)7_2_data_decompress_PageData(us),"
-                  + "(D-1)7_3_data_ByteArray_to_ByteBuffer(us),"
-                  + "(D-1)7_4_data_split_time_value_Buffer(us),"
-                  + "(D-2)8_data_decode_time_value_Buffer(us)");
+          name = "total";
+        } else if (!TsFileConstant.D_decompose_each_step_further) {
+          name = "category";
         } else {
-          pw.println(
-              "data,totalPointNum,pagePointNum,numOfPagesInChunk,timeEncoding,valueType,valueEncoding,compressionType,"
-                  + "(A)1_index_read_deserialize_MagicString_FileMetadataSize(us),"
-                  + "(A)2_index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter(us),"
-                  + "(A)3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp(us),"
-                  + "(A)3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet(us),"
-                  + "(B)4_data_read_deserialize_ChunkHeader(us),"
-                  + "(B)5_data_read_ChunkData(us),"
-                  + "(C)6_data_deserialize_PageHeader(us),"
-                  + "(D-1)7_1_data_ByteBuffer_to_ByteArray(us),"
-                  + "(D-1)7_2_data_decompress_PageData(us),"
-                  + "(D-1)7_3_data_ByteArray_to_ByteBuffer(us),"
-                  + "(D-1)7_4_data_split_time_value_Buffer(us),"
-                  + "(D-2)8_1_createBatchData(us),"
-                  + "(D-2)8_2_timeDecoder_hasNext(us),"
-                  + "(D-2)8_3_timeDecoder_readLong(us),"
-                  + "(D-2)8_4_valueDecoder_read(us),"
-                  + "(D-2)8_5_checkValueSatisfyOrNot(us),"
-                  + "(D-2)8_6_putIntoBatchData(us),");
+          name = "furtherD";
         }
+        pw = new PrintWriter("testTsFile" + File.separator + FilenameUtils
+            .removeExtension(new File(tsfilePath).getName()) + "_readResult_" + name + ".csv");
 
         Map<String, List<Long>> elapsedTimeInNanoSec = new TreeMap<>();
         long totalStart = System.nanoTime();
@@ -223,10 +187,7 @@ public class RLTestChunkReadCostWithRealDataSet {
           Chunk chunk = fileReader.readMemChunk((ChunkMetadata) chunkMetadata);
 
           // 【6_data_deserialize_PageHeader】
-          // 【7_1_data_ByteBuffer_to_ByteArray】
-          // 【7_2_data_decompress_PageData】
-          // 【7_3_data_ByteArray_to_ByteBuffer】
-          // 【7_4_data_split_time_value_Buffer】
+          // 【7_data_decompress_PageData】
           ChunkReader chunkReader = new ChunkReader(chunk, null, elapsedTimeInNanoSec);
 
           // 【8_data_decode_time_value_Buffer】
@@ -245,16 +206,11 @@ public class RLTestChunkReadCostWithRealDataSet {
         System.out.println("read points: " + cnt);
 
         printEach(elapsedTimeInNanoSec, pw);
-        printCategory(elapsedTimeInNanoSec, pw);
-        printD2Detail(elapsedTimeInNanoSec, pw);
+        printCategory(elapsedTimeInNanoSec);
+        printDDetail(elapsedTimeInNanoSec);
 
         System.out.println(
             "====================================data files====================================");
-        if (expType.equals(ExpType.WRITE_REAL)) {
-          System.out.println("csvFile: " + csvData);
-          System.out.println(
-              "csvFile size: " + df.format(new File(csvData).length() / 1024.0 / 1024.0) + "MB");
-        }
         System.out.println("TsFile: " + tsfilePath);
         System.out.println(
             "TsFile size: " + df.format(new File(tsfilePath).length() / 1024.0 / 1024.0) + "MB");
@@ -666,38 +622,42 @@ public class RLTestChunkReadCostWithRealDataSet {
 
   public static void printEach(Map<String, List<Long>> elapsedTimeInNanoSec, PrintWriter pw) {
     System.out.println(
-        "====================================each step====================================");
+        "====================================[1] each step====================================");
     double cumulativeSteps = 0;
     for (Map.Entry<String, List<Long>> entry : elapsedTimeInNanoSec.entrySet()) {
       String key = entry.getKey();
       List<Long> elapsedTimes = entry.getValue();
       System.out.print(key + ":");
+      pw.print(key);
+      pw.print("(us),");
       double sum = 0;
       StringBuilder stringBuilder = new StringBuilder();
       for (Long t : elapsedTimes) {
         sum += t / 1000.0;
-        stringBuilder.append(t / 1000.0 + ", ");
+        stringBuilder.append(t / 1000.0).append(", ");
       }
       System.out.print("[" + df.format(sum) + "us(SUM)," + elapsedTimes.size() + "(CNT)]:");
       System.out.println();
       //      System.out.println(stringBuilder.toString());
+      pw.print(sum);
+      pw.println();
 
       cumulativeSteps += sum;
     }
     System.out.println("sum 1-8: " + df.format(cumulativeSteps) + "us");
   }
 
-  public static void printCategory(Map<String, List<Long>> elapsedTimeInNanoSec, PrintWriter pw) {
+  public static void printCategory(Map<String, List<Long>> elapsedTimeInNanoSec) {
     if (!TsFileConstant.decomposeMeasureTime) {
       return;
     }
     System.out.println(
-        "====================================category results====================================");
+        "======[2] category results, following the logic: (A)ChunkDigest->(B)load chunk (from disk)->(C)PageDigest->(D)load page (in memory)=====");
     double A_get_chunkMetadatas = 0;
     double B_load_on_disk_chunk = 0;
     double C_get_pageHeader = 0;
-    double D_1_decompress_pageData_in_batch = 0;
-    double D_2_decode_pageData_point_by_point = 0;
+    double D_1_decompress_pageData = 0;
+    double D_2_decode_pageData = 0;
     for (Map.Entry<String, List<Long>> entry : elapsedTimeInNanoSec.entrySet()) {
       String key = entry.getKey();
       List<Long> elapsedTimes = entry.getValue();
@@ -708,11 +668,11 @@ public class RLTestChunkReadCostWithRealDataSet {
       if (key.equals(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize)
           || key.equals(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)
           || key.equals(
-              TsFileConstant
-                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
+          TsFileConstant
+              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
           || key.equals(
-              TsFileConstant
-                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
+          TsFileConstant
+              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
         A_get_chunkMetadatas += sum;
       }
       if (key.equals(TsFileConstant.data_read_deserialize_ChunkHeader)
@@ -722,30 +682,29 @@ public class RLTestChunkReadCostWithRealDataSet {
       if (key.equals(TsFileConstant.data_deserialize_PageHeader)) {
         C_get_pageHeader += sum;
       }
-      if (key.equals(TsFileConstant.data_ByteBuffer_to_ByteArray)
-          || key.equals(TsFileConstant.data_decompress_PageData)
-          || key.equals(TsFileConstant.data_ByteArray_to_ByteBuffer)
-          || key.equals(TsFileConstant.data_split_time_value_Buffer)) {
-        D_1_decompress_pageData_in_batch += sum;
+      if (key.equals(TsFileConstant.data_decompress_PageData)
+          || key.equals(TsFileConstant.D_1_data_ByteBuffer_to_ByteArray)
+          || key.equals(TsFileConstant.D_1_data_decompress_PageDataByteArray)
+          || key.equals(TsFileConstant.D_1_data_ByteArray_to_ByteBuffer)
+          || key.equals(TsFileConstant.D_1_data_split_time_value_Buffer)) {
+        D_1_decompress_pageData += sum;
       }
       if (key.equals(TsFileConstant.data_decode_time_value_Buffer)
-          // D_2_decompose_each_step = false
-          // D_2_decompose_each_step = true
           || key.equals(TsFileConstant.D_2_createBatchData)
           || key.equals(TsFileConstant.D_2_timeDecoder_hasNext)
           || key.equals(TsFileConstant.D_2_timeDecoder_readLong)
           || key.equals(TsFileConstant.D_2_valueDecoder_read)
           || key.equals(TsFileConstant.D_2_checkValueSatisfyOrNot)
           || key.equals(TsFileConstant.D_2_putIntoBatchData)) {
-        D_2_decode_pageData_point_by_point += sum;
+        D_2_decode_pageData += sum;
       }
     }
     double cumulativeSteps = 0;
     cumulativeSteps += A_get_chunkMetadatas;
     cumulativeSteps += B_load_on_disk_chunk;
     cumulativeSteps += C_get_pageHeader;
-    cumulativeSteps += D_1_decompress_pageData_in_batch;
-    cumulativeSteps += D_2_decode_pageData_point_by_point;
+    cumulativeSteps += D_1_decompress_pageData;
+    cumulativeSteps += D_2_decode_pageData;
 
     System.out.println(
         "(A)get_chunkMetadatas = "
@@ -767,23 +726,49 @@ public class RLTestChunkReadCostWithRealDataSet {
             + "%");
     System.out.println(
         "(D_1)decompress_pageData_in_batch = "
-            + df.format(D_1_decompress_pageData_in_batch)
+            + df.format(D_1_decompress_pageData)
             + "us, "
-            + df.format(D_1_decompress_pageData_in_batch / cumulativeSteps * 100)
+            + df.format(D_1_decompress_pageData / cumulativeSteps * 100)
             + "%");
     System.out.println(
         "(D_2)decode_pageData_point_by_point = "
-            + df.format(D_2_decode_pageData_point_by_point)
+            + df.format(D_2_decode_pageData)
             + "us, "
-            + df.format(D_2_decode_pageData_point_by_point / cumulativeSteps * 100)
+            + df.format(D_2_decode_pageData / cumulativeSteps * 100)
             + "%");
     System.out.println("sum 1-8: " + df.format(cumulativeSteps) + "us");
   }
 
-  public static void printD2Detail(Map<String, List<Long>> elapsedTimeInNanoSec, PrintWriter pw) {
-    if (!TsFileConstant.decomposeMeasureTime || !TsFileConstant.D_2_decompose_each_step) {
+  public static void printDDetail(Map<String, List<Long>> elapsedTimeInNanoSec) {
+    if (!TsFileConstant.decomposeMeasureTime || !TsFileConstant.D_decompose_each_step_further) {
       return;
     }
+
+    System.out.println(
+        "====================================[3] D_1 compare each step inside====================================");
+    String[] keys = new String[]{TsFileConstant.D_1_data_ByteBuffer_to_ByteArray,
+        TsFileConstant.D_1_data_decompress_PageDataByteArray,
+        TsFileConstant.D_1_data_ByteArray_to_ByteBuffer,
+        TsFileConstant.D_1_data_split_time_value_Buffer};
+    double[] times = new double[keys.length];
+    for (int i = 0; i < keys.length; i++) {
+      String key = keys[i];
+      List<Long> timeList = elapsedTimeInNanoSec.get(key);
+      double sum = 0;
+      for (long t : timeList) {
+        sum += t / 1000.0; // us
+      }
+      times[i] = sum;
+    }
+    double total_D1 = Arrays.stream(times).sum();
+    for (int i = 0; i < keys.length; i++) {
+      String key = keys[i];
+      System.out.println(
+          key + ": " + df.format(times[i]) + "us, " + df.format(times[i] * 100.0 / total_D1) + "%");
+    }
+
+    System.out.println(
+        "====================================[3] D_2 compare each step inside====================================");
     long total_D2 =
         elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).get(0)
             + elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).get(0)
@@ -791,73 +776,17 @@ public class RLTestChunkReadCostWithRealDataSet {
             + elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
             + elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
             + elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0);
-    System.out.println(
-        "====================================D_2_decompose_each_step====================================");
-    System.out.println(
-        TsFileConstant.D_2_createBatchData
-            + ": "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).get(0) / 1000.0)
-            + "us, "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).get(0)
-                    * 100.0
-                    / total_D2)
-            + "%");
-    System.out.println(
-        TsFileConstant.D_2_timeDecoder_hasNext
-            + ": "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).get(0) / 1000.0)
-            + "us, "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).get(0)
-                    * 100.0
-                    / total_D2)
-            + "%");
-    System.out.println(
-        TsFileConstant.D_2_timeDecoder_readLong
-            + ": "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).get(0) / 1000.0)
-            + "us, "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_readLong).get(0)
-                    * 100.0
-                    / total_D2)
-            + "%");
-    System.out.println(
-        TsFileConstant.D_2_valueDecoder_read
-            + ": "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0) / 1000.0)
-            + "us, "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
-                    * 100.0
-                    / total_D2)
-            + "%");
-    System.out.println(
-        TsFileConstant.D_2_checkValueSatisfyOrNot
-            + ": "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0) / 1000.0)
-            + "us, "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
-                    * 100.0
-                    / total_D2)
-            + "%");
-    System.out.println(
+    keys = new String[]{TsFileConstant.D_2_createBatchData,
+        TsFileConstant.D_2_timeDecoder_hasNext,
+        TsFileConstant.D_2_timeDecoder_readLong,
+        TsFileConstant.D_2_valueDecoder_read,
+        TsFileConstant.D_2_checkValueSatisfyOrNot,
         TsFileConstant.D_2_putIntoBatchData
-            + ": "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0) / 1000.0)
-            + "us, "
-            + df.format(
-                elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0)
-                    * 100.0
-                    / total_D2)
-            + "%");
+    };
+    for (String key : keys) {
+      System.out.println(
+          key + ": " + df.format(elapsedTimeInNanoSec.get(key).get(0) / 1000.0) + "us, " + df
+              .format(elapsedTimeInNanoSec.get(key).get(0) * 100.0 / total_D2) + "%");
+    }
   }
 }

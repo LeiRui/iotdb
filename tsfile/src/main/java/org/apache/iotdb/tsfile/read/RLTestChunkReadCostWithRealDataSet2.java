@@ -147,7 +147,7 @@ public class RLTestChunkReadCostWithRealDataSet2 {
         expType = ExpType.READ;
         tsfilePath = args[1]; // 要读的tsfile路径
         TsFileConstant.decomposeMeasureTime = Boolean.parseBoolean(args[2]);
-        TsFileConstant.D_2_decompose_each_step = Boolean.parseBoolean(args[3]);
+        TsFileConstant.D_decompose_each_step_further = Boolean.parseBoolean(args[3]);
         break;
       default:
         throw new IOException("Wrong ExpType. Only accept WRITE_SYNC/WRITE_REAL/READ");
@@ -169,7 +169,7 @@ public class RLTestChunkReadCostWithRealDataSet2 {
         if (!TsFileConstant.decomposeMeasureTime) {
           pw.println(
               "data,totalPointNum,pagePointNum,numOfPagesInChunk,timeEncoding,valueType,valueEncoding,compressionType,totalTime(us)");
-        } else if (!TsFileConstant.D_2_decompose_each_step) {
+        } else if (!TsFileConstant.D_decompose_each_step_further) {
           pw.println(
               "data,totalPointNum,pagePointNum,numOfPagesInChunk,timeEncoding,valueType,valueEncoding,compressionType,"
                   + "(A)1_index_read_deserialize_MagicString_FileMetadataSize(us),"
@@ -568,10 +568,10 @@ public class RLTestChunkReadCostWithRealDataSet2 {
       if (key.equals(TsFileConstant.data_deserialize_PageHeader)) {
         C_get_pageHeader += sum;
       }
-      if (key.equals(TsFileConstant.data_ByteBuffer_to_ByteArray)
-          || key.equals(TsFileConstant.data_decompress_PageData)
-          || key.equals(TsFileConstant.data_ByteArray_to_ByteBuffer)
-          || key.equals(TsFileConstant.data_split_time_value_Buffer)) {
+      if (key.equals(TsFileConstant.D_1_data_ByteBuffer_to_ByteArray)
+          || key.equals(TsFileConstant.D_1_data_decompress_PageDataByteArray)
+          || key.equals(TsFileConstant.D_1_data_ByteArray_to_ByteBuffer)
+          || key.equals(TsFileConstant.D_1_data_split_time_value_Buffer)) {
         D_1_decompress_pageData_in_batch += sum;
       }
       if (key.equals(TsFileConstant.data_decode_time_value_Buffer)
@@ -627,7 +627,7 @@ public class RLTestChunkReadCostWithRealDataSet2 {
   }
 
   public static void printD2Detail(Map<String, List<Long>> elapsedTimeInNanoSec, PrintWriter pw) {
-    if (!TsFileConstant.decomposeMeasureTime || !TsFileConstant.D_2_decompose_each_step) {
+    if (!TsFileConstant.decomposeMeasureTime || !TsFileConstant.D_decompose_each_step_further) {
       return;
     }
     long total_D2 =
