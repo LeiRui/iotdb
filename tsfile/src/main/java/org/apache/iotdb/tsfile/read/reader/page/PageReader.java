@@ -106,6 +106,18 @@ public class PageReader implements IPageReader {
     splitDataToTimeStampAndValue(pageData);
   }
 
+  public int getTimeBufferSize() {
+    return timeBuffer.limit() - timeBuffer.position();
+  }
+
+  public int getValueBufferSize() {
+    return valueBuffer.limit() - valueBuffer.position();
+  }
+
+  public PageHeader getPageHeader() {
+    return pageHeader;
+  }
+
   /**
    * split pageContent into two stream: time and value
    *

@@ -12,13 +12,16 @@ import org.apache.iotdb.tsfile.read.common.BatchData;
 import org.apache.iotdb.tsfile.read.common.Chunk;
 import org.apache.iotdb.tsfile.read.common.Path;
 import org.apache.iotdb.tsfile.read.controller.MetadataQuerierByFileImpl;
+import org.apache.iotdb.tsfile.read.reader.IPageReader;
 import org.apache.iotdb.tsfile.read.reader.chunk.ChunkReader;
+import org.apache.iotdb.tsfile.read.reader.page.PageReader;
 import org.apache.iotdb.tsfile.write.TsFileWriter;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.apache.iotdb.tsfile.write.schema.Schema;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -271,6 +274,129 @@ public class RLTestChunkReadCostWithRealDataSet {
     }
   }
 
+  public static void getTsfileSpaceStatistics(String tsfilePath) throws Exception {
+    System.out.println(
+        "====================================tsfile space statistics====================================");
+    TsFileConstant.decomposeMeasureTime = false;
+    TsFileSequenceReader fileReader = null;
+    DescriptiveStatistics chunkDataSize_stats = new DescriptiveStatistics();
+    DescriptiveStatistics compressedPageSize_stats = new DescriptiveStatistics();
+    DescriptiveStatistics uncompressedPageSize_stats = new DescriptiveStatistics();
+    DescriptiveStatistics timeBufferSize_stats = new DescriptiveStatistics();
+    DescriptiveStatistics valueBufferSize_stats = new DescriptiveStatistics();
+    Map<String, List<Long>> elapsedTimeInNanoSec = new TreeMap<>();
+    try {
+      fileReader = new TsFileSequenceReader(tsfilePath, true, elapsedTimeInNanoSec);
+      MetadataQuerierByFileImpl metadataQuerier =
+          new MetadataQuerierByFileImpl(fileReader, elapsedTimeInNanoSec);
+      List<IChunkMetadata> chunkMetadataList =
+          metadataQuerier.getChunkMetaDataList(mypath, elapsedTimeInNanoSec);
+      int m = chunkMetadataList.size();
+      for (int j = 0;
+          j < m - 1;
+          j++) { // let alone the last chunk which might not be full, assuming more than one chunk
+        IChunkMetadata chunkMetadata = chunkMetadataList.get(j);
+        Chunk chunk = fileReader.readMemChunk((ChunkMetadata) chunkMetadata);
+        chunkDataSize_stats.addValue(chunk.getHeader().getDataSize());
+        ChunkReader chunkReader = new ChunkReader(chunk, null, elapsedTimeInNanoSec);
+        List<IPageReader> pageReaderList = chunkReader.loadPageReaderList();
+        for (IPageReader pageReader : pageReaderList) {
+          compressedPageSize_stats.addValue(
+              ((PageReader) pageReader).getPageHeader().getCompressedSize());
+          uncompressedPageSize_stats.addValue(
+              ((PageReader) pageReader).getPageHeader().getUncompressedSize());
+          timeBufferSize_stats.addValue(((PageReader) pageReader).getTimeBufferSize());
+          valueBufferSize_stats.addValue(((PageReader) pageReader).getValueBufferSize());
+        }
+      }
+    } finally {
+      if (fileReader != null) {
+        fileReader.close();
+      }
+      System.out.println(
+          "tsfile size: " + df.format(new File(tsfilePath).length() / 1024.0 / 1024.0) + "MB");
+      printStats("chunkDataSize_stats", chunkDataSize_stats, "MB");
+      printStats("compressedPageSize_stats", compressedPageSize_stats, "B");
+      printStats("uncompressedPageSize_stats", uncompressedPageSize_stats, "B");
+      printStats("timeBufferSize_stats", timeBufferSize_stats, "B");
+      printStats("valueBufferSize_stats", valueBufferSize_stats, "B");
+    }
+  }
+
+  public static void printStats(String name, DescriptiveStatistics stats, String unit)
+      throws Exception {
+    unit = unit.toUpperCase();
+    double unitConvert = 1;
+    switch (unit) {
+      case "GB":
+        unitConvert = 1024 * 1024 * 1024.0;
+        break;
+      case "MB":
+        unitConvert = 1024 * 1024.0;
+        break;
+      case "KB":
+        unitConvert = 1024.0;
+        break;
+      case "B":
+        // unitConvert = 1;
+        break;
+      default:
+        throw new IOException("Wrong unit!");
+    }
+
+    // long num = stats.getN();
+    double max = stats.getMax() / unitConvert;
+    double min = stats.getMin() / unitConvert;
+    double mean = stats.getMean() / unitConvert;
+    double std = stats.getStandardDeviation() / unitConvert;
+    double p25 = stats.getPercentile(25) / unitConvert;
+    double p50 = stats.getPercentile(50) / unitConvert;
+    double p75 = stats.getPercentile(75) / unitConvert;
+    double p90 = stats.getPercentile(90) / unitConvert;
+    double p95 = stats.getPercentile(95) / unitConvert;
+    // double sum = stats.getSum() / 1024.0;
+    System.out.println(
+        name
+            + ": "
+            // + "num=" + num + ", " + "sum=" + sum + "KB, "  // num and sum are not accurate
+            // because I let alone the last chunk
+            + "mean="
+            + df.format(mean)
+            + unit
+            + ", "
+            + "min="
+            + df.format(min)
+            + unit
+            + ", "
+            + "max="
+            + df.format(max)
+            + unit
+            + ", "
+            + "std="
+            + df.format(std)
+            + unit
+            + ", "
+            + "p25="
+            + df.format(p25)
+            + unit
+            + ", "
+            + "p50="
+            + df.format(p50)
+            + unit
+            + ", "
+            + "p75="
+            + df.format(p75)
+            + unit
+            + ", "
+            + "p90="
+            + df.format(p90)
+            + unit
+            + ", "
+            + "p95="
+            + df.format(p95)
+            + unit);
+  }
+
   public static long writeTsFile(
       ExpType expType,
       String csvData, // for WRITE_REAL only
@@ -331,6 +457,7 @@ public class RLTestChunkReadCostWithRealDataSet {
     }
 
     File file = new File(tsfilePath);
+    file.delete();
     if (!file.getParentFile().exists()) {
       file.getParentFile().mkdirs();
     }
@@ -345,51 +472,88 @@ public class RLTestChunkReadCostWithRealDataSet {
     tsFileConfig.setGroupSizeInByte(Integer.MAX_VALUE);
 
     tsFileConfig.setTimeEncoder(timeEncoding);
-    TsFileWriter tsFileWriter = new TsFileWriter(file, new Schema(), tsFileConfig);
-    MeasurementSchema measurementSchema =
-        new MeasurementSchema(sensorName, valueDataType, valueEncoding, compressionType);
-    tsFileWriter.registerTimeseries(new Path(mypath.getDevice()), measurementSchema);
+    try (TsFileWriter tsFileWriter = new TsFileWriter(file, new Schema(), tsFileConfig)) {
+      MeasurementSchema measurementSchema =
+          new MeasurementSchema(sensorName, valueDataType, valueEncoding, compressionType);
+      tsFileWriter.registerTimeseries(new Path(mypath.getDevice()), measurementSchema);
 
-    List<MeasurementSchema> schemaList = new ArrayList<>();
-    schemaList.add(measurementSchema);
-    Tablet tablet =
-        new Tablet(
-            deviceName,
-            schemaList,
-            chunkPointNum); // 设置Tablet的maxRowNumber等于一个chunk里想要的数据量大小，因为tablet是flush的最小单位
-    long[] timestamps = tablet.timestamps;
-    Object[] values = tablet.values;
+      List<MeasurementSchema> schemaList = new ArrayList<>();
+      schemaList.add(measurementSchema);
+      Tablet tablet =
+          new Tablet(
+              deviceName,
+              schemaList,
+              chunkPointNum); // 设置Tablet的maxRowNumber等于一个chunk里想要的数据量大小，因为tablet是flush的最小单位
+      long[] timestamps = tablet.timestamps;
+      Object[] values = tablet.values;
 
-    if (expType.equals(ExpType.WRITE_REAL)) { // read points from csv and write to TsFile
-      try (BufferedReader br = new BufferedReader(new FileReader(csvData))) {
-        br.readLine(); // skip header
-        for (String line; (line = br.readLine()) != null; ) {
+      if (expType.equals(ExpType.WRITE_REAL)) { // read points from csv and write to TsFile
+        try (BufferedReader br = new BufferedReader(new FileReader(csvData))) {
+          br.readLine(); // skip header
+          for (String line; (line = br.readLine()) != null; ) {
+            pointNum++;
+            String[] tv = line.split(",");
+            long time = Long.parseLong(tv[0]); // get timestamp from real data
+            int row = tablet.rowSize++;
+            timestamps[row] = time;
+
+            switch (valueDataType) {
+              case INT32:
+                int int_value = Integer.parseInt(tv[1]); // get value from real data
+                int[] int_sensor = (int[]) values[0];
+                int_sensor[row] = int_value;
+                break;
+              case INT64:
+                long long_value = Long.parseLong(tv[1]); // get value from real data
+                long[] long_sensor = (long[]) values[0];
+                long_sensor[row] = long_value;
+                break;
+              case FLOAT:
+                float float_value = Float.parseFloat(tv[1]); // get value from real data
+                float[] float_sensor = (float[]) values[0];
+                float_sensor[row] = float_value;
+                break;
+              case DOUBLE:
+                double double_value = Double.parseDouble(tv[1]); // get value from real data
+                double[] double_sensor = (double[]) values[0];
+                double_sensor[row] = double_value;
+                break;
+              default:
+                throw new IOException("not supported data type!");
+            }
+
+            if (tablet.rowSize == tablet.getMaxRowNumber()) {
+              tsFileWriter.write(tablet);
+              tablet.reset();
+              tsFileWriter.flushAllChunkGroups();
+            }
+          }
+        }
+      } else { // WRITE_SYNC
+        long rowNum = (long) chunkPointNum * chunksWritten; // 写数据点数
+        long timestamp = 1;
+        Random ran = new Random();
+        for (long r = 0; r < rowNum; r++) {
           pointNum++;
-          String[] tv = line.split(",");
-          long time = Long.parseLong(tv[0]); // get timestamp from real data
           int row = tablet.rowSize++;
-          timestamps[row] = time;
+          timestamps[row] = timestamp++;
 
           switch (valueDataType) {
             case INT32:
-              int int_value = Integer.parseInt(tv[1]); // get value from real data
               int[] int_sensor = (int[]) values[0];
-              int_sensor[row] = int_value;
+              int_sensor[row] = ran.nextInt(100);
               break;
             case INT64:
-              long long_value = Long.parseLong(tv[1]); // get value from real data
               long[] long_sensor = (long[]) values[0];
-              long_sensor[row] = long_value;
+              long_sensor[row] = ran.nextLong();
               break;
             case FLOAT:
-              float float_value = Float.parseFloat(tv[1]); // get value from real data
               float[] float_sensor = (float[]) values[0];
-              float_sensor[row] = float_value;
+              float_sensor[row] = ran.nextFloat();
               break;
             case DOUBLE:
-              double double_value = Double.parseDouble(tv[1]); // get value from real data
               double[] double_sensor = (double[]) values[0];
-              double_sensor[row] = double_value;
+              double_sensor[row] = ran.nextDouble();
               break;
             default:
               throw new IOException("not supported data type!");
@@ -398,76 +562,43 @@ public class RLTestChunkReadCostWithRealDataSet {
           if (tablet.rowSize == tablet.getMaxRowNumber()) {
             tsFileWriter.write(tablet);
             tablet.reset();
-            tsFileWriter.flushAllChunkGroups();
+            tsFileWriter
+                .flushAllChunkGroups(); // 把chunkGroupSizeThreshold设够大，使得不会因为这个限制而flush，但是使用手动地提前flushAllChunkGroups来控制一个chunk里的数据量。
           }
         }
+        System.out.println("current pointNum: " + pointNum);
       }
-    } else { // WRITE_SYNC
-      long rowNum = (long) chunkPointNum * chunksWritten; // 写数据点数
-      long timestamp = 1;
-      Random ran = new Random();
-      for (long r = 0; r < rowNum; r++) {
-        pointNum++;
-        int row = tablet.rowSize++;
-        timestamps[row] = timestamp++;
-
-        switch (valueDataType) {
-          case INT32:
-            int[] int_sensor = (int[]) values[0];
-            int_sensor[row] = ran.nextInt(100);
-            break;
-          case INT64:
-            long[] long_sensor = (long[]) values[0];
-            long_sensor[row] = ran.nextLong();
-            break;
-          case FLOAT:
-            float[] float_sensor = (float[]) values[0];
-            float_sensor[row] = ran.nextFloat();
-            break;
-          case DOUBLE:
-            double[] double_sensor = (double[]) values[0];
-            double_sensor[row] = ran.nextDouble();
-            break;
-          default:
-            throw new IOException("not supported data type!");
-        }
-
-        if (tablet.rowSize == tablet.getMaxRowNumber()) {
-          tsFileWriter.write(tablet);
-          tablet.reset();
-          tsFileWriter
-              .flushAllChunkGroups(); // 把chunkGroupSizeThreshold设够大，使得不会因为这个限制而flush，但是使用手动地提前flushAllChunkGroups来控制一个chunk里的数据量。
-        }
+      // flush the last Tablet
+      if (tablet.rowSize != 0) {
+        tsFileWriter.write(tablet);
+        tablet.reset();
       }
-      System.out.println("current pointNum: " + pointNum);
+      tsFileWriter.flushAllChunkGroups();
+      System.out.println(
+          "====================================write parameters====================================");
+      System.out.println("ExpType = " + expType);
+      if (expType.equals(ExpType.WRITE_REAL)) {
+        System.out.println("csvData = " + csvData);
+      }
+      System.out.println("pagePointNum = " + pagePointNum);
+      System.out.println("numOfPagesInChunk = " + numOfPagesInChunk);
+      if (expType.equals(ExpType.WRITE_SYNC)) {
+        System.out.println("chunksWritten = " + chunksWritten);
+      }
+      System.out.println("time encoding = " + timeEncoding);
+      System.out.println("value data type = " + valueDataType);
+      System.out.println("value encoding = " + valueEncoding);
+      System.out.println("compression = " + compressionType);
+      System.out.println(
+          "====================================write result====================================");
+      System.out.println("output tsfilePath: " + tsfilePath);
+      System.out.println("write points: " + pointNum);
+      System.out.println(
+          "tsfile size: " + df.format(new File(tsfilePath).length() / 1024.0 / 1024.0) + " MB");
     }
-    // flush the last Tablet
-    if (tablet.rowSize != 0) {
-      tsFileWriter.write(tablet);
-      tablet.reset();
-    }
-    tsFileWriter.flushAllChunkGroups();
-    tsFileWriter.close();
-    System.out.println(
-        "====================================write parameters====================================");
-    System.out.println("ExpType = " + expType);
-    if (expType.equals(ExpType.WRITE_REAL)) {
-      System.out.println("csvData = " + csvData);
-    }
-    System.out.println("pagePointNum = " + pagePointNum);
-    System.out.println("numOfPagesInChunk = " + numOfPagesInChunk);
-    if (expType.equals(ExpType.WRITE_SYNC)) {
-      System.out.println("chunksWritten = " + chunksWritten);
-    }
-    System.out.println("time encoding = " + timeEncoding);
-    System.out.println("value data type = " + valueDataType);
-    System.out.println("value encoding = " + valueEncoding);
-    System.out.println("compression = " + compressionType);
-    System.out.println(
-        "====================================write result====================================");
-    System.out.println("output tsfilePath: " + tsfilePath);
-    System.out.println("write points: " + pointNum);
-    System.out.println("tsfile size: " + new File(tsfilePath).length() / 1024.0 / 1024.0 + " MB");
+
+    getTsfileSpaceStatistics(tsfilePath);
+
     return pointNum;
   }
 
