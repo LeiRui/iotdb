@@ -47,7 +47,7 @@ public class RLTestChunkReadCostWithRealDataSet {
   public static DecimalFormat df = new DecimalFormat("#,###.00");
 
   public static enum ExpType {
-    WRITE_SYNC, // write synthetic data
+    WRITE_SYN, // write synthetic data
     WRITE_REAL, // write real data
     READ // read data
   }
@@ -56,10 +56,10 @@ public class RLTestChunkReadCostWithRealDataSet {
    * Three kinds of arguments for writing synthetic data, writing real data, and reading data
    * respectively.
    *
-   * <p>WRITE_SYNC [pagePointNum] [numOfPagesInChunk] [chunksWritten] [timeEncoding] [valueDataType]
+   * <p>WRITE_SYN [pagePointNum] [numOfPagesInChunk] [chunksWritten] [timeEncoding] [valueDataType]
    * [valueEncoding] [compressionType]
    *
-   * <p>WRITE_SYNC 10000 1000 10 TS_2DIFF int32 PLAIN LZ4
+   * <p>WRITE_SYN 10000 1000 10 TS_2DIFF int32 PLAIN LZ4
    *
    * <p>WRITE_REAL path_of_real_data_csv_to_write [pagePointNum] [numOfPagesInChunk] [timeEncoding]
    * [valueDataType] [valueEncoding] [compressionType]
@@ -87,9 +87,9 @@ public class RLTestChunkReadCostWithRealDataSet {
 
     String exp = args[0].toUpperCase(Locale.ROOT);
     switch (exp) {
-      case "WRITE_SYNC": // WRITE_SYNC [pagePointNum] [numOfPagesInChunk] [chunksWritten]
+      case "WRITE_SYN": // WRITE_SYN [pagePointNum] [numOfPagesInChunk] [chunksWritten]
         // [valueDataType] [valueEncoding] [compressionType]
-        expType = ExpType.WRITE_SYNC;
+        expType = ExpType.WRITE_SYN;
         pagePointNum = Integer.parseInt(args[1]);
         numOfPagesInChunk = Integer.parseInt(args[2]);
         chunksWritten = Integer.parseInt(args[3]);
@@ -104,7 +104,7 @@ public class RLTestChunkReadCostWithRealDataSet {
                 args[7].toUpperCase(Locale.ROOT)); // UNCOMPRESSED / SNAPPY / GZIP / LZ4
         long pointNum =
             writeTsFile(
-                ExpType.WRITE_SYNC,
+                ExpType.WRITE_SYN,
                 "",
                 pagePointNum,
                 numOfPagesInChunk,
@@ -148,7 +148,7 @@ public class RLTestChunkReadCostWithRealDataSet {
         TsFileConstant.D_2_decompose_each_step = Boolean.parseBoolean(args[3]);
         break;
       default:
-        throw new IOException("Wrong ExpType. Only accept WRITE_SYNC/WRITE_REAL/READ");
+        throw new IOException("Wrong ExpType. Only accept WRITE_SYN/WRITE_REAL/READ");
     }
 
     // ==============read tsfile test==============
@@ -159,11 +159,10 @@ public class RLTestChunkReadCostWithRealDataSet {
       try {
         pw =
             new PrintWriter(
-                new File(
-                        "testTsFile"
-                            + File.separator
-                            + FilenameUtils.removeExtension(new File(tsfilePath).getName()))
-                    + "_result.csv");
+                "testTsFile"
+                    + File.separator
+                    + FilenameUtils.removeExtension(new File(tsfilePath).getName())
+                    + "_readResult.csv");
         if (!TsFileConstant.decomposeMeasureTime) {
           pw.println(
               "data,totalPointNum,pagePointNum,numOfPagesInChunk,timeEncoding,valueType,valueEncoding,compressionType,totalTime(us)");
@@ -274,19 +273,18 @@ public class RLTestChunkReadCostWithRealDataSet {
     }
   }
 
-  public static void getTsfileSpaceStatistics(String tsfilePath) throws Exception {
+  public static void getTsfileSpaceStatistics(String tsfilePath, PrintWriter pw) throws Exception {
     System.out.println(
         "====================================tsfile space statistics====================================");
     TsFileConstant.decomposeMeasureTime = false;
-    TsFileSequenceReader fileReader = null;
     DescriptiveStatistics chunkDataSize_stats = new DescriptiveStatistics();
     DescriptiveStatistics compressedPageSize_stats = new DescriptiveStatistics();
     DescriptiveStatistics uncompressedPageSize_stats = new DescriptiveStatistics();
     DescriptiveStatistics timeBufferSize_stats = new DescriptiveStatistics();
     DescriptiveStatistics valueBufferSize_stats = new DescriptiveStatistics();
     Map<String, List<Long>> elapsedTimeInNanoSec = new TreeMap<>();
-    try {
-      fileReader = new TsFileSequenceReader(tsfilePath, true, elapsedTimeInNanoSec);
+    try (TsFileSequenceReader fileReader =
+        new TsFileSequenceReader(tsfilePath, true, elapsedTimeInNanoSec)) {
       MetadataQuerierByFileImpl metadataQuerier =
           new MetadataQuerierByFileImpl(fileReader, elapsedTimeInNanoSec);
       List<IChunkMetadata> chunkMetadataList =
@@ -310,21 +308,18 @@ public class RLTestChunkReadCostWithRealDataSet {
         }
       }
     } finally {
-      if (fileReader != null) {
-        fileReader.close();
-      }
-      System.out.println(
-          "tsfile size: " + df.format(new File(tsfilePath).length() / 1024.0 / 1024.0) + "MB");
-      printStats("chunkDataSize_stats", chunkDataSize_stats, "MB");
-      printStats("compressedPageSize_stats", compressedPageSize_stats, "B");
-      printStats("uncompressedPageSize_stats", uncompressedPageSize_stats, "B");
-      printStats("timeBufferSize_stats", timeBufferSize_stats, "B");
-      printStats("valueBufferSize_stats", valueBufferSize_stats, "B");
+      // System.out.println("tsfile size: " + df.format(new File(tsfilePath).length() / 1024.0 /
+      // 1024.0) + "MB");
+      printStats("chunkDataSize_stats", chunkDataSize_stats, "MB", pw);
+      printStats("compressedPageSize_stats", compressedPageSize_stats, "B", pw);
+      printStats("uncompressedPageSize_stats", uncompressedPageSize_stats, "B", pw);
+      printStats("timeBufferSize_stats", timeBufferSize_stats, "B", pw);
+      printStats("valueBufferSize_stats", valueBufferSize_stats, "B", pw);
     }
   }
 
-  public static void printStats(String name, DescriptiveStatistics stats, String unit)
-      throws Exception {
+  public static void printStats(
+      String name, DescriptiveStatistics stats, String unit, PrintWriter pw) throws Exception {
     unit = unit.toUpperCase();
     double unitConvert = 1;
     switch (unit) {
@@ -355,6 +350,10 @@ public class RLTestChunkReadCostWithRealDataSet {
     double p90 = stats.getPercentile(90) / unitConvert;
     double p95 = stats.getPercentile(95) / unitConvert;
     // double sum = stats.getSum() / 1024.0;
+
+    pw.print(mean); // note that print to csv cannot use the df format with comma inside
+    pw.print(",");
+
     System.out.println(
         name
             + ": "
@@ -402,18 +401,19 @@ public class RLTestChunkReadCostWithRealDataSet {
       String csvData, // for WRITE_REAL only
       int pagePointNum,
       int numOfPagesInChunk,
-      int chunksWritten, // for WRITE_SYNC only
+      int chunksWritten, // for WRITE_SYN only
       String timeEncoding,
       TSDataType valueDataType,
       TSEncoding valueEncoding,
       CompressionType compressionType)
       throws Exception {
-    if (!expType.equals(ExpType.WRITE_REAL) && !expType.equals(ExpType.WRITE_SYNC)) {
+    if (!expType.equals(ExpType.WRITE_REAL) && !expType.equals(ExpType.WRITE_SYN)) {
       throw new IOException("Wrong write type!");
     }
     String tsfilePath;
+    String resultPath;
     if (expType.equals(ExpType.WRITE_REAL)) {
-      tsfilePath =
+      String name =
           "testTsFile"
               + File.separator
               + FilenameUtils.removeExtension(new File(csvData).getName()) // for WRITE_REAL only
@@ -429,20 +429,22 @@ public class RLTestChunkReadCostWithRealDataSet {
               + valueEncoding
               + "_co_"
               + compressionType
-              // + "_"
-              // + System.currentTimeMillis()
-              + ".tsfile";
-    } else { // WRITE_SYNC
-      tsfilePath =
+          // + "_"
+          // + System.currentTimeMillis()
+          ;
+      tsfilePath = name + ".tsfile";
+      resultPath = name + "-writeResult.csv";
+    } else { // WRITE_SYN
+      String name =
           "testTsFile"
               + File.separator
-              + "sync"
+              + "syn"
               + "_ppn_"
               + pagePointNum
               + "_pic_"
               + numOfPagesInChunk
               + "_cw_"
-              + chunksWritten // for WRITE_SYNC only
+              + chunksWritten // for WRITE_SYN only
               + "_te_"
               + timeEncoding
               + "_vt_"
@@ -451,9 +453,11 @@ public class RLTestChunkReadCostWithRealDataSet {
               + valueEncoding
               + "_co_"
               + compressionType
-              // + "_"
-              // + System.currentTimeMillis()
-              + ".tsfile";
+          // + "_"
+          // + System.currentTimeMillis()
+          ;
+      tsfilePath = name + ".tsfile";
+      resultPath = name + "-writeResult.csv";
     }
 
     File file = new File(tsfilePath);
@@ -488,6 +492,7 @@ public class RLTestChunkReadCostWithRealDataSet {
       Object[] values = tablet.values;
 
       if (expType.equals(ExpType.WRITE_REAL)) { // read points from csv and write to TsFile
+        chunksWritten = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(csvData))) {
           br.readLine(); // skip header
           for (String line; (line = br.readLine()) != null; ) {
@@ -526,10 +531,11 @@ public class RLTestChunkReadCostWithRealDataSet {
               tsFileWriter.write(tablet);
               tablet.reset();
               tsFileWriter.flushAllChunkGroups();
+              chunksWritten++;
             }
           }
         }
-      } else { // WRITE_SYNC
+      } else { // WRITE_SYN
         long rowNum = (long) chunkPointNum * chunksWritten; // 写数据点数
         long timestamp = 1;
         Random ran = new Random();
@@ -566,38 +572,94 @@ public class RLTestChunkReadCostWithRealDataSet {
                 .flushAllChunkGroups(); // 把chunkGroupSizeThreshold设够大，使得不会因为这个限制而flush，但是使用手动地提前flushAllChunkGroups来控制一个chunk里的数据量。
           }
         }
-        System.out.println("current pointNum: " + pointNum);
       }
-      // flush the last Tablet
+      // flush the last Tablet for WRITE_REAL. WRITE_SYN will not have data points left here.
       if (tablet.rowSize != 0) {
         tsFileWriter.write(tablet);
         tablet.reset();
+        tsFileWriter.flushAllChunkGroups();
+        chunksWritten++;
       }
-      tsFileWriter.flushAllChunkGroups();
-      System.out.println(
-          "====================================write parameters====================================");
-      System.out.println("ExpType = " + expType);
-      if (expType.equals(ExpType.WRITE_REAL)) {
-        System.out.println("csvData = " + csvData);
-      }
-      System.out.println("pagePointNum = " + pagePointNum);
-      System.out.println("numOfPagesInChunk = " + numOfPagesInChunk);
-      if (expType.equals(ExpType.WRITE_SYNC)) {
-        System.out.println("chunksWritten = " + chunksWritten);
-      }
-      System.out.println("time encoding = " + timeEncoding);
-      System.out.println("value data type = " + valueDataType);
-      System.out.println("value encoding = " + valueEncoding);
-      System.out.println("compression = " + compressionType);
-      System.out.println(
-          "====================================write result====================================");
-      System.out.println("output tsfilePath: " + tsfilePath);
-      System.out.println("write points: " + pointNum);
-      System.out.println(
-          "tsfile size: " + df.format(new File(tsfilePath).length() / 1024.0 / 1024.0) + " MB");
-    }
+      // closing tsFileWriter is handled by try-with-resources
+    } finally {
+      try (PrintWriter pw = new PrintWriter(resultPath)) {
+        pw.println(
+            "dataset,pagePointNum(ppn),numOfPagesInChunk(pic),chunksWritten(cw),"
+                + "timeEncoding(te),valueDataType(vt),valueEncoding(ve),compression(co),"
+                + "TotalPointNum, TsfileSize(MB),AvgChunkDataSize(MB),AvgCompressedPageSize(Bytes),"
+                + "AvgUncompressedPageSize(Bytes),AvgTimeBufferSize(Bytes),AvgValueBufferSize(Bytes)");
 
-    getTsfileSpaceStatistics(tsfilePath);
+        System.out.println(
+            "====================================write parameters====================================");
+        System.out.println("ExpType = " + expType);
+        if (expType.equals(ExpType.WRITE_REAL)) {
+          System.out.println("csvData = " + csvData);
+          System.out.println("pagePointNum = " + pagePointNum);
+          System.out.println("numOfPagesInChunk = " + numOfPagesInChunk);
+          System.out.println("(result)chunksWritten = " + chunksWritten);
+          System.out.println("time encoding = " + timeEncoding);
+          System.out.println("value data type = " + valueDataType);
+          System.out.println("value encoding = " + valueEncoding);
+          System.out.println("compression = " + compressionType);
+
+          pw.print(csvData);
+          pw.print(",");
+          pw.print(pagePointNum);
+          pw.print(",");
+          pw.print(numOfPagesInChunk);
+          pw.print(",");
+          pw.print(chunksWritten);
+          pw.print(",");
+          pw.print(timeEncoding);
+          pw.print(",");
+          pw.print(valueDataType);
+          pw.print(",");
+          pw.print(valueEncoding);
+          pw.print(",");
+          pw.print(compressionType);
+          pw.print(",");
+        } else {
+          System.out.println("pagePointNum = " + pagePointNum);
+          System.out.println("numOfPagesInChunk = " + numOfPagesInChunk);
+          System.out.println("chunksWritten = " + chunksWritten);
+          System.out.println("time encoding = " + timeEncoding);
+          System.out.println("value data type = " + valueDataType);
+          System.out.println("value encoding = " + valueEncoding);
+          System.out.println("compression = " + compressionType);
+
+          pw.print("synthetic,");
+          pw.print(pagePointNum);
+          pw.print(",");
+          pw.print(numOfPagesInChunk);
+          pw.print(",");
+          pw.print(chunksWritten);
+          pw.print(",");
+          pw.print(timeEncoding);
+          pw.print(",");
+          pw.print(valueDataType);
+          pw.print(",");
+          pw.print(valueEncoding);
+          pw.print(",");
+          pw.print(compressionType);
+          pw.print(",");
+        }
+
+        System.out.println(
+            "====================================write result====================================");
+        System.out.println("output tsfilePath: " + tsfilePath);
+        System.out.println("write points: " + pointNum);
+        System.out.println(
+            "tsfile size: " + df.format(new File(tsfilePath).length() / 1024.0 / 1024.0) + " MB");
+
+        pw.print(pointNum);
+        pw.print(",");
+        pw.print(df.format(new File(tsfilePath).length() / 1024.0 / 1024.0));
+        pw.print(",");
+
+        // calculate file, chunk, and page size information
+        getTsfileSpaceStatistics(tsfilePath, pw);
+      }
+    }
 
     return pointNum;
   }
