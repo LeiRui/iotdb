@@ -1,5 +1,20 @@
 package org.apache.iotdb.tsfile.read;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Random;
+import java.util.TreeMap;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.iotdb.tsfile.common.conf.TSFileConfig;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
@@ -19,23 +34,6 @@ import org.apache.iotdb.tsfile.write.TsFileWriter;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.apache.iotdb.tsfile.write.schema.Schema;
-
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Random;
-import java.util.TreeMap;
 
 public class RLTestChunkReadCostWithRealDataSet {
 
@@ -62,10 +60,11 @@ public class RLTestChunkReadCostWithRealDataSet {
    *
    * <p>WRITE_SYN 10000 1000 10 TS_2DIFF int32 PLAIN LZ4
    *
-   * <p>WRITE_REAL [path_of_real_data_csv_to_write] [pagePointNum] [numOfPagesInChunk] [timeEncoding]
-   * [valueDataType] [valueEncoding] [compressionType]
+   * <p>WRITE_REAL [path_of_real_data_csv_to_write] [pagePointNum] [numOfPagesInChunk]
+   * [timeEncoding] [valueDataType] [valueEncoding] [compressionType]
    *
-   * <p>WRITE_REAL "G:\实验室电脑同步\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT17.csv" 10000 10 TS_2DIFF
+   * <p>WRITE_REAL "G:\实验室电脑同步\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT17.csv" 10000 10
+   * TS_2DIFF
    * FLOAT RLE LZ4
    *
    * <p>READ [path_of_tsfile_to_read] [decomposeMeasureTime] [D_decompose_each_step]
@@ -315,7 +314,7 @@ public class RLTestChunkReadCostWithRealDataSet {
     double p95 = stats.getPercentile(95) / unitConvert;
     // double sum = stats.getSum() / 1024.0;
 
-    pw.print(name + "(" + unit + "),");
+    pw.print(name + "_mean(" + unit + "),");
     pw.println(mean); // note that print to csv cannot use the df format with comma inside
 
     System.out.println(
@@ -678,11 +677,11 @@ public class RLTestChunkReadCostWithRealDataSet {
       if (key.equals(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize)
           || key.equals(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)
           || key.equals(
-              TsFileConstant
-                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
+          TsFileConstant
+              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
           || key.equals(
-              TsFileConstant
-                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
+          TsFileConstant
+              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
         A_get_chunkMetadatas += sum;
       }
       if (key.equals(TsFileConstant.data_read_deserialize_ChunkHeader)
@@ -757,11 +756,11 @@ public class RLTestChunkReadCostWithRealDataSet {
     System.out.println(
         "====================================[3] D_1 compare each step inside====================================");
     String[] keys =
-        new String[] {
-          TsFileConstant.D_1_data_ByteBuffer_to_ByteArray,
-          TsFileConstant.D_1_data_decompress_PageDataByteArray,
-          TsFileConstant.D_1_data_ByteArray_to_ByteBuffer,
-          TsFileConstant.D_1_data_split_time_value_Buffer
+        new String[]{
+            TsFileConstant.D_1_data_ByteBuffer_to_ByteArray,
+            TsFileConstant.D_1_data_decompress_PageDataByteArray,
+            TsFileConstant.D_1_data_ByteArray_to_ByteBuffer,
+            TsFileConstant.D_1_data_split_time_value_Buffer
         };
     double[] times = new double[keys.length];
     for (int i = 0; i < keys.length; i++) {
@@ -790,13 +789,13 @@ public class RLTestChunkReadCostWithRealDataSet {
             + elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
             + elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0);
     keys =
-        new String[] {
-          TsFileConstant.D_2_createBatchData,
-          TsFileConstant.D_2_timeDecoder_hasNext,
-          TsFileConstant.D_2_timeDecoder_readLong,
-          TsFileConstant.D_2_valueDecoder_read,
-          TsFileConstant.D_2_checkValueSatisfyOrNot,
-          TsFileConstant.D_2_putIntoBatchData
+        new String[]{
+            TsFileConstant.D_2_createBatchData,
+            TsFileConstant.D_2_timeDecoder_hasNext,
+            TsFileConstant.D_2_timeDecoder_readLong,
+            TsFileConstant.D_2_valueDecoder_read,
+            TsFileConstant.D_2_checkValueSatisfyOrNot,
+            TsFileConstant.D_2_putIntoBatchData
         };
     for (String key : keys) {
       System.out.println(
