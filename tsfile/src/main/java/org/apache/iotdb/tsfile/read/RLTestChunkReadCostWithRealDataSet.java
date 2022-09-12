@@ -62,13 +62,13 @@ public class RLTestChunkReadCostWithRealDataSet {
    *
    * <p>WRITE_SYN 10000 1000 10 TS_2DIFF int32 PLAIN LZ4
    *
-   * <p>WRITE_REAL path_of_real_data_csv_to_write [pagePointNum] [numOfPagesInChunk] [timeEncoding]
+   * <p>WRITE_REAL [path_of_real_data_csv_to_write] [pagePointNum] [numOfPagesInChunk] [timeEncoding]
    * [valueDataType] [valueEncoding] [compressionType]
    *
    * <p>WRITE_REAL "G:\实验室电脑同步\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT17.csv" 10000 10 TS_2DIFF
    * FLOAT RLE LZ4
    *
-   * <p>READ [path_of_tsfile_to_read] [decomposeMeasureTime] [D_2_decompose_each_step]
+   * <p>READ [path_of_tsfile_to_read] [decomposeMeasureTime] [D_decompose_each_step]
    *
    * <p>READ
    * D:\iotdb\testTsFile\ZT17_ppn_10000_pic_10_vt_DOUBLE_ve_PLAIN_co_UNCOMPRESSED_1662604242717.tsfile
@@ -171,7 +171,7 @@ public class RLTestChunkReadCostWithRealDataSet {
                 "testTsFile"
                     + File.separator
                     + FilenameUtils.removeExtension(new File(tsfilePath).getName())
-                    + "_readResult_"
+                    + "-readResult_"
                     + name
                     + ".csv");
 
