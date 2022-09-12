@@ -41,7 +41,8 @@ public class TsFileConstant {
 
   public static boolean decomposeMeasureTime = true; // false to measure the total time only
   public static boolean D_decompose_each_step_further =
-      true; // false to measure the D1/D2 step as a whole, true to measure each step in D1 and D2 further
+      true; // false to measure the D1/D2 step as a whole, true to measure each step in D1 and D2
+  // further
 
   // [index part]
   public static String index_read_deserialize_MagicString_FileMetadataSize =
@@ -52,10 +53,10 @@ public class TsFileConstant {
   // from the IndexRootNode to the TimeseriesMetadata
   public static String
       index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp =
-      "(A)3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp";
+          "(A)3_1_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp";
   public static String
       index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet =
-      "(A)3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet";
+          "(A)3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet";
 
   // [data part]
   public static String data_read_deserialize_ChunkHeader = "(B)4_data_read_deserialize_ChunkHeader";
@@ -66,7 +67,8 @@ public class TsFileConstant {
   public static String data_decompress_PageData = "(D-1)7_data_decompress_PageData";
 
   public static String D_1_data_ByteBuffer_to_ByteArray = "(D-1)7_1_data_ByteBuffer_to_ByteArray";
-  public static String D_1_data_decompress_PageDataByteArray = "(D-1)7_2_data_decompress_PageDataByteArray";
+  public static String D_1_data_decompress_PageDataByteArray =
+      "(D-1)7_2_data_decompress_PageDataByteArray";
   public static String D_1_data_ByteArray_to_ByteBuffer = "(D-1)7_3_data_ByteArray_to_ByteBuffer";
   public static String D_1_data_split_time_value_Buffer = "(D-1)7_4_data_split_time_value_Buffer";
 
@@ -81,13 +83,12 @@ public class TsFileConstant {
 
   public static String total_time = "total_time";
 
-  private TsFileConstant() {
-  }
+  private TsFileConstant() {}
 
   /**
    * @param elapsedTime in nanoseconds
-   * @param append      true to append in list, false to accumulate the first element in list
-   * @param print       true to print information
+   * @param append true to append in list, false to accumulate the first element in list
+   * @param print true to print information
    */
   public static void record(
       Map<String, List<Long>> elapsedTimeInNanoSec,

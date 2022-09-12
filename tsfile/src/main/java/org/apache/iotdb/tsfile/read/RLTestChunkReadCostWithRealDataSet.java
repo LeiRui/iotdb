@@ -1,20 +1,5 @@
 package org.apache.iotdb.tsfile.read;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Random;
-import java.util.TreeMap;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.iotdb.tsfile.common.conf.TSFileConfig;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
@@ -34,6 +19,23 @@ import org.apache.iotdb.tsfile.write.TsFileWriter;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.apache.iotdb.tsfile.write.schema.Schema;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Random;
+import java.util.TreeMap;
 
 public class RLTestChunkReadCostWithRealDataSet {
 
@@ -63,8 +65,8 @@ public class RLTestChunkReadCostWithRealDataSet {
    * <p>WRITE_REAL path_of_real_data_csv_to_write [pagePointNum] [numOfPagesInChunk] [timeEncoding]
    * [valueDataType] [valueEncoding] [compressionType]
    *
-   * <p>WRITE_REAL "G:\实验室电脑同步\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT17.csv" 10000 10
-   * TS_2DIFF FLOAT RLE LZ4
+   * <p>WRITE_REAL "G:\实验室电脑同步\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT17.csv" 10000 10 TS_2DIFF
+   * FLOAT RLE LZ4
    *
    * <p>READ [path_of_tsfile_to_read] [decomposeMeasureTime] [D_2_decompose_each_step]
    *
@@ -164,8 +166,14 @@ public class RLTestChunkReadCostWithRealDataSet {
         } else {
           name = "furtherD";
         }
-        pw = new PrintWriter("testTsFile" + File.separator + FilenameUtils
-            .removeExtension(new File(tsfilePath).getName()) + "_readResult_" + name + ".csv");
+        pw =
+            new PrintWriter(
+                "testTsFile"
+                    + File.separator
+                    + FilenameUtils.removeExtension(new File(tsfilePath).getName())
+                    + "_readResult_"
+                    + name
+                    + ".csv");
 
         Map<String, List<Long>> elapsedTimeInNanoSec = new TreeMap<>();
         long totalStart = System.nanoTime();
@@ -307,8 +315,8 @@ public class RLTestChunkReadCostWithRealDataSet {
     double p95 = stats.getPercentile(95) / unitConvert;
     // double sum = stats.getSum() / 1024.0;
 
-    pw.print(mean); // note that print to csv cannot use the df format with comma inside
-    pw.print(",");
+    pw.print(name + "(" + unit + "),");
+    pw.println(mean); // note that print to csv cannot use the df format with comma inside
 
     System.out.println(
         name
@@ -539,65 +547,67 @@ public class RLTestChunkReadCostWithRealDataSet {
       // closing tsFileWriter is handled by try-with-resources
     } finally {
       try (PrintWriter pw = new PrintWriter(resultPath)) {
+        /*
         pw.println(
             "dataset,pagePointNum(ppn),numOfPagesInChunk(pic),chunksWritten(cw),"
                 + "timeEncoding(te),valueDataType(vt),valueEncoding(ve),compression(co),"
                 + "TotalPointNum, TsfileSize(MB),AvgChunkDataSize(MB),AvgCompressedPageSize(Bytes),"
                 + "AvgUncompressedPageSize(Bytes),AvgTimeBufferSize(Bytes),AvgValueBufferSize(Bytes)");
+         */
 
         System.out.println(
             "====================================write parameters====================================");
         System.out.println("ExpType = " + expType);
         if (expType.equals(ExpType.WRITE_REAL)) {
           System.out.println("csvData = " + csvData);
-          System.out.println("pagePointNum = " + pagePointNum);
-          System.out.println("numOfPagesInChunk = " + numOfPagesInChunk);
-          System.out.println("(result)chunksWritten = " + chunksWritten);
-          System.out.println("time encoding = " + timeEncoding);
-          System.out.println("value data type = " + valueDataType);
-          System.out.println("value encoding = " + valueEncoding);
-          System.out.println("compression = " + compressionType);
+          System.out.println("pagePointNum(ppn) = " + pagePointNum);
+          System.out.println("numOfPagesInChunk(pic) = " + numOfPagesInChunk);
+          System.out.println("(result)chunksWritten(cw) = " + chunksWritten);
+          System.out.println("timeEncoding(te) = " + timeEncoding);
+          System.out.println("valueDataType(vt) = " + valueDataType);
+          System.out.println("valueEncoding(ve) = " + valueEncoding);
+          System.out.println("compression(co) = " + compressionType);
 
-          pw.print(csvData);
-          pw.print(",");
-          pw.print(pagePointNum);
-          pw.print(",");
-          pw.print(numOfPagesInChunk);
-          pw.print(",");
-          pw.print(chunksWritten);
-          pw.print(",");
-          pw.print(timeEncoding);
-          pw.print(",");
-          pw.print(valueDataType);
-          pw.print(",");
-          pw.print(valueEncoding);
-          pw.print(",");
-          pw.print(compressionType);
-          pw.print(",");
+          pw.print("dataset,");
+          pw.println(csvData);
+          pw.print("pagePointNum(ppn),");
+          pw.println(pagePointNum);
+          pw.print("numOfPagesInChunk(pic),");
+          pw.println(numOfPagesInChunk);
+          pw.print("(result)chunksWritten(cw),");
+          pw.println(chunksWritten);
+          pw.print("timeEncoding(te),");
+          pw.println(timeEncoding);
+          pw.print("valueDataType(vt),");
+          pw.println(valueDataType);
+          pw.print("valueEncoding(ve),");
+          pw.println(valueEncoding);
+          pw.print("compression(co),");
+          pw.println(compressionType);
         } else {
-          System.out.println("pagePointNum = " + pagePointNum);
-          System.out.println("numOfPagesInChunk = " + numOfPagesInChunk);
-          System.out.println("chunksWritten = " + chunksWritten);
-          System.out.println("time encoding = " + timeEncoding);
-          System.out.println("value data type = " + valueDataType);
-          System.out.println("value encoding = " + valueEncoding);
-          System.out.println("compression = " + compressionType);
+          System.out.println("pagePointNum(ppn) = " + pagePointNum);
+          System.out.println("numOfPagesInChunk(pic) = " + numOfPagesInChunk);
+          System.out.println("chunksWritten(cw) = " + chunksWritten);
+          System.out.println("timeEncoding(te) = " + timeEncoding);
+          System.out.println("valueDataType(vt) = " + valueDataType);
+          System.out.println("valueEncoding(ve) = " + valueEncoding);
+          System.out.println("compression(co) = " + compressionType);
 
-          pw.print("synthetic,");
-          pw.print(pagePointNum);
-          pw.print(",");
-          pw.print(numOfPagesInChunk);
-          pw.print(",");
-          pw.print(chunksWritten);
-          pw.print(",");
-          pw.print(timeEncoding);
-          pw.print(",");
-          pw.print(valueDataType);
-          pw.print(",");
-          pw.print(valueEncoding);
-          pw.print(",");
-          pw.print(compressionType);
-          pw.print(",");
+          pw.println("dataset,synthetic");
+          pw.print("pagePointNum(ppn),");
+          pw.println(pagePointNum);
+          pw.print("numOfPagesInChunk(pic),");
+          pw.println(numOfPagesInChunk);
+          pw.print("chunksWritten(cw),");
+          pw.println(chunksWritten);
+          pw.print("timeEncoding(te),");
+          pw.println(timeEncoding);
+          pw.print("valueDataType(vt),");
+          pw.println(valueDataType);
+          pw.print("valueEncoding(ve),");
+          pw.println(valueEncoding);
+          pw.print("compression(co),");
+          pw.println(compressionType);
         }
 
         System.out.println(
@@ -607,10 +617,10 @@ public class RLTestChunkReadCostWithRealDataSet {
         System.out.println(
             "tsfile size: " + df.format(new File(tsfilePath).length() / 1024.0 / 1024.0) + " MB");
 
-        pw.print(pointNum);
-        pw.print(",");
-        pw.print(df.format(new File(tsfilePath).length() / 1024.0 / 1024.0));
-        pw.print(",");
+        pw.print("totalPoint,");
+        pw.println(pointNum);
+        pw.print("tsfileSize(MB),");
+        pw.println(new File(tsfilePath).length() / 1024.0 / 1024.0);
 
         // calculate file, chunk, and page size information
         getTsfileSpaceStatistics(tsfilePath, pw);
@@ -668,11 +678,11 @@ public class RLTestChunkReadCostWithRealDataSet {
       if (key.equals(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize)
           || key.equals(TsFileConstant.index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter)
           || key.equals(
-          TsFileConstant
-              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
+              TsFileConstant
+                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forCacheWarmUp)
           || key.equals(
-          TsFileConstant
-              .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
+              TsFileConstant
+                  .index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet)) {
         A_get_chunkMetadatas += sum;
       }
       if (key.equals(TsFileConstant.data_read_deserialize_ChunkHeader)
@@ -746,10 +756,13 @@ public class RLTestChunkReadCostWithRealDataSet {
 
     System.out.println(
         "====================================[3] D_1 compare each step inside====================================");
-    String[] keys = new String[]{TsFileConstant.D_1_data_ByteBuffer_to_ByteArray,
-        TsFileConstant.D_1_data_decompress_PageDataByteArray,
-        TsFileConstant.D_1_data_ByteArray_to_ByteBuffer,
-        TsFileConstant.D_1_data_split_time_value_Buffer};
+    String[] keys =
+        new String[] {
+          TsFileConstant.D_1_data_ByteBuffer_to_ByteArray,
+          TsFileConstant.D_1_data_decompress_PageDataByteArray,
+          TsFileConstant.D_1_data_ByteArray_to_ByteBuffer,
+          TsFileConstant.D_1_data_split_time_value_Buffer
+        };
     double[] times = new double[keys.length];
     for (int i = 0; i < keys.length; i++) {
       String key = keys[i];
@@ -776,17 +789,23 @@ public class RLTestChunkReadCostWithRealDataSet {
             + elapsedTimeInNanoSec.get(TsFileConstant.D_2_valueDecoder_read).get(0)
             + elapsedTimeInNanoSec.get(TsFileConstant.D_2_checkValueSatisfyOrNot).get(0)
             + elapsedTimeInNanoSec.get(TsFileConstant.D_2_putIntoBatchData).get(0);
-    keys = new String[]{TsFileConstant.D_2_createBatchData,
-        TsFileConstant.D_2_timeDecoder_hasNext,
-        TsFileConstant.D_2_timeDecoder_readLong,
-        TsFileConstant.D_2_valueDecoder_read,
-        TsFileConstant.D_2_checkValueSatisfyOrNot,
-        TsFileConstant.D_2_putIntoBatchData
-    };
+    keys =
+        new String[] {
+          TsFileConstant.D_2_createBatchData,
+          TsFileConstant.D_2_timeDecoder_hasNext,
+          TsFileConstant.D_2_timeDecoder_readLong,
+          TsFileConstant.D_2_valueDecoder_read,
+          TsFileConstant.D_2_checkValueSatisfyOrNot,
+          TsFileConstant.D_2_putIntoBatchData
+        };
     for (String key : keys) {
       System.out.println(
-          key + ": " + df.format(elapsedTimeInNanoSec.get(key).get(0) / 1000.0) + "us, " + df
-              .format(elapsedTimeInNanoSec.get(key).get(0) * 100.0 / total_D2) + "%");
+          key
+              + ": "
+              + df.format(elapsedTimeInNanoSec.get(key).get(0) / 1000.0)
+              + "us, "
+              + df.format(elapsedTimeInNanoSec.get(key).get(0) * 100.0 / total_D2)
+              + "%");
     }
   }
 }
