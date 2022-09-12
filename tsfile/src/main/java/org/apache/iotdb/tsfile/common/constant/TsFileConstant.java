@@ -70,7 +70,7 @@ public class TsFileConstant {
   public static String D_1_data_ByteArray_to_ByteBuffer = "(D-1)7_3_data_ByteArray_to_ByteBuffer";
   public static String D_1_data_split_time_value_Buffer = "(D-1)7_4_data_split_time_value_Buffer";
 
-  public static String data_decode_time_value_Buffer = "(D-2)8_data_decode_time_value_Buffer";
+  public static String data_decode_time_value_Buffer = "(D-2)8_data_decode_PageData";
 
   public static String D_2_createBatchData = "(D-2)8_1_createBatchData";
   public static String D_2_timeDecoder_hasNext = "(D-2)8_2_timeDecoder_hasNext";
