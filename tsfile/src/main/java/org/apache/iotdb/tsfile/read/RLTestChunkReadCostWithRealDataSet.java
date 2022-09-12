@@ -617,7 +617,7 @@ public class RLTestChunkReadCostWithRealDataSet {
         System.out.println(
             "tsfile size: " + df.format(new File(tsfilePath).length() / 1024.0 / 1024.0) + " MB");
 
-        pw.print("totalPoint,");
+        pw.print("totalPointNum,");
         pw.println(pointNum);
         pw.print("tsfileSize(MB),");
         pw.println(new File(tsfilePath).length() / 1024.0 / 1024.0);
