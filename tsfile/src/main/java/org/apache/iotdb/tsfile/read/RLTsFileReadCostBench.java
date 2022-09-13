@@ -21,6 +21,7 @@ import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.apache.iotdb.tsfile.write.schema.Schema;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.io.BufferedReader;
@@ -208,11 +209,12 @@ public class RLTsFileReadCostBench {
             metadataQuerier.getChunkMetaDataList(mypath, elapsedTimeInNanoSec);
 
         for (IChunkMetadata chunkMetadata : chunkMetadataList) {
+          // TODO: 让磁盘读取位置不连续
+          fileReader.tsFileInput.position(RandomUtils.nextLong(0, new File(tsfilePath).length()));
+
           // 【4_data_read_deserialize_ChunkHeader】
           // 【5_data_read_ChunkData】
           Chunk chunk = fileReader.readMemChunk((ChunkMetadata) chunkMetadata);
-
-          // TODO: 让磁盘读取不要连续
 
           // 【6_data_deserialize_PageHeader】
           // 【7_data_decompress_PageData】
