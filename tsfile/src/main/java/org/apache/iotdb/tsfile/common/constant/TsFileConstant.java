@@ -44,6 +44,11 @@ public class TsFileConstant {
       true; // false to measure the D1/D2 step as a whole, true to measure each step in D1 and D2
   // further
 
+  /**
+   * (A)get_chunkMetadatas (B)load_on_disk_chunk (C)get_pageHeader (D_1)decompress_pageData
+   * (D_2)decode_pageData
+   */
+
   // [index part]
   public static String index_read_deserialize_MagicString_FileMetadataSize =
       "(A)1_index_read_deserialize_MagicString_FileMetadataSize";

@@ -436,6 +436,17 @@ public class RLTestChunkReadCostWithRealDataSet {
     int chunkPointNum = pagePointNum * numOfPagesInChunk;
     long pointNum = 0;
 
+    /*
+     * 写数据时控制page/chunk/tsfile大小方式：
+     * (1) 控制page大小 & ChunkWriterImpl.checkPageSizeAndMayOpenANewPage
+     * - 把pageSizeThreshold设够大，从而排除其影响
+     * - 由点数来控制：pageWriter.getPointNumber() == maxNumberOfPointsInPage
+     * (2) 控制chunk大小 & TsFileWriter.checkMemorySizeAndMayFlushChunks
+     * - 把chunkGroupSizeThreshold设够大，使得不会因为这个限制而flush，但是使用手动地提前flushAllChunkGroups来控制一个chunk里的数据量
+     * - 设置Tablet的maxRowNumber等于一个chunk里想要的点数大小，因为tablet是flush的最小单位。如果一个Tablet的大小已经超过阈值，并不会拆分这个Tablet，而是保持Tablet的整体去flush（而page打包不是以Tablet为整体的）
+     * (3) 控制tsfile大小 & TsFileWriter.close()
+     */
+
     TSFileConfig tsFileConfig = TSFileDescriptor.getInstance().getConfig();
     tsFileConfig.setMaxNumberOfPointsInPage(pagePointNum);
     tsFileConfig.setPageSizeInByte(Integer.MAX_VALUE);
@@ -738,13 +749,13 @@ public class RLTestChunkReadCostWithRealDataSet {
             + df.format(C_get_pageHeader / cumulativeSteps * 100)
             + "%");
     System.out.println(
-        "(D_1)decompress_pageData_in_batch = "
+        "(D_1)decompress_pageData = "
             + df.format(D_1_decompress_pageData)
             + "us, "
             + df.format(D_1_decompress_pageData / cumulativeSteps * 100)
             + "%");
     System.out.println(
-        "(D_2)decode_pageData_point_by_point = "
+        "(D_2)decode_pageData = "
             + df.format(D_2_decode_pageData)
             + "us, "
             + df.format(D_2_decode_pageData / cumulativeSteps * 100)
