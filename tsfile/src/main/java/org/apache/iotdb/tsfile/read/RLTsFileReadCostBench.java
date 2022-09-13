@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
-public class RLTestChunkReadCostWithRealDataSet {
+public class RLTsFileReadCostBench {
 
   // only consider one time series here
   public static String deviceName = "d1";
@@ -68,10 +68,14 @@ public class RLTestChunkReadCostWithRealDataSet {
    * <p>WRITE_REAL "G:\实验室电脑同步\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT17.csv" 10000 10 TS_2DIFF
    * FLOAT RLE LZ4
    *
-   * <p>READ [path_of_tsfile_to_read] [decomposeMeasureTime] [D_decompose_each_step]
+   * <p>READ [path_of_tsfile_to_read] [decomposeMeasureTime] [D_decompose_each_step] (timeEncoding)
+   *
+   * <p>If timeEncoding is not specified, TS_2DIFF will be used by default.
+   *
+   * <p>timeEncoding should be the same with that used to write the TsFile.
    *
    * <p>READ
-   * D:\iotdb\testTsFile\ZT17_ppn_10000_pic_10_vt_DOUBLE_ve_PLAIN_co_UNCOMPRESSED_1662604242717.tsfile
+   * D:\iotdb\testTsFile\syn_ppn_10000_pic_1000_cw_10_te_TS_2DIFF_vt_INT32_ve_PLAIN_co_LZ4.tsfile
    * true false
    */
   public static void main(String[] args) throws Exception {
@@ -154,25 +158,37 @@ public class RLTestChunkReadCostWithRealDataSet {
 
     // ==============read tsfile test==============
     if (expType.equals(ExpType.READ)) {
+      // 写tsfile的时候允许写除了默认TS_2DIFF之外的编码，读的时候需要手动设置（TsFile里没有保存时间戳列的编码方式）
+      if (args.length > 4) { // 如果不加这个参数就是默认的TS_2DIFF
+        timeEncoding = args[4].toUpperCase(Locale.ROOT);
+        TSFileConfig tsFileConfig = TSFileDescriptor.getInstance().getConfig();
+        tsFileConfig.setTimeEncoder(timeEncoding);
+        System.out.println(TSFileDescriptor.getInstance().getConfig().getTimeEncoder());
+      }
+
       long cnt = 0;
       TsFileSequenceReader fileReader = null;
       PrintWriter pw = null;
       String resultCsvName = "";
       try {
-        if (!TsFileConstant.decomposeMeasureTime) {
-          resultCsvName = "total";
-        } else if (!TsFileConstant.D_decompose_each_step_further) {
-          resultCsvName = "category";
-        } else {
-          resultCsvName = "furtherD";
-        }
+        //        if (!TsFileConstant.decomposeMeasureTime) {
+        //          resultCsvName = "total";
+        //        } else if (!TsFileConstant.D_decompose_each_step_further) {
+        //          resultCsvName = "category";
+        //        } else {
+        //          resultCsvName = "furtherD";
+        //        }
         resultCsvName =
             "testTsFile"
                 + File.separator
                 + FilenameUtils.removeExtension(new File(tsfilePath).getName())
-                + "-readResult-"
-                + resultCsvName
                 + "-"
+                + Boolean.toString(TsFileConstant.decomposeMeasureTime).toUpperCase(Locale.ROOT)
+                + "-"
+                + Boolean.toString(TsFileConstant.D_decompose_each_step_further)
+                    .toUpperCase(Locale.ROOT)
+                + "-readResult-"
+                + "T"
                 + System.nanoTime()
                 + ".csv";
         pw = new PrintWriter(resultCsvName);
@@ -195,6 +211,8 @@ public class RLTestChunkReadCostWithRealDataSet {
           // 【4_data_read_deserialize_ChunkHeader】
           // 【5_data_read_ChunkData】
           Chunk chunk = fileReader.readMemChunk((ChunkMetadata) chunkMetadata);
+
+          // TODO: 让磁盘读取不要连续
 
           // 【6_data_deserialize_PageHeader】
           // 【7_data_decompress_PageData】
@@ -645,8 +663,7 @@ public class RLTestChunkReadCostWithRealDataSet {
   }
 
   public static void printEach(Map<String, List<Long>> elapsedTimeInNanoSec, PrintWriter pw) {
-    System.out.println(
-        "====================================[1] each step====================================");
+    System.out.println("----[1] each step----");
     double cumulativeSteps = 0;
     for (Map.Entry<String, List<Long>> entry : elapsedTimeInNanoSec.entrySet()) {
       String key = entry.getKey();
@@ -676,7 +693,7 @@ public class RLTestChunkReadCostWithRealDataSet {
       return;
     }
     System.out.println(
-        "======[2] category results, following the logic: (A)ChunkDigest->(B)load chunk (from disk)->(C)PageDigest->(D)load page (in memory)=====");
+        "----[2] category: (A)get ChunkStatistic->(B)load on-disk Chunk->(C)get PageStatistics->(D)load in-memory PageData----");
     double A_get_chunkMetadatas = 0;
     double B_load_on_disk_chunk = 0;
     double C_get_pageHeader = 0;
@@ -768,8 +785,7 @@ public class RLTestChunkReadCostWithRealDataSet {
       return;
     }
 
-    System.out.println(
-        "====================================[3] D_1 compare each step inside====================================");
+    System.out.println("----[3] D_1 compare each step inside----");
     String[] keys =
         new String[] {
           TsFileConstant.D_1_data_ByteBuffer_to_ByteArray,
@@ -794,8 +810,7 @@ public class RLTestChunkReadCostWithRealDataSet {
           key + ": " + df.format(times[i]) + "us, " + df.format(times[i] * 100.0 / total_D1) + "%");
     }
 
-    System.out.println(
-        "====================================[3] D_2 compare each step inside====================================");
+    System.out.println("----[3] D_2 compare each step inside----");
     long total_D2 =
         elapsedTimeInNanoSec.get(TsFileConstant.D_2_createBatchData).get(0)
             + elapsedTimeInNanoSec.get(TsFileConstant.D_2_timeDecoder_hasNext).get(0)
