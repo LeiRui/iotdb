@@ -13,7 +13,6 @@ do
   # 写数据参数
 	ppn=10000
 	pic=1000
-	cw=10
 	te=TS_2DIFF
 	vt=DOUBLE
 	ve=GORILLA
