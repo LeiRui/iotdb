@@ -25,7 +25,7 @@
 
 #### RLTsFileReadCostBench用法
 
-（1）用人工数据写TsFile：
+##### 1. 用人工数据写TsFile
 
 ```shell
 java -jar RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar WRITE_SYN [pagePointNum] [numOfPagesInChunk] [chunksWritten] [timeEncoding] [valueDataType] [valueEncoding] [compressionType]
@@ -40,7 +40,7 @@ java -jar RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar WRITE_SYN [page
 - `valueEncoding(ve)`：值列编码方式
 - `compressionType(co)`：压缩方式
 
-（2）用真实数据集写TsFile：
+##### 2. 用真实数据集写TsFile
 
 ```shell
 java -jar RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar WRITE_REAL [path_of_real_data_csv_to_write] [pagePointNum] [numOfPagesInChunk] [timeEncoding] [valueDataType] [valueEncoding] [compressionType]
@@ -55,7 +55,7 @@ java -jar RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar WRITE_REAL [pat
 - `valueEncoding(ve)`：值列编码方式
 - `compressionType(co)`：压缩方式
 
-（3）读实验：
+##### 3. 读实验
 
 ```shell
 java -jar RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar READ [path_of_tsfile_to_read] [decomposeMeasureTime] [D_decompose_each_step] (timeEncoding)
@@ -67,16 +67,24 @@ java -jar RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar READ [path_of_t
 - `D_decompose_each_step`：When `decomposeMeasureTime` is `TRUE`, `D_decompose_each_step=FALSE` to measure the "(D_1)decompress_pageData" and "(D_2)decode_pageData" steps without further deomposition, `D_decompose_each_step=TRUE` to break down these two steps further and measure substeps inside.
 - `timeEncoding(te)`：If `timeEncoding` is not specified, TS_2DIFF will be used by default. `timeEncoding` should be the same with that used to write the TsFile.
 
-#### 一些自动化实验脚本
 
-- RLUnitSynExp.sh：用人工数据写TsFile，然后进行一次读TsFile实验。
+
+| 控制参数         | decomposeMeasureTime=FALSE | decomposeMeasureTime=TRUE, D_decompose_each_step=FALSE       | decomposeMeasureTime=TRUE, D_decompose_each_step=TRUE        |
+| ---------------- | -------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| 测量最小单元步骤 | total_time                 | (A)1_index_read_deserialize_MagicString_FileMetadataSize(us)<br />(A)2_index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter(us)<br />(A)3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet(us)<br />(B)4_data_read_deserialize_ChunkHeader(us)<br />(B)5_data_read_ChunkData(us)<br />(C)6_data_deserialize_PageHeader(us)<br/>(D-1)7_data_decompress_PageData(us)<br/>(D-2)8_data_decode_PageData(us) | (A)1_index_read_deserialize_MagicString_FileMetadataSize(us)<br/>(A)2_index_read_deserialize_IndexRootNode_MetaOffset_BloomFilter(us)<br/>(A)3_2_index_read_deserialize_IndexRootNode_exclude_to_TimeseriesMetadata_forExactGet(us)<br/>(B)4_data_read_deserialize_ChunkHeader(us)<br/>(B)5_data_read_ChunkData(us)<br/>(C)6_data_deserialize_PageHeader(us)<br/>(D-1)7_1_data_ByteBuffer_to_ByteArray(us)<br/>(D-1)7_2_data_decompress_PageDataByteArray(us)<br/>(D-1)7_3_data_ByteArray_to_ByteBuffer(us)<br/>(D-1)7_4_data_split_time_value_Buffer(us)<br/>(D-2)8_1_createBatchData(us)<br/>(D-2)8_2_timeDecoder_hasNext(us)<br/>(D-2)8_3_timeDecoder_readLong(us)<br/>(D-2)8_4_valueDecoder_read(us)<br/>(D-2)8_5_checkValueSatisfyOrNot(us)<br/>(D-2)8_6_putIntoBatchData(us) |
+
+
+
+#### 自动化实验脚本
+
+- RLUnitSynExp.sh：用人工数据写TsFile，清空系统缓存，然后进行一次读TsFile实验。
     - 输入：见RLTsFileReadCostBench的写数据参数和读数据参数
     - 输出：一个TsFile文件、一个TsFile空间统计结果文件（ `*writeResult.csv`）、一个读TsFile耗时结果csv文件（ `*readResult-T*csv`）
-- RLUnitRealExp.sh：用真实数据写TsFile，然后进行一次读TsFile实验。
+- RLUnitRealExp.sh：用真实数据写TsFile，清空系统缓存，然后进行一次读TsFile实验。
     - 输入：见RLTsFileReadCostBench的写数据参数和读数据参数
     - 输出：一个TsFile文件、一个TsFile空间统计结果文件（ `*writeResult.csv`）、一个读TsFile耗时结果csv文件（ `*readResult-T*csv`）
 
-- RLReadExpScripts.sh：重复若干次读实验，把读实验结果进行汇总，把写文件的空间结果和读文件的耗时结果汇总到一起，最后对读实验结果进行统计计算。
+- RLReadExpScripts.sh：重复若干次读实验，把读实验结果进行汇总，把写文件的空间结果和读文件的耗时结果汇总到一起，最后对读实验结果进行平均值和百分比统计计算。
     - 输入：
         - `WRITE_READ_JAR_PATH`：RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar的地址
         - `Calculator_JAR_PATH`：把若干次重复读实验结果进行平均值和百分比计算的RLRepeatReadResultAvgPercCalculator-0.13.1-jar-with-dependencies.jar的地址
@@ -90,11 +98,11 @@ java -jar RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar READ [path_of_t
         - 一个把重复读实验结果横向拼接起来的csv文件 `*readResult-combined.csv`
         - 一个把写结果和读结果拼接起来的csv文件 `*allResult-combined.csv`
         - 一个把读结果取平均值并且按照不同粒度统计百分比的csv文件 `*allResult-combined-processed.csv`
-- RLCompressionExpScripts.sh：在不同的压缩方式参数下（UNCOMPRESSED, SNAPPY, GZIP, LZ4），写TsFile，然后进行读TsFile实验。
+- RLCompressionExpScripts.sh：在不同的压缩方式参数下（UNCOMPRESSED, SNAPPY, GZIP, LZ4），写TsFile，清空系统缓存，然后进行读TsFile实验。
     - 输入：
         - 工具地址：
             - `WRITE_READ_JAR_PATH`：RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar的地址
-            - `Calculator_JAR_PATH`：把若干次重复读实验结果进行平均值和百分比计算的RLRepeatReadResultAvgPercCalculator-0.13.1-jar-with-dependencies.jar的地址
+            - `Calculator_JAR_PATH`：把若干次重复读实验结果进行平均值和百分比统计计算的RLRepeatReadResultAvgPercCalculator-0.13.1-jar-with-dependencies.jar的地址
             - `TOOL_PATH`：用于替换脚本中变量值的自动脚本工具RLtool.sh的地址
             - `READ_SCRIPT_PATH`：RLReadExpScripts.sh的地址
         - 写数据参数：见RLTsFileReadCostBench写数据参数
