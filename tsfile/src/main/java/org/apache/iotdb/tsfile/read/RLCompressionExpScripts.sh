@@ -1,6 +1,6 @@
 WRITE_READ_JAR_PATH=/disk/rl/tsfileReadExp/RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar
 Calculator_JAR_PATH=/disk/rl/tsfileReadExp/RLRepeatReadResultAvgPercCalculator-0.13.1-jar-with-dependencies.jar
-TOOL_PATH=/disk/rl/tsfileReadExp/tool.sh
+TOOL_PATH=/disk/rl/tsfileReadExp/RLtool.sh
 READ_SCRIPT_PATH=/disk/rl/tsfileReadExp/RLReadExpScripts.sh
 
 for co in UNCOMPRESSED SNAPPY GZIP LZ4

@@ -86,7 +86,7 @@
             - 工具地址：
                 - `WRITE_READ_JAR_PATH`：RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar的地址
                 - `Calculator_JAR_PATH`：把若干次重复读实验结果进行平均值和百分比计算的RLRepeatReadResultAvgPercCalculator-0.13.1-jar-with-dependencies.jar的地址
-                - `TOOL_PATH`：用于替换脚本中变量值的自动脚本工具tool.sh的地址
+                - `TOOL_PATH`：用于替换脚本中变量值的自动脚本工具RLtool.sh的地址
                 - `READ_SCRIPT_PATH`：RLReadExpScripts.sh的地址
             - 写数据参数：见RLTsFileReadCostBench写数据参数
             - 读数据参数：见RLTsFileReadCostBench读数据参数
@@ -97,8 +97,5 @@
 ## 不同压缩方式实验
 
 运行RLCompressionExpScripts.sh
-
-
-
 
 
