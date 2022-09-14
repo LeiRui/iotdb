@@ -10,15 +10,15 @@ Calculator_JAR_PATH=/disk/rl/tsfileReadExp/RLRepeatReadResultAvgPercCalculator-0
 
 FILE_NAME=/disk/rl/tsfileReadExp/testTsFile/syn_ppn_10000_pic_10_cw_10_te_TS_2DIFF_vt_INT64_ve_RLE_co_SNAPPY
 
-TSFILE=$FILE_NAME.tsfile
-
-READ_RESULT=${FILE_NAME}*readResult-T*csv
+TSFILE=${FILE_NAME}.tsfile
 
 decomposeMeasureTime=true
 
 D_decompose_each_step=false
 
 te=TS_2DIFF
+
+READ_RESULT=${FILE_NAME}-${decomposeMeasureTime}-${D_decompose_each_step}-readResult-T*csv
 
 REPEAT=5 # 重复次数
 
@@ -45,16 +45,16 @@ for((i=1;i<REPEAT+1;i++)) do
 	ARGUMENTS+=$j
 done
 #echo $ARGUMENTS
-cut -d , -f $ARGUMENTS combined.csv > $FILE_NAME-${decomposeMeasureTime}-${D_decompose_each_step}-readResult-combined.csv
+cut -d , -f $ARGUMENTS combined.csv > ${FILE_NAME}-${decomposeMeasureTime}-${D_decompose_each_step}-readResult-combined.csv
 rm combined.csv
 
 # 把写文件统计信息和读耗时结果写到一个csv文件里
-cat $FILE_NAME*writeResult*csv > $FILE_NAME-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined.csv
-cat $FILE_NAME-${decomposeMeasureTime}-${D_decompose_each_step}-readResult-combined.csv >> $FILE_NAME-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined.csv
+cat ${FILE_NAME}*writeResult*csv > ${FILE_NAME}-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined.csv
+cat ${FILE_NAME}-${decomposeMeasureTime}-${D_decompose_each_step}-readResult-combined.csv >> ${FILE_NAME}-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined.csv
 
 # 统计各项平均耗时以及百分比、D1和D2内部各项平均耗时以及百分比
-cp $FILE_NAME-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined.csv $FILE_NAME-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined-processed.csv
-java -jar $Calculator_JAR_PATH $FILE_NAME-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined-processed.csv
+cp ${FILE_NAME}-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined.csv ${FILE_NAME}-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined-processed.csv
+java -jar $Calculator_JAR_PATH ${FILE_NAME}-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined-processed.csv
 
 echo $WRITE_READ_JAR_PATH
 echo $Calculator_JAR_PATH
@@ -63,8 +63,8 @@ echo $decomposeMeasureTime
 echo $D_decompose_each_step
 echo $REPEAT
 echo $READ_RESULT
-echo $FILE_NAME-${decomposeMeasureTime}-${D_decompose_each_step}-readResult-combined.csv
-echo $FILE_NAME-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined.csv
-echo $FILE_NAME-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined-processed.csv
+echo ${FILE_NAME}-${decomposeMeasureTime}-${D_decompose_each_step}-readResult-combined.csv
+echo ${FILE_NAME}-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined.csv
+echo ${FILE_NAME}-${decomposeMeasureTime}-${D_decompose_each_step}-allResult-combined-processed.csv
 
 
