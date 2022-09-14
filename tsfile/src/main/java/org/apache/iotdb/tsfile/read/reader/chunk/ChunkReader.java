@@ -41,7 +41,6 @@ import org.apache.iotdb.tsfile.v2.read.reader.page.PageReaderV2;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -113,16 +112,12 @@ public class ChunkReader implements IChunkReader {
           pageHeader = PageHeader.deserializeFrom(chunkDataBuffer, chunkHeader.getDataType());
         }
         long elapsedTime = System.nanoTime() - start;
-        if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.data_deserialize_PageHeader)) {
-          elapsedTimeInNanoSec.put(TsFileConstant.data_deserialize_PageHeader, new ArrayList<>());
-        }
-        elapsedTimeInNanoSec.get(TsFileConstant.data_deserialize_PageHeader).add(elapsedTime);
-        System.out.println(
-            "done:"
-                + TsFileConstant.data_deserialize_PageHeader
-                + ","
-                + elapsedTime / 1000.0
-                + "us");
+        TsFileConstant.record(
+            elapsedTimeInNanoSec,
+            TsFileConstant.data_deserialize_PageHeader,
+            elapsedTime,
+            true,
+            true);
 
         // if the current page satisfies
         if (pageSatisfied(pageHeader)) {
@@ -208,17 +203,12 @@ public class ChunkReader implements IChunkReader {
       long start = System.nanoTime();
       chunkDataBuffer.get(compressedPageBody);
       long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_1_data_ByteBuffer_to_ByteArray)) {
-        elapsedTimeInNanoSec.put(
-            TsFileConstant.D_1_data_ByteBuffer_to_ByteArray, new ArrayList<>());
-      }
-      elapsedTimeInNanoSec.get(TsFileConstant.D_1_data_ByteBuffer_to_ByteArray).add(elapsedTime);
-      System.out.println(
-          "done:"
-              + TsFileConstant.D_1_data_ByteBuffer_to_ByteArray
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
+      TsFileConstant.record(
+          elapsedTimeInNanoSec,
+          TsFileConstant.D_1_data_ByteBuffer_to_ByteArray,
+          elapsedTime,
+          true,
+          true);
 
       Decoder valueDecoder =
           Decoder.getDecoderByType(chunkHeader.getEncodingType(), chunkHeader.getDataType());
@@ -238,34 +228,22 @@ public class ChunkReader implements IChunkReader {
                 + e.getMessage());
       }
       elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_1_data_decompress_PageDataByteArray)) {
-        elapsedTimeInNanoSec.put(
-            TsFileConstant.D_1_data_decompress_PageDataByteArray, new ArrayList<>());
-      }
-      elapsedTimeInNanoSec
-          .get(TsFileConstant.D_1_data_decompress_PageDataByteArray)
-          .add(elapsedTime);
-      System.out.println(
-          "done:"
-              + TsFileConstant.D_1_data_decompress_PageDataByteArray
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
+      TsFileConstant.record(
+          elapsedTimeInNanoSec,
+          TsFileConstant.D_1_data_decompress_PageDataByteArray,
+          elapsedTime,
+          true,
+          true);
 
       start = System.nanoTime();
       ByteBuffer pageData = ByteBuffer.wrap(uncompressedPageData);
       elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_1_data_ByteArray_to_ByteBuffer)) {
-        elapsedTimeInNanoSec.put(
-            TsFileConstant.D_1_data_ByteArray_to_ByteBuffer, new ArrayList<>());
-      }
-      elapsedTimeInNanoSec.get(TsFileConstant.D_1_data_ByteArray_to_ByteBuffer).add(elapsedTime);
-      System.out.println(
-          "done:"
-              + TsFileConstant.D_1_data_ByteArray_to_ByteBuffer
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
+      TsFileConstant.record(
+          elapsedTimeInNanoSec,
+          TsFileConstant.D_1_data_ByteArray_to_ByteBuffer,
+          elapsedTime,
+          true,
+          true);
 
       start = System.nanoTime();
       reader =
@@ -278,19 +256,14 @@ public class ChunkReader implements IChunkReader {
               filter,
               elapsedTimeInNanoSec);
       reader.setDeleteIntervalList(deleteIntervalList);
-
       elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.D_1_data_split_time_value_Buffer)) {
-        elapsedTimeInNanoSec.put(
-            TsFileConstant.D_1_data_split_time_value_Buffer, new ArrayList<>());
-      }
-      elapsedTimeInNanoSec.get(TsFileConstant.D_1_data_split_time_value_Buffer).add(elapsedTime);
-      System.out.println(
-          "done:"
-              + TsFileConstant.D_1_data_split_time_value_Buffer
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
+      TsFileConstant.record(
+          elapsedTimeInNanoSec,
+          TsFileConstant.D_1_data_split_time_value_Buffer,
+          elapsedTime,
+          true,
+          true);
+
     } else if (TsFileConstant.decomposeMeasureTime) {
       // 【7_data_decompress_PageData】
       long start = System.nanoTime();

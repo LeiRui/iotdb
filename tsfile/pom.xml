@@ -27,8 +27,8 @@
         <version>0.13.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <artifactId>RLTsFileReadCostBench</artifactId>
-    <name>RLTsFileReadCostBench</name>
+    <artifactId>RLRepeatReadResultAvgPercCalculator</artifactId>
+    <name>RLRepeatReadResultAvgPercCalculator</name>
     <description>A columnar file format designed for time-series data</description>
     <url>https://github.com/thulab/iotdb/tree/master/tsfile</url>
     <properties>
@@ -149,7 +149,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.apache.iotdb.tsfile.read.RLTsFileReadCostBench</mainClass>
+                            <mainClass>org.apache.iotdb.tsfile.read.RLRepeatReadResultAvgPercCalculator</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

@@ -407,7 +407,7 @@ public class PageReader implements IPageReader {
           }
         }
       }
-      System.out.println("done: " + TsFileConstant.data_decode_time_value_Buffer);
+      // System.out.println("done: " + TsFileConstant.data_decode_time_value_Buffer);
 
     } else if (TsFileConstant.decomposeMeasureTime) {
       // 【8_data_decode_time_value_Buffer】

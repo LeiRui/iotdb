@@ -1164,27 +1164,12 @@ public class TsFileSequenceReader implements AutoCloseable {
       int chunkHeadSize = ChunkHeader.getSerializedSize(chunkCacheKey.getMeasurementUid());
       header = readChunkHeader(chunkCacheKey.getOffsetOfChunkHeader(), chunkHeadSize);
       long elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.data_read_deserialize_ChunkHeader)) {
-        elapsedTimeInNanoSec.put(
-            TsFileConstant.data_read_deserialize_ChunkHeader, new ArrayList<>());
-      }
-      elapsedTimeInNanoSec.get(TsFileConstant.data_read_deserialize_ChunkHeader).add(elapsedTime);
-      System.out.println(
-          "done:"
-              + TsFileConstant.data_read_deserialize_ChunkHeader
-              + ","
-              + elapsedTime / 1000.0
-              + "us");
-
-      //      start = System.nanoTime();
-      //      long position = chunkCacheKey.getOffsetOfChunkHeader() + header.getSerializedSize();
-      //      int size = header.getDataSize();
-      //      elapsedTime = System.nanoTime() - start;
-      //      System.out.println(
-      //          "done: get position and size," + elapsedTime / 1000.0 + "us");
-      //      System.out
-      //          .println("position:" + position / 1024.0 / 1024.0 + "MB, size:" + size / 1024.0 /
-      // 1024.0);
+      TsFileConstant.record(
+          elapsedTimeInNanoSec,
+          TsFileConstant.data_read_deserialize_ChunkHeader,
+          elapsedTime,
+          true,
+          true);
 
       start = System.nanoTime();
       buffer =
@@ -1192,12 +1177,9 @@ public class TsFileSequenceReader implements AutoCloseable {
               chunkCacheKey.getOffsetOfChunkHeader() + header.getSerializedSize(),
               header.getDataSize());
       elapsedTime = System.nanoTime() - start;
-      if (!elapsedTimeInNanoSec.containsKey(TsFileConstant.data_read_ChunkData)) {
-        elapsedTimeInNanoSec.put(TsFileConstant.data_read_ChunkData, new ArrayList<>());
-      }
-      elapsedTimeInNanoSec.get(TsFileConstant.data_read_ChunkData).add(elapsedTime);
-      System.out.println(
-          "done:" + TsFileConstant.data_read_ChunkData + "," + elapsedTime / 1000.0 + "us");
+      TsFileConstant.record(
+          elapsedTimeInNanoSec, TsFileConstant.data_read_ChunkData, elapsedTime, true, true);
+
     } else {
       int chunkHeadSize = ChunkHeader.getSerializedSize(chunkCacheKey.getMeasurementUid());
       header = readChunkHeader(chunkCacheKey.getOffsetOfChunkHeader(), chunkHeadSize);
