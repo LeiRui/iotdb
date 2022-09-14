@@ -147,11 +147,11 @@ public class RLRepeatReadResultAvgPercCalculator {
     printWriter.print(",");
     printWriter.print(time);
     printWriter.print(",");
-    printWriter.print(100 * time / totalTime);
+    printWriter.print(100.0 * time / totalTime);
     printWriter.print(",");
     printWriter.print(time);
     printWriter.print(" us - ");
-    printWriter.print(100 * time / totalTime);
+    printWriter.print(100.0 * time / totalTime);
     printWriter.println("%");
   }
 }
