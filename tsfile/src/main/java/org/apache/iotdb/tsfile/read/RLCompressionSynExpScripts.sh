@@ -15,7 +15,7 @@ do
 	# 读数据参数
 	decomposeMeasureTime=TRUE
 	D_decompose_each_step=FALSE
-	REPEAT=5
+	REPEAT=10
 
 	# 写数据
 	java -jar $WRITE_READ_JAR_PATH write_syn $ppn $pic $cw $te $vt $ve $co
