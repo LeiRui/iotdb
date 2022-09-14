@@ -1,8 +1,8 @@
 # 执行完下述脚本会生成：
-# 1. REPEAT个读取耗时csv文件 *readResult-T*csv
-# 2. 一个把上述结果横向拼接起来的csv文件 readResult-combined.csv
-# 3. 一个把写结果和读结果拼接起来的csv文件 allResult-combined.csv
-# 4. 一个把读结果取平均值并且按照不同粒度统计百分比的csv文件 allResult-combined-processed.csv
+# 1. RREPEAT个读TsFile耗时结果csv文件 *readResult-T*csv
+# 2. 一个把重复读实验结果横向拼接起来的csv文件 *readResult-combined.csv
+# 3. 一个把写结果和读结果拼接起来的csv文件 *allResult-combined.csv
+# 4. 一个把读结果取平均值并且按照不同粒度统计百分比的csv文件 *allResult-combined-processed.csv
 
 WRITE_READ_JAR_PATH=/disk/rl/tsfileReadExp/RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar
 
@@ -18,6 +18,8 @@ decomposeMeasureTime=true
 
 D_decompose_each_step=false
 
+te=TS_2DIFF
+
 REPEAT=5 # 重复次数
 
 echo 3 | sudo tee /proc/sys/vm/drop_caches
@@ -26,7 +28,7 @@ sleep 3s
 for((i=0;i<REPEAT;i++)) do
 	echo 3 | sudo tee /proc/sys/vm/drop_caches
 	sleep 3s
-	java -jar $WRITE_READ_JAR_PATH READ $TSFILE $decomposeMeasureTime $D_decompose_each_step
+	java -jar $WRITE_READ_JAR_PATH READ $TSFILE $decomposeMeasureTime $D_decompose_each_step $te
 	echo 3 | sudo tee /proc/sys/vm/drop_caches
 	sleep 3s
 done

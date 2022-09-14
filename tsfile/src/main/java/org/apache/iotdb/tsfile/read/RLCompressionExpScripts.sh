@@ -29,6 +29,7 @@ do
 	bash ${TOOL_PATH} FILE_NAME $FILE_NAME $READ_SCRIPT_PATH
 	bash ${TOOL_PATH} decomposeMeasureTime $decomposeMeasureTime $READ_SCRIPT_PATH
 	bash ${TOOL_PATH} D_decompose_each_step $D_decompose_each_step $READ_SCRIPT_PATH
+	bash ${TOOL_PATH} te $te $READ_SCRIPT_PATH
 	bash ${TOOL_PATH} REPEAT $REPEAT $READ_SCRIPT_PATH
 	bash $READ_SCRIPT_PATH
 done
