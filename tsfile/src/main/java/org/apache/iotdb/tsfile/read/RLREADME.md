@@ -98,7 +98,7 @@ java -jar RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar READ [path_of_t
         - 一个把重复读实验结果横向拼接起来的csv文件 `*readResult-combined.csv`
         - 一个把写结果和读结果拼接起来的csv文件 `*allResult-combined.csv`
         - 一个把读结果取平均值并且按照不同粒度统计百分比的csv文件 `*allResult-combined-processed.csv`
-- RLCompressionExpScripts.sh：在不同的压缩方式参数下（UNCOMPRESSED, SNAPPY, GZIP, LZ4），写TsFile，清空系统缓存，然后进行读TsFile实验。
+- RLCompressionSynExpScripts.sh：在不同的压缩方式参数下（UNCOMPRESSED, SNAPPY, GZIP, LZ4），用人工数据写TsFile，清空系统缓存，然后进行读TsFile实验。
     - 输入：
         - 工具地址：
             - `WRITE_READ_JAR_PATH`：RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar的地址
