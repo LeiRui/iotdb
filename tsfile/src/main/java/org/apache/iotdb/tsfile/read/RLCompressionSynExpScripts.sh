@@ -15,6 +15,7 @@ do
 	# 读数据参数
 	decomposeMeasureTime=TRUE
 	D_decompose_each_step=FALSE
+	# 重复读实验次数
 	REPEAT=10
 
 	# 写数据

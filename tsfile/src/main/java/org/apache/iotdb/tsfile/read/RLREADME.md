@@ -98,7 +98,7 @@ java -jar RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar READ [path_of_t
         - 一个把重复读实验结果横向拼接起来的csv文件 `*readResult-combined.csv`
         - 一个把写结果和读结果拼接起来的csv文件 `*allResult-combined.csv`
         - 一个把读结果取平均值并且按照不同粒度统计百分比的csv文件 `*allResult-combined-processed.csv`
-- RLCompressionSynExpScripts.sh：在不同的压缩方式参数下（UNCOMPRESSED, SNAPPY, GZIP, LZ4），用人工数据写TsFile，清空系统缓存，然后进行读TsFile实验。
+- RLCompressionSynExpScripts.sh：在不同的压缩方式参数下（UNCOMPRESSED, SNAPPY, GZIP, LZ4），用人工数据写TsFile，清空系统缓存，然后进行若干次重复读TsFile实验，把读实验结果进行汇总，把写文件的空间结果和读文件的耗时结果汇总到一起，最后对读实验结果进行平均值和百分比统计计算。
     - 输入：
         - 工具地址：
             - `WRITE_READ_JAR_PATH`：RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar的地址
@@ -107,6 +107,7 @@ java -jar RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar READ [path_of_t
             - `READ_SCRIPT_PATH`：RLReadExpScripts.sh的地址
         - 写数据参数：见RLTsFileReadCostBench写数据参数
         - 读数据参数：见RLTsFileReadCostBench读数据参数
+        - REPEAT：读实验重复次数
     - 输出：不同压缩方式下的一个TsFile文件、一个TsFile空间统计结果文件（ `*writeResult.csv`）、REPEAT个读TsFile耗时结果csv文件（ `*readResult-T*csv`）、一个把重复读实验结果横向拼接起来的csv文件（`*readResult-combined.csv`）、一个把写结果和读结果拼接起来的csv文件（`*allResult-combined.csv`）、一个把读结果取平均值并且按照不同粒度统计百分比的csv文件（ `*allResult-combined-processed.csv`）
 
 
