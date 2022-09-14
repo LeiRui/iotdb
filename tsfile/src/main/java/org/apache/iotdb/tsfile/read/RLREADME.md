@@ -113,9 +113,15 @@ java -jar RLTsFileReadCostBench-0.13.1-jar-with-dependencies.jar READ [path_of_t
 
 ## 二、不同压缩方式的实验
 
-运行RLCompressionExpScripts.sh
+RLCompressionRealExpScripts.sh
+
+RLCompressionSynExpScripts.sh
 
 
+## 三、不同编码方式的实验
 
+RLValueEncodingRealExpScripts.sh
+
+RLValueEncodingSynExpScripts.sh
 
 
