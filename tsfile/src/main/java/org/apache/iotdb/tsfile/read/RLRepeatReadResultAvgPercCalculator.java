@@ -68,11 +68,7 @@ public class RLRepeatReadResultAvgPercCalculator {
       for (Map.Entry<String, DescriptiveStatistics> entry : elapsedTimeInMicroSec.entrySet()) {
         String key = entry.getKey();
         double mean = entry.getValue().getMean();
-        printWriter.print("[Avg&Per]" + key);
-        printWriter.print(",");
-        printWriter.print(mean);
-        printWriter.print(",");
-        printWriter.println(100 * mean / totalTime);
+        printAvgPer(printWriter, mean, totalTime, key);
 
         if (key.startsWith(TsFileConstant.index_read_deserialize_MagicString_FileMetadataSize)
             || key.startsWith(
@@ -114,31 +110,12 @@ public class RLRepeatReadResultAvgPercCalculator {
       printWriter.println();
       printWriter.println(
           "----[2] category: (A)get ChunkStatistic->(B)load on-disk Chunk->(C)get PageStatistics->(D)load in-memory PageData----");
-      printWriter.print("[Avg&Per](A)get_chunkMetadatas(us)");
-      printWriter.print(",");
-      printWriter.print(A_get_chunkMetadatas);
-      printWriter.print(",");
-      printWriter.println(100 * A_get_chunkMetadatas / totalTime);
-      printWriter.print("[Avg&Per](B)load_on_disk_chunk(us)");
-      printWriter.print(",");
-      printWriter.print(B_load_on_disk_chunk);
-      printWriter.print(",");
-      printWriter.println(100 * B_load_on_disk_chunk / totalTime);
-      printWriter.print("[Avg&Per](C)get_pageHeader(us)");
-      printWriter.print(",");
-      printWriter.print(C_get_pageHeader);
-      printWriter.print(",");
-      printWriter.println(100 * C_get_pageHeader / totalTime);
-      printWriter.print("[Avg&Per](D_1)decompress_pageData(us)");
-      printWriter.print(",");
-      printWriter.print(D_1_decompress_pageData);
-      printWriter.print(",");
-      printWriter.println(100 * D_1_decompress_pageData / totalTime);
-      printWriter.print("[Avg&Per](D_2)decode_pageData(us)");
-      printWriter.print(",");
-      printWriter.print(D_2_decode_pageData);
-      printWriter.print(",");
-      printWriter.println(100 * D_2_decode_pageData / totalTime);
+
+      printAvgPer(printWriter, A_get_chunkMetadatas, totalTime, "(A)get_chunkMetadatas");
+      printAvgPer(printWriter, B_load_on_disk_chunk, totalTime, "(B)load_on_disk_chunk");
+      printAvgPer(printWriter, C_get_pageHeader, totalTime, "(C)get_pageHeader");
+      printAvgPer(printWriter, D_1_decompress_pageData, totalTime, "(D_1)decompress_pageData");
+      printAvgPer(printWriter, D_2_decode_pageData, totalTime, "(D_2)decode_pageData");
 
       // 把D-1内部操作的平均值和百分比追加到输入文件尾部
       printWriter.println();
@@ -146,12 +123,8 @@ public class RLRepeatReadResultAvgPercCalculator {
       for (Map.Entry<String, DescriptiveStatistics> entry : elapsedTimeInMicroSec.entrySet()) {
         String key = entry.getKey();
         if (key.startsWith("(D-1)")) {
-          printWriter.print("[Avg&Per]" + key);
-          printWriter.print(",");
           double mean = entry.getValue().getMean();
-          printWriter.print(mean);
-          printWriter.print(",");
-          printWriter.println(100 * mean / D1_totalTime);
+          printAvgPer(printWriter, mean, D1_totalTime, key);
         }
       }
 
@@ -161,14 +134,24 @@ public class RLRepeatReadResultAvgPercCalculator {
       for (Map.Entry<String, DescriptiveStatistics> entry : elapsedTimeInMicroSec.entrySet()) {
         String key = entry.getKey();
         if (key.startsWith("(D-2)")) {
-          printWriter.print("[Avg&Per]" + key);
-          printWriter.print(",");
           double mean = entry.getValue().getMean();
-          printWriter.print(mean);
-          printWriter.print(",");
-          printWriter.println(100 * mean / D2_totalTime);
+          printAvgPer(printWriter, mean, D2_totalTime, key);
         }
       }
     }
+  }
+
+  public static void printAvgPer(
+      PrintWriter printWriter, double time, double totalTime, String key) {
+    printWriter.print("[Avg&Per] " + key);
+    printWriter.print(",");
+    printWriter.print(time);
+    printWriter.print(",");
+    printWriter.print(100 * time / totalTime);
+    printWriter.print(",");
+    printWriter.print(time);
+    printWriter.print(" us - ");
+    printWriter.print(100 * time / totalTime);
+    printWriter.println("%");
   }
 }

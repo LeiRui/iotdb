@@ -113,8 +113,9 @@ public class TsFileConstant {
       }
       elapsedTimeInNanoSec.get(key).set(0, elapsedTimeInNanoSec.get(key).get(0) + elapsedTime);
     }
-    if (print) {
-      System.out.println("done:" + key + "," + elapsedTime / 1000.0 + "us");
-    }
+    // disable print information temporally to speed up tests
+    //    if (print) {
+    //      System.out.println("done:" + key + "," + elapsedTime / 1000.0 + "us");
+    //    }
   }
 }
