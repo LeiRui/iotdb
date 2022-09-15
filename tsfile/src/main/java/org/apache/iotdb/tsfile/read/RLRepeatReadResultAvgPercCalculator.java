@@ -17,6 +17,7 @@ public class RLRepeatReadResultAvgPercCalculator {
   public static void main(String[] args) throws IOException {
     String inputFile = args[0];
     Map<String, DescriptiveStatistics> elapsedTimeInMicroSec = new TreeMap<>();
+    // 获得各项操作的各次重复实验的耗时
     try (BufferedReader br = new BufferedReader(new FileReader(inputFile))) {
       String line;
       while ((line = br.readLine()) != null) {
@@ -25,7 +26,8 @@ public class RLRepeatReadResultAvgPercCalculator {
             || line.startsWith("(B)")
             || line.startsWith("(C)")
             || line.startsWith("(D-1)")
-            || line.startsWith("(D-2)")) {
+            || line.startsWith("(D-2)")
+            || line.startsWith("total_time")) {
           String[] items = line.split(",");
           String key = items[0];
           int repeatNum = items.length - 1; // 读实验重复次数
@@ -38,7 +40,7 @@ public class RLRepeatReadResultAvgPercCalculator {
         }
       }
     }
-    //    System.out.println(elapsedTimeInMicroSec); // 获得各项操作的各次重复实验的耗时
+    //    System.out.println(elapsedTimeInMicroSec);
 
     double totalTime = 0;
     double D1_totalTime = 0;
@@ -116,6 +118,7 @@ public class RLRepeatReadResultAvgPercCalculator {
       printAvgPer(printWriter, C_get_pageHeader, totalTime, "(C)get_pageHeader");
       printAvgPer(printWriter, D_1_decompress_pageData, totalTime, "(D_1)decompress_pageData");
       printAvgPer(printWriter, D_2_decode_pageData, totalTime, "(D_2)decode_pageData");
+      printAvgPer(printWriter, totalTime, totalTime, "SUM(us)");
 
       // 把D-1内部操作的平均值和百分比追加到输入文件尾部
       printWriter.println();
