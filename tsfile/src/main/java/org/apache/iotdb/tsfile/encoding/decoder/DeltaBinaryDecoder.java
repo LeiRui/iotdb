@@ -170,7 +170,7 @@ public abstract class DeltaBinaryDecoder extends Decoder {
 
   public static class LongDeltaDecoder extends DeltaBinaryDecoder {
 
-    private long firstValue;
+    public long firstValue;
     private long[] data;
     private long previous;
     /**

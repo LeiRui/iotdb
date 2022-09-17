@@ -167,7 +167,19 @@ public class PageReader implements IPageReader {
   }
 
   /**
-   * 已有当前start位置的值为currentValue，要获得destination位置的值
+   * index从0开始。
+   * 读指定index位置的值 TODO: 处理内部pack的问题
+   */
+  public long getTimestampAtGivenIndex(int index) {
+    long value = ((LongDeltaDecoder) timeDecoder).firstValue;
+    for (int i = 1; i <= index; i++) {
+      value += ((LongDeltaDecoder) timeDecoder).getDelta(i);
+    }
+    return value;
+  }
+
+  /**
+   * 已有当前start位置的值为currentValue，要获得destination位置的值 TODO: 处理内部pack的问题
    */
   public long getTimestampAtGivenIndex(long currentValue, int start, int destination) {
     // long v = BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth);

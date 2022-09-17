@@ -32,9 +32,12 @@ public class RLPageRandomAccessTests {
       long start = System.nanoTime();
       long timestamp = pageReader.getFirstPointAfterTimestamp(1592308319601L);
       long elapsedTime = System.nanoTime() - start;
-
       Assert.assertEquals(1592308320113L, timestamp);
-      System.out.println("elapsed time: " + elapsedTime/1000.0 + "us");
+      System.out.println("elapsed time: " + elapsedTime / 1000.0 + "us");
+
+      timestamp = pageReader.getTimestampAtGivenIndex(0);
+      System.out.println(timestamp);
+
     } catch (IOException e) {
       e.printStackTrace();
     }
