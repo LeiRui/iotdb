@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
+import org.apache.iotdb.tsfile.encoding.decoder.DeltaBinaryDecoder.LongDeltaDecoder;
 import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
 import org.apache.iotdb.tsfile.file.header.PageHeader;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -166,10 +167,22 @@ public class PageReader implements IPageReader {
   }
 
   /**
-   * 解码获取第index个位置的时间戳
+   * 已有当前start位置的值为currentValue，要获得destination位置的值
    */
-  public long getTimestampAtGivenIndex(int index) {
-
+  public long getTimestampAtGivenIndex(long currentValue, int start, int destination) {
+    // long v = BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth);
+    if (destination > start) {
+      for (int i = start + 1; i <= destination; i++) {
+        long delta = ((LongDeltaDecoder) timeDecoder).getDelta(i);
+        currentValue += delta;
+      }
+    } else {
+      for (int i = start + 1; i <= destination; i++) {
+        long delta = ((LongDeltaDecoder) timeDecoder).getDelta(i);
+        currentValue -= delta;
+      }
+    }
+    return currentValue;
   }
 
   /**
