@@ -39,9 +39,9 @@ public class TsFileConstant {
 
   // list all the key operations that need time measuring
 
-  public static boolean decomposeMeasureTime = true; // false to measure the total time only
+  public static boolean decomposeMeasureTime = false; // false to measure the total time only
   public static boolean D_decompose_each_step_further =
-      true; // false to measure the D1/D2 step as a whole, true to measure each step in D1 and D2
+      false; // false to measure the D1/D2 step as a whole, true to measure each step in D1 and D2
   // further
 
   /**

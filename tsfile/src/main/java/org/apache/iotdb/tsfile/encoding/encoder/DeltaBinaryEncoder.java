@@ -263,7 +263,7 @@ public abstract class DeltaBinaryEncoder extends Encoder {
       previousValue = 0L;
       minDeltaBase = Long.MAX_VALUE;
       for (int i = 0; i < blockSize; i++) {
-        encodingBlockBuffer[i] = 0;
+        encodingBlockBuffer[i] = 0; // TODO 这儿是bug吗，是应该blockSize * 8个bytes都置为0吗
         deltaBlockBuffer[i] = 0L;
       }
     }

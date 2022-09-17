@@ -18,6 +18,10 @@
  */
 package org.apache.iotdb.tsfile.read.reader.page;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
 import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
@@ -33,32 +37,37 @@ import org.apache.iotdb.tsfile.read.reader.IPageReader;
 import org.apache.iotdb.tsfile.utils.Binary;
 import org.apache.iotdb.tsfile.utils.ReadWriteForEncodingUtils;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-
 public class PageReader implements IPageReader {
 
   private PageHeader pageHeader;
 
   protected TSDataType dataType;
 
-  /** decoder for value column */
+  /**
+   * decoder for value column
+   */
   protected Decoder valueDecoder;
 
-  /** decoder for time column */
+  /**
+   * decoder for time column
+   */
   protected Decoder timeDecoder;
 
-  /** time column in memory */
+  /**
+   * time column in memory
+   */
   protected ByteBuffer timeBuffer;
 
-  /** value column in memory */
+  /**
+   * value column in memory
+   */
   protected ByteBuffer valueBuffer;
 
   protected Filter filter;
 
-  /** A list of deleted intervals. */
+  /**
+   * A list of deleted intervals.
+   */
   private List<TimeRange> deleteIntervalList;
 
   private int deleteCursor = 0;
@@ -133,7 +142,39 @@ public class PageReader implements IPageReader {
     valueBuffer.position(timeBufferLength);
   }
 
-  /** @return the returned BatchData may be empty, but never be null */
+  /**
+   * @return the timestamp in the page that is the minimal among those larger than the input
+   * parameter timestampThreshold
+   */
+  public long getFirstPointAfterTimestamp(long timestampThreshold) throws IOException {
+    while (timeDecoder.hasNext(timeBuffer)) {
+      long timestamp = timeDecoder.readLong(timeBuffer);
+      if (timestamp > timestampThreshold) {
+        return timestamp;
+      }
+    }
+    return -1;
+  }
+
+
+  /**
+   * @return the timestamp in the page that is the minimal among those larger than the input
+   * parameter timestampThreshold
+   */
+  public long getFirstPointAfterTimestampRandomAccess(long timestampThreshold) throws IOException {
+    return -1L;
+  }
+
+  /**
+   * 解码获取第index个位置的时间戳
+   */
+  public long getTimestampAtGivenIndex(int index) {
+
+  }
+
+  /**
+   * @return the returned BatchData may be empty, but never be null
+   */
   @SuppressWarnings("squid:S3776") // Suppress high Cognitive Complexity warning
   @Override
   public BatchData getAllSatisfiedPageData(boolean ascending) throws IOException {
