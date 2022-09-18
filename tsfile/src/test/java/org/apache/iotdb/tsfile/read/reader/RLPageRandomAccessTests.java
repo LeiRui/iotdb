@@ -1,16 +1,18 @@
 package org.apache.iotdb.tsfile.read.reader;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import org.apache.iotdb.tsfile.encoding.decoder.DeltaBinaryDecoder;
 import org.apache.iotdb.tsfile.encoding.encoder.DeltaBinaryEncoder;
 import org.apache.iotdb.tsfile.encoding.encoder.DeltaBinaryEncoder.LongDeltaEncoder;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.reader.page.PageReader;
 import org.apache.iotdb.tsfile.write.page.PageWriter;
+
 import org.junit.Assert;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class RLPageRandomAccessTests {
 
@@ -20,23 +22,25 @@ public class RLPageRandomAccessTests {
       pageWriter.setTimeEncoder(new DeltaBinaryEncoder.LongDeltaEncoder());
       pageWriter.setValueEncoder(new LongDeltaEncoder());
       pageWriter.initStatistics(TSDataType.INT64);
-      String csv = "D:\\LabSync\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT17.csv";
+      //      String csv = "D:\\LabSync\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT17.csv";
+      String csv = "G:\\实验室电脑同步\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT17.csv";
       writeFromCsvData(csv, pageWriter, TSDataType.INT64); // TODO 从csv读写数据到page
 
       ByteBuffer page = ByteBuffer.wrap(pageWriter.getUncompressedBytes().array());
 
-      PageReader pageReader = new PageReader(page, TSDataType.INT64,
-          new DeltaBinaryDecoder.LongDeltaDecoder(), new DeltaBinaryDecoder.LongDeltaDecoder(),
-          null);
+      PageReader pageReader =
+          new PageReader(
+              page,
+              TSDataType.INT64,
+              new DeltaBinaryDecoder.LongDeltaDecoder(),
+              new DeltaBinaryDecoder.LongDeltaDecoder(),
+              null);
 
       long start = System.nanoTime();
       long timestamp = pageReader.getFirstPointAfterTimestamp(1592308319601L);
       long elapsedTime = System.nanoTime() - start;
       Assert.assertEquals(1592308320113L, timestamp);
       System.out.println("elapsed time: " + elapsedTime / 1000.0 + "us");
-
-      timestamp = pageReader.getTimestampAtGivenIndex(0);
-      System.out.println(timestamp);
 
     } catch (IOException e) {
       e.printStackTrace();

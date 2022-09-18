@@ -584,8 +584,8 @@ public class BytesUtils {
    */
   public static long bytesToLong(byte[] result, int pos, int width) {
     long ret = 0;
-    int cnt = pos & 0x07;
-    int index = pos >> 3;
+    int cnt = pos & 0x07; // 只保留8以内的数？
+    int index = pos >> 3; // 除以8的效果？
     while (width > 0) {
       int m = width + cnt >= 8 ? 8 - cnt : width;
       width -= m;

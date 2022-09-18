@@ -18,10 +18,6 @@
  */
 package org.apache.iotdb.tsfile.read.reader.page;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
 import org.apache.iotdb.tsfile.encoding.decoder.DeltaBinaryDecoder.LongDeltaDecoder;
@@ -38,37 +34,32 @@ import org.apache.iotdb.tsfile.read.reader.IPageReader;
 import org.apache.iotdb.tsfile.utils.Binary;
 import org.apache.iotdb.tsfile.utils.ReadWriteForEncodingUtils;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
+
 public class PageReader implements IPageReader {
 
   private PageHeader pageHeader;
 
   protected TSDataType dataType;
 
-  /**
-   * decoder for value column
-   */
+  /** decoder for value column */
   protected Decoder valueDecoder;
 
-  /**
-   * decoder for time column
-   */
+  /** decoder for time column */
   protected Decoder timeDecoder;
 
-  /**
-   * time column in memory
-   */
+  /** time column in memory */
   protected ByteBuffer timeBuffer;
 
-  /**
-   * value column in memory
-   */
+  /** value column in memory */
   protected ByteBuffer valueBuffer;
 
   protected Filter filter;
 
-  /**
-   * A list of deleted intervals.
-   */
+  /** A list of deleted intervals. */
   private List<TimeRange> deleteIntervalList;
 
   private int deleteCursor = 0;
@@ -145,7 +136,7 @@ public class PageReader implements IPageReader {
 
   /**
    * @return the timestamp in the page that is the minimal among those larger than the input
-   * parameter timestampThreshold
+   *     parameter timestampThreshold
    */
   public long getFirstPointAfterTimestamp(long timestampThreshold) throws IOException {
     while (timeDecoder.hasNext(timeBuffer)) {
@@ -157,30 +148,27 @@ public class PageReader implements IPageReader {
     return -1;
   }
 
+  //  /**
+  //   * @return the timestamp in the page that is the minimal among those larger than the input
+  //   * parameter timestampThreshold
+  //   */
+  //  public long getFirstPointAfterTimestampRandomAccess(long timestampThreshold) throws
+  // IOException {
+  //    return -1L;
+  //  }
 
-  /**
-   * @return the timestamp in the page that is the minimal among those larger than the input
-   * parameter timestampThreshold
-   */
-  public long getFirstPointAfterTimestampRandomAccess(long timestampThreshold) throws IOException {
-    return -1L;
-  }
+  //  /**
+  //   * index从0开始。 读指定index位置的值 TODO: 处理内部pack的问题
+  //   */
+  //  public long getTimestampAtGivenIndex(int index) {
+  //    long value = ((LongDeltaDecoder) timeDecoder).firstValue;
+  //    for (int i = 1; i <= index; i++) {
+  //      value += ((LongDeltaDecoder) timeDecoder).getDelta(i);
+  //    }
+  //    return value;
+  //  }
 
-  /**
-   * index从0开始。
-   * 读指定index位置的值 TODO: 处理内部pack的问题
-   */
-  public long getTimestampAtGivenIndex(int index) {
-    long value = ((LongDeltaDecoder) timeDecoder).firstValue;
-    for (int i = 1; i <= index; i++) {
-      value += ((LongDeltaDecoder) timeDecoder).getDelta(i);
-    }
-    return value;
-  }
-
-  /**
-   * 已有当前start位置的值为currentValue，要获得destination位置的值 TODO: 处理内部pack的问题
-   */
+  /** 已有当前start位置的值为currentValue，要获得destination位置的值 TODO: 处理内部pack的问题 */
   public long getTimestampAtGivenIndex(long currentValue, int start, int destination) {
     // long v = BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth);
     if (destination > start) {
@@ -197,9 +185,58 @@ public class PageReader implements IPageReader {
     return currentValue;
   }
 
-  /**
-   * @return the returned BatchData may be empty, but never be null
-   */
+  /** TODO 加速改进尝试： （1）在bytes空间里实现大小比较，省略非必要的byesToLong步骤，（2）对于时间点查询，遇到结果点之后就可以提前结束循环了，没有必要继续往后遍历。 */
+  public BatchData getAllSatisfiedPageData_RL(boolean ascending) throws IOException {
+    BatchData pageData = BatchDataFactory.createBatchData(dataType, ascending, false);
+    if (filter == null || filter.satisfy(getStatistics())) {
+      while (timeDecoder.hasNext(timeBuffer)) {
+        long timestamp = timeDecoder.readLong(timeBuffer);
+        switch (dataType) {
+          case BOOLEAN:
+            boolean aBoolean = valueDecoder.readBoolean(valueBuffer);
+            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aBoolean))) {
+              pageData.putBoolean(timestamp, aBoolean);
+            }
+            break;
+          case INT32:
+            int anInt = valueDecoder.readInt(valueBuffer);
+            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, anInt))) {
+              pageData.putInt(timestamp, anInt);
+            }
+            break;
+          case INT64:
+            long aLong = valueDecoder.readLong(valueBuffer);
+            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aLong))) {
+              pageData.putLong(timestamp, aLong);
+            }
+            break;
+          case FLOAT:
+            float aFloat = valueDecoder.readFloat(valueBuffer);
+            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aFloat))) {
+              pageData.putFloat(timestamp, aFloat);
+            }
+            break;
+          case DOUBLE:
+            double aDouble = valueDecoder.readDouble(valueBuffer);
+            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aDouble))) {
+              pageData.putDouble(timestamp, aDouble);
+            }
+            break;
+          case TEXT:
+            Binary aBinary = valueDecoder.readBinary(valueBuffer);
+            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aBinary))) {
+              pageData.putBinary(timestamp, aBinary);
+            }
+            break;
+          default:
+            throw new UnSupportedDataTypeException(String.valueOf(dataType));
+        }
+      }
+    }
+    return pageData;
+  }
+
+  /** @return the returned BatchData may be empty, but never be null */
   @SuppressWarnings("squid:S3776") // Suppress high Cognitive Complexity warning
   @Override
   public BatchData getAllSatisfiedPageData(boolean ascending) throws IOException {
