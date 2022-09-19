@@ -19,16 +19,18 @@
 
 package org.apache.iotdb.tsfile.encoding.decoder;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import org.apache.iotdb.tsfile.encoding.encoder.DeltaBinaryEncoder;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.utils.BytesUtils;
 import org.apache.iotdb.tsfile.utils.ReadWriteIOUtils;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
 /**
  * This class is a decoder for decoding the byte array that encoded by {@code
- * DeltaBinaryEncoder}.DeltaBinaryDecoder just supports integer and long values.<br> .
+ * DeltaBinaryEncoder}.DeltaBinaryDecoder just supports integer and long values.<br>
+ * .
  *
  * @see DeltaBinaryEncoder
  */
@@ -37,24 +39,16 @@ public abstract class DeltaBinaryDecoder extends Decoder {
   public long count = 0;
   public byte[] deltaBuf;
 
-  /**
-   * the first value in one pack.
-   */
+  /** the first value in one pack. */
   public int readIntTotalCount = 0;
 
   public int nextReadIndex = 0;
-  /**
-   * max bit length of all value in a pack.
-   */
+  /** max bit length of all value in a pack. */
   public int packWidth;
-  /**
-   * data number in this pack.
-   */
+  /** data number in this pack. */
   public int packNum;
 
-  /**
-   * how many bytes data takes after encoding.
-   */
+  /** how many bytes data takes after encoding. */
   public int encodingLength;
 
   public DeltaBinaryDecoder() {
@@ -87,9 +81,7 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     private int firstValue;
     private int[] data;
     private int previous;
-    /**
-     * minimum value for all difference.
-     */
+    /** minimum value for all difference. */
     private int minDeltaBase;
 
     public IntDeltaDecoder() {
@@ -173,9 +165,7 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     public long firstValue;
     public long[] data;
     public long previous;
-    /**
-     * minimum value for all difference.
-     */
+    /** minimum value for all difference. */
     public long minDeltaBase;
 
     public LongDeltaDecoder() {
@@ -195,21 +185,22 @@ public abstract class DeltaBinaryDecoder extends Decoder {
       return data[nextReadIndex++];
     }
 
-//    public long readT_RL(ByteBuffer buffer) {
-//      if (nextReadIndex == readIntTotalCount) {
-//        return loadIntBatch_RL(buffer);
-//      }
-//      // 若当前pack没有读完，不是从long data数组里面获取下一个点，而是从delta数组现场累加得到下一个点的bytes
-//      //      return data[nextReadIndex++];
-//      // TODO：返回bytes的数值，然后nextReadIndex++
-//      // TODO: previous和minDeltaBase是不是都要longToBytes
-//      // long v = BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth);
-//      // data[i] = previous + minDeltaBase + v;
-//      // TODO：1. 准备一个bytes形式的previous，2. 准备一个bytes形式的minDeltaBase, 3. 每次从deltaBuf里拿出packWidth *
-//      // i位置的packWidth宽度的比特，
-//      // TODO 然后把bytes形式的previous+minDeltaBase+delta
-//      return 1;
-//    }
+    //    public long readT_RL(ByteBuffer buffer) {
+    //      if (nextReadIndex == readIntTotalCount) {
+    //        return loadIntBatch_RL(buffer);
+    //      }
+    //      // 若当前pack没有读完，不是从long data数组里面获取下一个点，而是从delta数组现场累加得到下一个点的bytes
+    //      //      return data[nextReadIndex++];
+    //      // TODO：返回bytes的数值，然后nextReadIndex++
+    //      // TODO: previous和minDeltaBase是不是都要longToBytes
+    //      // long v = BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth);
+    //      // data[i] = previous + minDeltaBase + v;
+    //      // TODO：1. 准备一个bytes形式的previous，2. 准备一个bytes形式的minDeltaBase, 3. 每次从deltaBuf里拿出packWidth
+    // *
+    //      // i位置的packWidth宽度的比特，
+    //      // TODO 然后把bytes形式的previous+minDeltaBase+delta
+    //      return 1;
+    //    }
 
     /**
      * if remaining data has been run out, load next pack from InputStream.
@@ -244,12 +235,12 @@ public abstract class DeltaBinaryDecoder extends Decoder {
       encodingLength = ceil(packNum * packWidth);
       deltaBuf = new byte[encodingLength];
       buffer.get(deltaBuf);
-//      allocateDataArray();
+      //      allocateDataArray();
 
       previous = firstValue;
       readIntTotalCount = packNum;
       nextReadIndex = 0;
-//      readPack();
+      //      readPack();
       // 若当前pack读完，获取下一个pack的操作里面的readPack函数要注释掉，因为这个函数做的是遍历deltaBuf里每个delta然后还原出long
       // dataValue。我只需要拿到deltaBuf就可以了。
       return firstValue;
@@ -285,15 +276,13 @@ public abstract class DeltaBinaryDecoder extends Decoder {
       data[i] = previous + minDeltaBase + v;
     }
 
-    /**
-     * @param i start from 0, exclude firstValue
-     */
+    /** @param i start from 0, exclude firstValue */
     public long getDelta(int i) {
       return BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth) + minDeltaBase;
     }
 
     /**
-     * @param start       start from 0, including firstValue
+     * @param start start from 0, including firstValue
      * @param destination start from 0, including firstValue
      */
     public long getValue(long currentValue, int start, int destination) {

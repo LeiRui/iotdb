@@ -1,9 +1,5 @@
 package org.apache.iotdb.tsfile.read.reader;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import org.apache.iotdb.tsfile.encoding.decoder.DeltaBinaryDecoder;
 import org.apache.iotdb.tsfile.encoding.decoder.DeltaBinaryDecoder.LongDeltaDecoder;
 import org.apache.iotdb.tsfile.encoding.encoder.DeltaBinaryEncoder;
@@ -11,6 +7,11 @@ import org.apache.iotdb.tsfile.encoding.encoder.DeltaBinaryEncoder.LongDeltaEnco
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.reader.page.PageReader;
 import org.apache.iotdb.tsfile.write.page.PageWriter;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class RLSimpleTests {
 
@@ -42,12 +43,12 @@ public class RLSimpleTests {
 
       long elapsedTime2 = test2(pageReader, deltaDecoder, query);
 
-      // TODO：目前结论：即便block size设置成对写和存储都不友好的两千万个点这么多，二分查询方法的耗时也没有很多提升，并且单纯地调换3个测试的执行顺序造成的耗时波动都比加速的时间多
+      // TODO：目前结论：即便block
+      // size设置成对写和存储都不友好的两千万个点这么多，二分查询方法的耗时也没有很多提升，并且单纯地调换3个测试的执行顺序造成的耗时波动都比加速的时间多
 
     } catch (IOException e) {
       e.printStackTrace();
     }
-
   }
 
   public static long test1(PageReader pageReader, LongDeltaDecoder deltaDecoder, long query) {
@@ -127,7 +128,8 @@ public class RLSimpleTests {
     boolean found = false;
     if (firstValue < query) {
       for (int i = deltaDecoder.nextReadIndex; i < deltaDecoder.readIntTotalCount; i++) {
-        if (deltaDecoder.data[i] == query) {
+        //        if (deltaDecoder.data[i] == query) {
+        if (satisfy(deltaDecoder.data[i], query)) {
           found = true;
         }
       }
@@ -172,5 +174,9 @@ public class RLSimpleTests {
         }
       }
     }
+  }
+
+  public static boolean satisfy(long time, long query) {
+    return time == query;
   }
 }
