@@ -46,16 +46,16 @@ public class PageReader implements IPageReader {
   protected TSDataType dataType;
 
   /** decoder for value column */
-  protected Decoder valueDecoder;
+  public Decoder valueDecoder;
 
   /** decoder for time column */
-  protected Decoder timeDecoder;
+  public Decoder timeDecoder;
 
   /** time column in memory */
-  protected ByteBuffer timeBuffer;
+  public ByteBuffer timeBuffer;
 
   /** value column in memory */
-  protected ByteBuffer valueBuffer;
+  public ByteBuffer valueBuffer;
 
   protected Filter filter;
 
