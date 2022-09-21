@@ -19,18 +19,16 @@
 
 package org.apache.iotdb.tsfile.encoding.decoder;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import org.apache.iotdb.tsfile.encoding.encoder.DeltaBinaryEncoder;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.utils.BytesUtils;
 import org.apache.iotdb.tsfile.utils.ReadWriteIOUtils;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
 /**
  * This class is a decoder for decoding the byte array that encoded by {@code
- * DeltaBinaryEncoder}.DeltaBinaryDecoder just supports integer and long values.<br>
- * .
+ * DeltaBinaryEncoder}.DeltaBinaryDecoder just supports integer and long values.<br> .
  *
  * @see DeltaBinaryEncoder
  */
@@ -39,16 +37,24 @@ public abstract class DeltaBinaryDecoder extends Decoder {
   public long count = 0;
   public byte[] deltaBuf;
 
-  /** the first value in one pack. */
+  /**
+   * the first value in one pack.
+   */
   public int readIntTotalCount = 0;
 
   public int nextReadIndex = 0;
-  /** max bit length of all value in a pack. */
+  /**
+   * max bit length of all value in a pack.
+   */
   public int packWidth;
-  /** data number in this pack. */
+  /**
+   * data number in this pack.
+   */
   public int packNum;
 
-  /** how many bytes data takes after encoding. */
+  /**
+   * how many bytes data takes after encoding.
+   */
   public int encodingLength;
 
   public DeltaBinaryDecoder() {
@@ -71,6 +77,7 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     return (int) Math.ceil((double) (v) / 8.0);
   }
 
+
   @Override
   public boolean hasNext(ByteBuffer buffer) throws IOException {
     return (nextReadIndex < readIntTotalCount) || buffer.remaining() > 0;
@@ -81,7 +88,9 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     private int firstValue;
     private int[] data;
     private int previous;
-    /** minimum value for all difference. */
+    /**
+     * minimum value for all difference.
+     */
     private int minDeltaBase;
 
     public IntDeltaDecoder() {
@@ -165,11 +174,122 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     public long firstValue;
     public long[] data;
     public long previous;
-    /** minimum value for all difference. */
+    /**
+     * minimum value for all difference.
+     */
     public long minDeltaBase;
 
     public LongDeltaDecoder() {
       super();
+    }
+
+    public long intervalStart = Long.MIN_VALUE;
+    public long intervalStop = Long.MIN_VALUE;
+
+    public int currentPackNum = -1;
+    public int currentPackWidth = -1;
+    public long currentFirstValue = Long.MIN_VALUE;
+    public long currentMinDeltaBase = Long.MIN_VALUE;
+    public int currentDeltaBufPos = -1;
+    public int currentDeltaBufByteLen = -1;
+
+    public int nextPackNum = -1;
+    public int nextPackWidth = -1;
+    public long nextFirstValue = Long.MIN_VALUE;
+    public long nextMinDeltaBase = Long.MIN_VALUE;
+    public int nextDeltaBufPos = -1;
+    public int nextDeltaBufByteLen = -1;
+
+    /**
+     * (currentPack.firstValue, nextPack.firstValue]
+     * <p>
+     * (-infinity, pack1.firstValue],(pack1.firstValue, pack2.firstValue],...,(packN.firstValue,+infinity)
+     * <p>
+     * The 1, (packNum+1)+1, 2*(packNum+1)+1, ..., (N-1)*(packNum+1)+1 points
+     * <p>
+     * (int) Math.ceil(pointNum * 1.0 / (DeltaBinaryEncoder.BLOCK_DEFAULT_SIZE + 1)) + 1 intervals
+     * <p>
+     * Useful for monotonically increasing values
+     */
+    public boolean hasNextPackInterval(ByteBuffer buffer) {
+      if (intervalStop == Long.MAX_VALUE) {
+        return false;
+      }
+
+      // update intervalStart with previous intervalStop
+      intervalStart = intervalStop;
+
+      // update current information with the previous next information
+      currentPackNum = nextPackNum;
+      currentPackWidth = nextPackWidth;
+      currentFirstValue = nextFirstValue;
+      currentMinDeltaBase = nextMinDeltaBase;
+      currentDeltaBufPos = nextDeltaBufPos;
+      currentDeltaBufByteLen = nextDeltaBufByteLen;
+
+      // read the next pack information
+      if (buffer.remaining() > 0) {
+        // read packNum
+        nextPackNum = ReadWriteIOUtils.readInt(buffer);
+
+        // read packWidth
+        nextPackWidth = ReadWriteIOUtils.readInt(buffer);
+
+        // read minDeltaBase
+        nextMinDeltaBase = ReadWriteIOUtils.readLong(buffer);
+
+        // read firstValue
+        nextFirstValue = ReadWriteIOUtils.readLong(buffer);
+
+        // record the next position and byteLen of deltaBuf
+        nextDeltaBufPos = buffer.position();
+        nextDeltaBufByteLen = (int) Math.ceil((double) (nextPackNum * nextPackWidth) / 8.0);
+
+        // skip ceil(packNum*packWidth/8.0) bytes of deltas
+        buffer.position(buffer.position() + nextDeltaBufByteLen);
+
+        // update intervalStop with the firstValue of the next pack
+        intervalStop = nextFirstValue;
+
+      } else {
+        intervalStop = Long.MAX_VALUE;
+      }
+      return true;
+    }
+
+    public boolean checkContainsTimestamp(long query, ByteBuffer buffer) {
+      // locate the pack whose interval contains the queries timestamp
+      // Since the packIntervals cover the whole range, query will definitely find an interval falling within.
+      while (hasNextPackInterval(buffer)) {
+        if (intervalStart < query && intervalStop >= query) {
+          break;
+        }
+      }
+
+      if (intervalStop == query) { // special case
+        // the firstValue of the next pack equals the queries timestamp, so no need to unpack the current pack
+        return true;
+      }
+
+      if (currentFirstValue == Long.MIN_VALUE) { // special case
+        // the first interval (-Infinity, pack1.firstValue] contains the queries timestamp and pack1.firstValue does not equal the queries timestamp
+        return false;
+      }
+
+      // get and decode the corresponding deltaBuf to check whether the pack contains the queries timestamp
+      deltaBuf = new byte[currentDeltaBufByteLen];
+      buffer.position(currentDeltaBufPos);
+      buffer.get(deltaBuf);
+      previous = currentFirstValue;
+      for (int i = 0; i < currentPackNum; i++) {
+        long v = BytesUtils.bytesToLong(deltaBuf, currentPackWidth * i, currentPackWidth);
+        long data = previous + currentMinDeltaBase + v;
+        if (data == query) {
+          return true;
+        }
+        previous = data;
+      }
+      return false;
     }
 
     /**
@@ -276,13 +396,15 @@ public abstract class DeltaBinaryDecoder extends Decoder {
       data[i] = previous + minDeltaBase + v;
     }
 
-    /** @param i start from 0, exclude firstValue */
+    /**
+     * @param i start from 0, exclude firstValue
+     */
     public long getDelta(int i) {
       return BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth) + minDeltaBase;
     }
 
     /**
-     * @param start start from 0, including firstValue
+     * @param start       start from 0, including firstValue
      * @param destination start from 0, including firstValue
      */
     public long getValue(long currentValue, int start, int destination) {
@@ -302,5 +424,6 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     public void reset() {
       // do nothing
     }
+
   }
 }

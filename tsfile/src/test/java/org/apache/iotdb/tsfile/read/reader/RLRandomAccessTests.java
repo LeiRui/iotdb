@@ -13,7 +13,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class RLSimpleTests {
+public class RLRandomAccessTests {
 
   public static void main(String[] args) {
     try {
