@@ -20,7 +20,8 @@ public class RLPackSkipTests {
       pageWriter.setTimeEncoder(new DeltaBinaryEncoder.LongDeltaEncoder());
       pageWriter.setValueEncoder(new LongDeltaEncoder());
       pageWriter.initStatistics(TSDataType.INT64);
-      String csv = "G:\\实验室电脑同步\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT17.csv";
+//      String csv = "G:\\实验室电脑同步\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT17.csv";
+      String csv = "D:\\LabSync\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT17.csv";
       long pointNum = writeFromCsvData(csv, pageWriter, TSDataType.INT64);
 
       ByteBuffer page = ByteBuffer.wrap(pageWriter.getUncompressedBytes().array());
@@ -34,27 +35,77 @@ public class RLPackSkipTests {
               null);
       LongDeltaDecoder timeDecoder = (LongDeltaDecoder) pageReader.timeDecoder;
       ByteBuffer timeBuffer = pageReader.timeBuffer;
+
       System.out.println("pack point size: " + DeltaBinaryEncoder.BLOCK_DEFAULT_SIZE);
 
-      long query = 1593217962681L; // TODO modify
-//      int cnt = 0;
-//      while (timeDecoder.hasNextPackInterval(timeBuffer)) {
-//        cnt++;
-//        if (timeDecoder.intervalStart < query && timeDecoder.intervalStop >= query) {
-//          System.out.println(timeDecoder.intervalStart + "," + timeDecoder.intervalStop);
-//          break;
-//        }
-//
-//      }
-//      System.out.println(cnt);
+      long query = 1605706904193L; // TODO modify
 
-      System.out.println(timeDecoder.checkContainsTimestamp(query, timeBuffer));
+      int repeat = 10;
+
+      long sumTime2 = 0;
+      for (int i = 0; i < repeat; i++) { // repeat tests
+        sumTime2 += testWithoutPackSkip(timeDecoder, timeBuffer, query);
+      }
+
+      long sumTime1 = 0;
+      for (int i = 0; i < repeat; i++) { // repeat tests
+        sumTime1 += testWithPackSkip(timeDecoder, timeBuffer, query);
+      }
+
+      System.out.println(
+          "testWithPackSkip average elapsed time: " + sumTime1 * 1.0 / repeat / 1000.0 + "us");
+      System.out.println(
+          "testWithoutPackSkip average elapsed time: " + sumTime2 * 1.0 / repeat / 1000.0 + "us");
+      System.out.println(timeBuffer.limit());
 
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
 
+  public static long testWithPackSkip(LongDeltaDecoder timeDecoder, ByteBuffer timeBuffer,
+      long query) {
+    timeDecoder.reset();
+    timeBuffer.position(0); // DO NOT USE buffer.clear as LIMIT CAN NOT BE CHANGED
+    long start = System.nanoTime();
+    long position = timeDecoder.checkContainsTimestamp(query, timeBuffer);
+    long elapsedTime = System.nanoTime() - start;
+    System.out.println("testWithPackSkip elapsed time: " + elapsedTime / 1000.0 + "us");
+    if (position > 0) {
+      System.out.println("found at position " + position);
+    } else {
+      System.out.println("not exists");
+    }
+    return elapsedTime;
+  }
+
+  public static long testWithoutPackSkip(LongDeltaDecoder timeDecoder, ByteBuffer timeBuffer,
+      long query) throws IOException {
+    timeDecoder.reset();
+    timeBuffer.position(0); // DO NOT USE buffer.clear as LIMIT CAN NOT BE CHANGED
+    long start = System.nanoTime();
+    int cnt = 0;
+    boolean found = false;
+    while (timeDecoder.hasNext(timeBuffer)) {
+      long time = timeDecoder.readLong(timeBuffer);
+      cnt++;
+      if (time == query) {
+        found = true;
+        break;
+      }
+      if (time > query) {
+        break; // no need to continue as monotonically increasing timestamps
+      }
+    }
+    long elapsedTime = System.nanoTime() - start;
+    System.out.println("testWithoutPackSkip elapsed time: " + elapsedTime / 1000.0 + "us");
+    if (found) {
+      System.out.println("found at position " + cnt);
+    } else {
+      System.out.println("not exists");
+    }
+    return elapsedTime;
+  }
 
   public static long writeFromCsvData(String csvData, PageWriter pageWriter, TSDataType dataType)
       throws IOException {
@@ -86,5 +137,4 @@ public class RLPackSkipTests {
     }
     return cnt;
   }
-
 }

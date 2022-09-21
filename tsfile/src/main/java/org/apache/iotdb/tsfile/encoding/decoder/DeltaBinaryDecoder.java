@@ -77,7 +77,6 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     return (int) Math.ceil((double) (v) / 8.0);
   }
 
-
   @Override
   public boolean hasNext(ByteBuffer buffer) throws IOException {
     return (nextReadIndex < readIntTotalCount) || buffer.remaining() > 0;
@@ -186,30 +185,34 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     public long intervalStart = Long.MIN_VALUE;
     public long intervalStop = Long.MIN_VALUE;
 
-    public int currentPackNum = -1;
+    public int currentPackNum = 0; // DO NOT CHANGE the initial value
     public int currentPackWidth = -1;
-    public long currentFirstValue = Long.MIN_VALUE;
+    public long currentFirstValue = Long.MIN_VALUE; // DO NOT CHANGE the initial value
     public long currentMinDeltaBase = Long.MIN_VALUE;
     public int currentDeltaBufPos = -1;
     public int currentDeltaBufByteLen = -1;
 
-    public int nextPackNum = -1;
+    public int nextPackNum = 0; // DO NOT CHANGE the initial value
     public int nextPackWidth = -1;
-    public long nextFirstValue = Long.MIN_VALUE;
+    public long nextFirstValue = Long.MIN_VALUE; // DO NOT CHANGE the initial value
     public long nextMinDeltaBase = Long.MIN_VALUE;
     public int nextDeltaBufPos = -1;
     public int nextDeltaBufByteLen = -1;
 
+    public long position = 0; // counted from 1
+
     /**
      * (currentPack.firstValue, nextPack.firstValue]
-     * <p>
-     * (-infinity, pack1.firstValue],(pack1.firstValue, pack2.firstValue],...,(packN.firstValue,+infinity)
-     * <p>
-     * The 1, (packNum+1)+1, 2*(packNum+1)+1, ..., (N-1)*(packNum+1)+1 points
-     * <p>
-     * (int) Math.ceil(pointNum * 1.0 / (DeltaBinaryEncoder.BLOCK_DEFAULT_SIZE + 1)) + 1 intervals
-     * <p>
-     * Useful for monotonically increasing values
+     *
+     * <p>(-infinity, pack1.firstValue],(pack1.firstValue,
+     * pack2.firstValue],...,(packN.firstValue,+infinity)
+     *
+     * <p>The 1, (packNum+1)+1, 2*(packNum+1)+1, ..., (N-1)*(packNum+1)+1 points
+     *
+     * <p>(int) Math.ceil(pointNum * 1.0 / (DeltaBinaryEncoder.BLOCK_DEFAULT_SIZE + 1)) + 1
+     * intervals
+     *
+     * <p>Useful for monotonically increasing values
      */
     public boolean hasNextPackInterval(ByteBuffer buffer) {
       if (intervalStop == Long.MAX_VALUE) {
@@ -218,6 +221,13 @@ public abstract class DeltaBinaryDecoder extends Decoder {
 
       // update intervalStart with previous intervalStop
       intervalStart = intervalStop;
+
+      // increment position before currentPackNum is updated
+      if (nextFirstValue
+          > Long.MIN_VALUE) { // do nothing for the first interval (-infinity, pack1.firstValue]
+        position += currentPackNum;
+        position += 1; // for the firstValue
+      }
 
       // update current information with the previous next information
       currentPackNum = nextPackNum;
@@ -257,9 +267,14 @@ public abstract class DeltaBinaryDecoder extends Decoder {
       return true;
     }
 
-    public boolean checkContainsTimestamp(long query, ByteBuffer buffer) {
+    /**
+     * If the queried timestamp does not exist in the buffer, return -1. Otherwise, return the
+     * position of the queries timestamp in the buffer, counted from 1.
+     */
+    public long checkContainsTimestamp(long query, ByteBuffer buffer) {
       // locate the pack whose interval contains the queries timestamp
-      // Since the packIntervals cover the whole range, query will definitely find an interval falling within.
+      // Since the packIntervals cover the whole range, query will definitely find an interval
+      // falling within.
       while (hasNextPackInterval(buffer)) {
         if (intervalStart < query && intervalStop >= query) {
           break;
@@ -267,29 +282,37 @@ public abstract class DeltaBinaryDecoder extends Decoder {
       }
 
       if (intervalStop == query) { // special case
-        // the firstValue of the next pack equals the queries timestamp, so no need to unpack the current pack
-        return true;
+        // the firstValue of the next pack equals the queries timestamp, so no need to unpack the
+        // current pack
+        return position + currentPackNum + 1;
       }
 
       if (currentFirstValue == Long.MIN_VALUE) { // special case
-        // the first interval (-Infinity, pack1.firstValue] contains the queries timestamp and pack1.firstValue does not equal the queries timestamp
-        return false;
+        // the first interval (-Infinity, pack1.firstValue] contains the queries timestamp AND
+        // pack1.firstValue does not equal the queries timestamp
+        return -1;
       }
 
-      // get and decode the corresponding deltaBuf to check whether the pack contains the queries timestamp
+      // get and decode the corresponding deltaBuf to check whether the pack contains the queries
+      // timestamp
       deltaBuf = new byte[currentDeltaBufByteLen];
       buffer.position(currentDeltaBufPos);
       buffer.get(deltaBuf);
       previous = currentFirstValue;
+      long cnt = 0;
       for (int i = 0; i < currentPackNum; i++) {
         long v = BytesUtils.bytesToLong(deltaBuf, currentPackWidth * i, currentPackWidth);
         long data = previous + currentMinDeltaBase + v;
+        cnt++;
         if (data == query) {
-          return true;
+          return position + cnt;
+        }
+        if (data > query) { // no need to continue because monotonically increasing timestamps
+          return -1;
         }
         previous = data;
       }
-      return false;
+      return -1;
     }
 
     /**
@@ -422,8 +445,24 @@ public abstract class DeltaBinaryDecoder extends Decoder {
 
     @Override
     public void reset() {
-      // do nothing
-    }
+      intervalStart = Long.MIN_VALUE;
+      intervalStop = Long.MIN_VALUE;
 
+      currentPackNum = 0; // DO NOT CHANGE the initial value
+      currentPackWidth = -1;
+      currentFirstValue = Long.MIN_VALUE; // DO NOT CHANGE the initial value
+      currentMinDeltaBase = Long.MIN_VALUE;
+      currentDeltaBufPos = -1;
+      currentDeltaBufByteLen = -1;
+
+      nextPackNum = 0; // DO NOT CHANGE the initial value
+      nextPackWidth = -1;
+      nextFirstValue = Long.MIN_VALUE; // DO NOT CHANGE the initial value
+      nextMinDeltaBase = Long.MIN_VALUE;
+      nextDeltaBufPos = -1;
+      nextDeltaBufByteLen = -1;
+
+      position = 0; // counted from 1
+    }
   }
 }
