@@ -269,10 +269,10 @@ public abstract class DeltaBinaryDecoder extends Decoder {
 
     /**
      * If the queried timestamp does not exist in the buffer, return -1. Otherwise, return the
-     * position of the queries timestamp in the buffer, counted from 1.
+     * position of the queried timestamp in the buffer, counted from 1.
      */
     public long checkContainsTimestamp(long query, ByteBuffer buffer) {
-      // locate the pack whose interval contains the queries timestamp
+      // locate the pack whose interval contains the queried timestamp
       // Since the packIntervals cover the whole range, query will definitely find an interval
       // falling within.
       while (hasNextPackInterval(buffer)) {
@@ -282,18 +282,18 @@ public abstract class DeltaBinaryDecoder extends Decoder {
       }
 
       if (intervalStop == query) { // special case
-        // the firstValue of the next pack equals the queries timestamp, so no need to unpack the
+        // the firstValue of the next pack equals the queried timestamp, so no need to unpack the
         // current pack
         return position + currentPackNum + 1;
       }
 
       if (currentFirstValue == Long.MIN_VALUE) { // special case
-        // the first interval (-Infinity, pack1.firstValue] contains the queries timestamp AND
-        // pack1.firstValue does not equal the queries timestamp
+        // the first interval (-Infinity, pack1.firstValue] contains the queried timestamp AND
+        // pack1.firstValue does not equal the queried timestamp
         return -1;
       }
 
-      // get and decode the corresponding deltaBuf to check whether the pack contains the queries
+      // get and decode the corresponding deltaBuf to check whether the pack contains the queried
       // timestamp
       deltaBuf = new byte[currentDeltaBufByteLen];
       buffer.position(currentDeltaBufPos);
@@ -313,6 +313,68 @@ public abstract class DeltaBinaryDecoder extends Decoder {
         previous = data;
       }
       return -1;
+    }
+
+    /**
+     * If the queried timestamp does not exist in the buffer, return -1. Otherwise, return the
+     * position of the queried timestamp in the buffer, counted from 1.
+     */
+    public void checkLPFPAroundTimestamp(long query, ByteBuffer buffer,
+        RLPointWithPosition lastPointBefore, RLPointWithPosition firstPointEqualOrAfter) {
+      // locate the pack whose interval contains the queried timestamp
+      // Since the packIntervals cover the whole range, query will definitely find an interval
+      // falling within.
+      while (hasNextPackInterval(buffer)) {
+        if (intervalStart < query && intervalStop >= query) {
+          break;
+        }
+      }
+
+//      if (intervalStop == query) { // special case
+//        // the firstValue of the next pack equals the queried timestamp, so no need to unpack the
+//        // current pack
+//        return position + currentPackNum + 1;
+//      }
+
+      if (currentFirstValue == Long.MIN_VALUE) { // special case
+        // the first interval (-Infinity, pack1.firstValue] contains the queried timestamp
+        lastPointBefore.position = -1;
+        firstPointEqualOrAfter.position = 1;
+        firstPointEqualOrAfter.timestamp = intervalStop;
+        return;
+      }
+
+      lastPointBefore.position = position; // init
+      lastPointBefore.timestamp = currentFirstValue; // init
+      // get and decode the corresponding deltaBuf to check whether the pack contains the queried
+      // timestamp
+      deltaBuf = new byte[currentDeltaBufByteLen];
+      buffer.position(currentDeltaBufPos);
+      buffer.get(deltaBuf);
+      previous = currentFirstValue;
+      long cnt = 0;
+      for (int i = 0; i < currentPackNum; i++) {
+        long v = BytesUtils.bytesToLong(deltaBuf, currentPackWidth * i, currentPackWidth);
+        long data = previous + currentMinDeltaBase + v;
+        cnt++;
+        if (data < query) {
+          lastPointBefore.position = position + cnt;
+          lastPointBefore.timestamp = data;
+        }
+        if (data >= query) { // no need to continue because monotonically increasing
+          firstPointEqualOrAfter.position = position + cnt;
+          firstPointEqualOrAfter.timestamp = data;
+          return;
+        }
+        previous = data;
+      }
+      // if all points in this pack are before the queried timestamp
+      if (intervalStop == Long.MAX_VALUE) {
+        firstPointEqualOrAfter.position = -1;
+      } else {
+        firstPointEqualOrAfter.position = position + currentPackNum + 1;
+        firstPointEqualOrAfter.timestamp = intervalStop;
+      }
     }
 
     /**

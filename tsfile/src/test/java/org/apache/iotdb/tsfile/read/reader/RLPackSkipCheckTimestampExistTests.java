@@ -12,7 +12,7 @@ import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.reader.page.PageReader;
 import org.apache.iotdb.tsfile.write.page.PageWriter;
 
-public class RLPackSkipTests {
+public class RLPackSkipCheckTimestampExistTests {
 
   public static void main(String[] args) {
     try {
@@ -20,8 +20,8 @@ public class RLPackSkipTests {
       pageWriter.setTimeEncoder(new DeltaBinaryEncoder.LongDeltaEncoder());
       pageWriter.setValueEncoder(new LongDeltaEncoder());
       pageWriter.initStatistics(TSDataType.INT64);
-//      String csv = "G:\\实验室电脑同步\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT17.csv";
-      String csv = "D:\\LabSync\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT17.csv";
+      String csv = "G:\\实验室电脑同步\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT17.csv";
+//      String csv = "D:\\LabSync\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT17.csv";
       long pointNum = writeFromCsvData(csv, pageWriter, TSDataType.INT64);
 
       ByteBuffer page = ByteBuffer.wrap(pageWriter.getUncompressedBytes().array());
@@ -38,7 +38,7 @@ public class RLPackSkipTests {
 
       System.out.println("pack point size: " + DeltaBinaryEncoder.BLOCK_DEFAULT_SIZE);
 
-      long query = 1605706904193L; // TODO modify
+      long query = 1591717867194L; // TODO modify
 
       int repeat = 10;
 
@@ -63,8 +63,8 @@ public class RLPackSkipTests {
     }
   }
 
-  public static long testWithPackSkip(LongDeltaDecoder timeDecoder, ByteBuffer timeBuffer,
-      long query) {
+  public static long testWithPackSkip(
+      LongDeltaDecoder timeDecoder, ByteBuffer timeBuffer, long query) {
     timeDecoder.reset();
     timeBuffer.position(0); // DO NOT USE buffer.clear as LIMIT CAN NOT BE CHANGED
     long start = System.nanoTime();
@@ -79,8 +79,8 @@ public class RLPackSkipTests {
     return elapsedTime;
   }
 
-  public static long testWithoutPackSkip(LongDeltaDecoder timeDecoder, ByteBuffer timeBuffer,
-      long query) throws IOException {
+  public static long testWithoutPackSkip(
+      LongDeltaDecoder timeDecoder, ByteBuffer timeBuffer, long query) throws IOException {
     timeDecoder.reset();
     timeBuffer.position(0); // DO NOT USE buffer.clear as LIMIT CAN NOT BE CHANGED
     long start = System.nanoTime();
