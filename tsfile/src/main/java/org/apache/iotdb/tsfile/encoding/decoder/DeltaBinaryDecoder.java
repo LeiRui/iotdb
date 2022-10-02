@@ -19,6 +19,7 @@
 
 package org.apache.iotdb.tsfile.encoding.decoder;
 
+import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.encoding.encoder.DeltaBinaryEncoder;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.utils.BytesUtils;
@@ -194,6 +195,7 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     protected long loadIntBatch(ByteBuffer buffer) {
       packNum = ReadWriteIOUtils.readInt(buffer);
       packWidth = ReadWriteIOUtils.readInt(buffer);
+      TsFileConstant.timeColumnTS2DIFFPackBitWidth_stats.addValue(packWidth);
       count++;
       readHeader(buffer);
 

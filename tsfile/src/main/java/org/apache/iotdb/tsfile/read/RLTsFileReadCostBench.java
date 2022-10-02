@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.timeColumnTS2DIFFPackBitWidth_stats;
+
 public class RLTsFileReadCostBench {
 
   // only consider one time series here
@@ -292,6 +294,7 @@ public class RLTsFileReadCostBench {
               ((PageReader) pageReader).getPageHeader().getUncompressedSize());
           timeBufferSize_stats.addValue(((PageReader) pageReader).getTimeBufferSize());
           valueBufferSize_stats.addValue(((PageReader) pageReader).getValueBufferSize());
+          BatchData batchData = pageReader.getAllSatisfiedPageData(true);
         }
       }
     } finally {
@@ -302,6 +305,50 @@ public class RLTsFileReadCostBench {
       printStats("uncompressedPageSize_stats", uncompressedPageSize_stats, "B", pw);
       printStats("timeBufferSize_stats", timeBufferSize_stats, "B", pw);
       printStats("valueBufferSize_stats", valueBufferSize_stats, "B", pw);
+
+      // printStats for timeColumnTS2DIFFBitNum_stats
+      double max = timeColumnTS2DIFFPackBitWidth_stats.getMax();
+      double min = timeColumnTS2DIFFPackBitWidth_stats.getMin();
+      double mean = timeColumnTS2DIFFPackBitWidth_stats.getMean();
+      double std = timeColumnTS2DIFFPackBitWidth_stats.getStandardDeviation();
+      double p25 = timeColumnTS2DIFFPackBitWidth_stats.getPercentile(25);
+      double p50 = timeColumnTS2DIFFPackBitWidth_stats.getPercentile(50);
+      double p75 = timeColumnTS2DIFFPackBitWidth_stats.getPercentile(75);
+      double p90 = timeColumnTS2DIFFPackBitWidth_stats.getPercentile(90);
+      double p95 = timeColumnTS2DIFFPackBitWidth_stats.getPercentile(95);
+      System.out.println(
+          "timeColumnTS2DIFFBitNum_stats"
+              + ": "
+              + "num="
+              + timeColumnTS2DIFFPackBitWidth_stats.getN()
+              + ", "
+              // num is inaccurate because I let alone the last chunk
+              + "mean="
+              + df.format(mean)
+              + ", "
+              + "min="
+              + df.format(min)
+              + ", "
+              + "max="
+              + df.format(max)
+              + ", "
+              + "std="
+              + df.format(std)
+              + ", "
+              + "p25="
+              + df.format(p25)
+              + ", "
+              + "p50="
+              + df.format(p50)
+              + ", "
+              + "p75="
+              + df.format(p75)
+              + ", "
+              + "p90="
+              + df.format(p90)
+              + ", "
+              + "p95="
+              + df.format(p95));
     }
   }
 

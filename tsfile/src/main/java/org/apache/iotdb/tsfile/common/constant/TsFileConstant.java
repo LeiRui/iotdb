@@ -18,6 +18,8 @@
  */
 package org.apache.iotdb.tsfile.common.constant;
 
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -87,6 +89,9 @@ public class TsFileConstant {
   public static String D_2_putIntoBatchData = "(D-2)8_6_putIntoBatchData";
 
   public static String total_time = "total_time";
+
+  public static DescriptiveStatistics timeColumnTS2DIFFPackBitWidth_stats =
+      new DescriptiveStatistics();
 
   private TsFileConstant() {}
 
