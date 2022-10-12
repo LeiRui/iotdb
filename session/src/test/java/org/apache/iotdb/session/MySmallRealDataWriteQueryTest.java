@@ -20,9 +20,21 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.allRegularBytesSize;
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.byteArrayLengthStatistics;
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.countForHitNewDeltas;
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.countForNotHitNewDeltas;
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.countForRegularEqual;
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.countForRegularNOTEqual;
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.countForRegularZero;
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.prepareAllRegulars;
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.regularNewDeltasStatistics;
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.timeColumnTS2DIFFLoadBatchCost;
 
 public class MySmallRealDataWriteQueryTest {
 
@@ -49,7 +61,7 @@ public class MySmallRealDataWriteQueryTest {
   private static long dataMaxTime = 25599285703L;
   private static long total_time_length = dataMaxTime - dataMinTime;
   private static int total_point_number = 50000;
-  private static int iotdb_chunk_point_size = 10000;
+  private static int iotdb_chunk_point_size = 100;
   private static long chunkAvgTimeLen =
       (long)
           Math.ceil(
@@ -62,10 +74,10 @@ public class MySmallRealDataWriteQueryTest {
   private static int valueIdx = 1; // 值idx，从0开始
   private static int w = 3;
   private static long range = total_time_length;
-  private static boolean enableRegularityTimeDecode = false;
+  private static boolean enableRegularityTimeDecode = true;
   private static long regularTimeInterval = 511996L;
   //  private static long regularTimeInterval = 511997L;
-  private static String approach = "cpv"; // 选择查询执行算法: 1: MAC, 2: MOC, 3: CPV
+  private static String approach = "mac"; // 选择查询执行算法: 1: MAC, 2: MOC, 3: CPV
 
   @Before
   public void setUp() throws Exception {
@@ -222,6 +234,156 @@ public class MySmallRealDataWriteQueryTest {
     System.out.println("[QueryData] query result line number=" + c);
     dataSet.closeOperationHandle();
     session.close();
+
+    DecimalFormat df = new DecimalFormat("#,###.00");
+    double max = timeColumnTS2DIFFLoadBatchCost.getMax();
+    double min = timeColumnTS2DIFFLoadBatchCost.getMin();
+    double mean = timeColumnTS2DIFFLoadBatchCost.getMean();
+    double std = timeColumnTS2DIFFLoadBatchCost.getStandardDeviation();
+    double p25 = timeColumnTS2DIFFLoadBatchCost.getPercentile(25);
+    double p50 = timeColumnTS2DIFFLoadBatchCost.getPercentile(50);
+    double p75 = timeColumnTS2DIFFLoadBatchCost.getPercentile(75);
+    double p90 = timeColumnTS2DIFFLoadBatchCost.getPercentile(90);
+    double p95 = timeColumnTS2DIFFLoadBatchCost.getPercentile(95);
+    System.out.println(
+        "timeColumnTS2DIFFLoadBatchCost_stats"
+            + ": "
+            + "num="
+            + timeColumnTS2DIFFLoadBatchCost.getN()
+            + ", "
+            // num is inaccurate because I let alone the last chunk
+            + "sum="
+            + df.format(timeColumnTS2DIFFLoadBatchCost.getSum())
+            + "us,"
+            + "mean="
+            + df.format(mean)
+            + ", "
+            + "min="
+            + df.format(min)
+            + ", "
+            + "max="
+            + df.format(max)
+            + ", "
+            + "std="
+            + df.format(std)
+            + ", "
+            + "p25="
+            + df.format(p25)
+            + ", "
+            + "p50="
+            + df.format(p50)
+            + ", "
+            + "p75="
+            + df.format(p75)
+            + ", "
+            + "p90="
+            + df.format(p90)
+            + ", "
+            + "p95="
+            + df.format(p95));
+
+    System.out.println("---");
+    System.out.println("Equal Num: " + countForRegularEqual);
+    System.out.println("NOT Equal Num: " + countForRegularNOTEqual);
+    System.out.println("zero Num: " + countForRegularZero);
+    System.out.println("---");
+    System.out.println("hit Num: " + countForHitNewDeltas);
+    System.out.println("NOT hit Num: " + countForNotHitNewDeltas);
+
+    max = regularNewDeltasStatistics.getMax();
+    min = regularNewDeltasStatistics.getMin();
+    mean = regularNewDeltasStatistics.getMean();
+    std = regularNewDeltasStatistics.getStandardDeviation();
+    p25 = regularNewDeltasStatistics.getPercentile(25);
+    p50 = regularNewDeltasStatistics.getPercentile(50);
+    p75 = regularNewDeltasStatistics.getPercentile(75);
+    p90 = regularNewDeltasStatistics.getPercentile(90);
+    p95 = regularNewDeltasStatistics.getPercentile(95);
+    System.out.println(
+        "regularNewDeltas_stats"
+            + ": "
+            + "num="
+            + regularNewDeltasStatistics.getN()
+            + ", "
+            // num is inaccurate because I let alone the last chunk
+            + "sum="
+            + df.format(regularNewDeltasStatistics.getSum())
+            + "us,"
+            + "mean="
+            + df.format(mean)
+            + ", "
+            + "min="
+            + df.format(min)
+            + ", "
+            + "max="
+            + df.format(max)
+            + ", "
+            + "std="
+            + df.format(std)
+            + ", "
+            + "p25="
+            + df.format(p25)
+            + ", "
+            + "p50="
+            + df.format(p50)
+            + ", "
+            + "p75="
+            + df.format(p75)
+            + ", "
+            + "p90="
+            + df.format(p90)
+            + ", "
+            + "p95="
+            + df.format(p95));
+
+    max = byteArrayLengthStatistics.getMax();
+    min = byteArrayLengthStatistics.getMin();
+    mean = byteArrayLengthStatistics.getMean();
+    std = byteArrayLengthStatistics.getStandardDeviation();
+    p25 = byteArrayLengthStatistics.getPercentile(25);
+    p50 = byteArrayLengthStatistics.getPercentile(50);
+    p75 = byteArrayLengthStatistics.getPercentile(75);
+    p90 = byteArrayLengthStatistics.getPercentile(90);
+    p95 = byteArrayLengthStatistics.getPercentile(95);
+    System.out.println(
+        "byteArrayLengthStatistics_stats"
+            + ": "
+            + "num="
+            + byteArrayLengthStatistics.getN()
+            + ", "
+            // num is inaccurate because I let alone the last chunk
+            + "sum="
+            + df.format(byteArrayLengthStatistics.getSum())
+            + "us,"
+            + "mean="
+            + df.format(mean)
+            + ", "
+            + "min="
+            + df.format(min)
+            + ", "
+            + "max="
+            + df.format(max)
+            + ", "
+            + "std="
+            + df.format(std)
+            + ", "
+            + "p25="
+            + df.format(p25)
+            + ", "
+            + "p50="
+            + df.format(p50)
+            + ", "
+            + "p75="
+            + df.format(p75)
+            + ", "
+            + "p90="
+            + df.format(p90)
+            + ", "
+            + "p95="
+            + df.format(p95));
+
+    System.out.println("allRegularBytes size: " + allRegularBytesSize.getMax());
+    System.out.println("prepare AllRegularBytes cost: " + prepareAllRegulars.getSum() + "us");
   }
 
   public void writeData()

@@ -42,10 +42,8 @@ public class TsFileConstant {
 
   public static DescriptiveStatistics regularNewDeltasStatistics = new DescriptiveStatistics();
 
-  public static DescriptiveStatistics countForHitNewDeltas =
-      new DescriptiveStatistics(); // allRegularBytes contains
-  public static DescriptiveStatistics countForNotHitNewDeltas =
-      new DescriptiveStatistics(); // allRegularBytes not contains
+  public static long countForHitNewDeltas = 0; // allRegularBytes contains
+  public static long countForNotHitNewDeltas = 0; // allRegularBytes not contains
 
   public static DescriptiveStatistics byteArrayLengthStatistics =
       new DescriptiveStatistics(); // regular bytes length

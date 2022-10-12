@@ -24,7 +24,6 @@ import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.encoding.encoder.DeltaBinaryEncoder;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.utils.BytesUtils;
-import org.apache.iotdb.tsfile.utils.Pair;
 import org.apache.iotdb.tsfile.utils.ReadWriteIOUtils;
 
 import java.io.IOException;
@@ -176,7 +175,10 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     private boolean enableRegularityTimeDecode;
     private long regularTimeInterval;
 
-    private Map<Pair<Long, Integer>, byte[][]> allRegularBytes =
+    //    private Map<Pair<Long, Integer>, byte[][]> allRegularBytes =
+    //        new HashMap<>(); // <newRegularDelta,packWidth> -> (relativePos->bytes)
+
+    private Map<Key, byte[][]> allRegularBytes =
         new HashMap<>(); // <newRegularDelta,packWidth> -> (relativePos->bytes)
 
     private int[][] allFallWithinMasks = new int[7][]; // packWidth(1~7) -> fallWithinMasks[]
@@ -227,13 +229,16 @@ public abstract class DeltaBinaryDecoder extends Decoder {
 
       if (enableRegularityTimeDecode) {
         long newRegularDelta = regularTimeInterval - minDeltaBase;
+        TsFileConstant.regularNewDeltasStatistics.addValue(newRegularDelta);
         if (packWidth == 0) {
+          TsFileConstant.countForRegularZero++;
           // [CASE 1]
           for (int i = 0; i < packNum; i++) {
             data[i] = previous + minDeltaBase; // v=0
             previous = data[i];
           }
         } else if (newRegularDelta < 0 || newRegularDelta >= Math.pow(2, packWidth)) {
+          TsFileConstant.countForRegularNOTEqual++;
           // [CASE 2] no need to compare equality cause impossible
           for (int i = 0; i < packNum; i++) {
             long v = BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth);
@@ -256,9 +261,12 @@ public abstract class DeltaBinaryDecoder extends Decoder {
             }
           }
           byte[][] regularBytes;
-          if (allRegularBytes.containsKey(new Pair<>(newRegularDelta, packWidth))) {
-            regularBytes = allRegularBytes.get(new Pair<>(newRegularDelta, packWidth));
+          Key key = new Key(newRegularDelta, packWidth);
+          if (allRegularBytes.containsKey(key)) {
+            TsFileConstant.countForHitNewDeltas++;
+            regularBytes = allRegularBytes.get(key);
           } else { // TODO consider if the following steps can be accelerated by using bytes instead
+            TsFileConstant.countForNotHitNewDeltas++;
             // of bitwise get and set
             regularBytes = new byte[8][]; // 8 relative positions. relativePos->bytes
             for (int i = 0; i < 8; i++) {
@@ -300,9 +308,11 @@ public abstract class DeltaBinaryDecoder extends Decoder {
                 }
               }
               regularBytes[i] = byteArray;
+              TsFileConstant.byteArrayLengthStatistics.addValue(byteArray.length);
             }
-            allRegularBytes.put(new Pair<>(newRegularDelta, packWidth), regularBytes);
+            allRegularBytes.put(key, regularBytes);
           }
+          TsFileConstant.allRegularBytesSize.addValue(allRegularBytes.size());
 
           // Begin decoding each number in this pack
           for (int i = 0; i < packNum; i++) {
@@ -330,12 +340,12 @@ public abstract class DeltaBinaryDecoder extends Decoder {
             }
 
             if (equal) {
+              TsFileConstant.countForRegularEqual++;
               data[i] = previous + regularTimeInterval;
-              //              TsFileConstant.countForRegularEqual++;
             } else {
+              TsFileConstant.countForRegularNOTEqual++;
               long v = BytesUtils.bytesToLong2(deltaBuf, packWidth * i, packWidth, fallWithinMasks);
               data[i] = previous + minDeltaBase + v;
-              //              TsFileConstant.countForRegularNOTEqual++;
             }
             previous = data[i];
           }
@@ -348,6 +358,36 @@ public abstract class DeltaBinaryDecoder extends Decoder {
       TsFileConstant.timeColumnTS2DIFFLoadBatchCost.addValue(runTime / 1000.0); // us
 
       return firstValue;
+    }
+
+    public class Key {
+
+      private final long x; // newRegularDelta
+      private final int y; // packWidth
+
+      public Key(long x, int y) {
+        this.x = x;
+        this.y = y;
+      }
+
+      @Override
+      public boolean equals(Object o) {
+        if (this == o) {
+          return true;
+        }
+        if (!(o instanceof Key)) {
+          return false;
+        }
+        Key key = (Key) o;
+        return x == key.x && y == key.y;
+      }
+
+      @Override
+      public int hashCode() {
+        int result = Long.hashCode(x);
+        result = 31 * result + y;
+        return result;
+      }
     }
 
     private void readPack() {

@@ -277,7 +277,8 @@ public class PageReader implements IPageReader {
       switch (dataType) {
         case BOOLEAN:
           boolean aBoolean = valueDecoder.readBoolean(valueBuffer);
-          if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aBoolean))) { // TODO:remove
+          if (!isDeleted(timestamp)
+              && (filter == null || filter.satisfy(timestamp, aBoolean))) { // TODO:remove
             pageData.putBoolean(timestamp, aBoolean);
           }
           break;

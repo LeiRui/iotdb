@@ -337,8 +337,8 @@ public class MyRealDataTest3_WriteAndRawQuery {
     System.out.println("NOT Equal Num: " + countForRegularNOTEqual);
     System.out.println("zero Num: " + countForRegularZero);
 
-    System.out.println("hit Num: " + countForHitNewDeltas.getN());
-    System.out.println("NOT hit Num: " + countForNotHitNewDeltas.getN());
+    System.out.println("hit Num: " + countForHitNewDeltas);
+    System.out.println("NOT hit Num: " + countForNotHitNewDeltas);
 
     max = regularNewDeltasStatistics.getMax();
     min = regularNewDeltasStatistics.getMin();
