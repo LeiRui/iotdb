@@ -18,7 +18,7 @@ public class MyBasicOperationTest6 {
     // op3: newest implementation on master branch by Haoyu Wang.
     // op4: compare bytes
 
-    int repeat = 10000;
+    int repeat = 100000;
     int packNum = 128;
     int[] packWidthList = new int[]{
         1, 2, 5, 7, 8,
@@ -32,7 +32,7 @@ public class MyBasicOperationTest6 {
     PrintWriter printWriter = new PrintWriter("MyBasicOperationTest6.csv");
     DecimalFormat df = new DecimalFormat("#.00");
     printWriter.println(
-        "packWidth,op1(us),op2(us),op3(us),op4(us),"
+        "packWidth,op1-bytesToLong(us),op2-bytesToLong2-rl(us),op3-bytesToLong3-why(us),op4-compare-bytes(us),"
             + "op2/op1,op3/op1,op3/op2,"
             + "op4/op1,op4/op2,op4/op3");
 
