@@ -147,10 +147,8 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
     try {
       for (Entry<PartialPath, GroupByExecutor> pathToExecutorEntry : pathExecutors.entrySet()) {
         GroupByExecutor executor = pathToExecutorEntry.getValue();
-        //        long start = System.nanoTime();
         List<AggregateResult> aggregations =
             executor.calcResult(curStartTime, curEndTime, startTime, endTime, interval);
-        //        IOMonitor.incTotalTime(System.nanoTime() - start);
         for (int i = 0; i < aggregations.size(); i++) {
           int resultIndex = resultIndexes.get(pathToExecutorEntry.getKey()).get(i);
           fields[resultIndex] = aggregations.get(i);

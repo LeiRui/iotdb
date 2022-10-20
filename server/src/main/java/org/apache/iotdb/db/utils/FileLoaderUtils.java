@@ -18,7 +18,6 @@
  */
 package org.apache.iotdb.db.utils;
 
-import org.apache.iotdb.db.IOMonitor;
 import org.apache.iotdb.db.engine.cache.TimeSeriesMetadataCache;
 import org.apache.iotdb.db.engine.modification.Modification;
 import org.apache.iotdb.db.engine.storagegroup.TsFileResource;
@@ -99,7 +98,6 @@ public class FileLoaderUtils {
       Filter filter,
       Set<String> allSensors)
       throws IOException {
-    long start = System.nanoTime();
     TimeseriesMetadata timeSeriesMetadata;
     if (resource.isClosed()) {
       if (!resource.getTsFile().exists()) {
@@ -141,8 +139,6 @@ public class FileLoaderUtils {
         return null;
       }
     }
-    long duration = System.nanoTime() - start;
-    IOMonitor.incMeta(duration);
     return timeSeriesMetadata;
   }
 
@@ -164,7 +160,6 @@ public class FileLoaderUtils {
    */
   public static List<IPageReader> loadPageReaderList(ChunkMetadata chunkMetaData, Filter timeFilter)
       throws IOException {
-    long start = System.nanoTime();
     if (chunkMetaData == null) {
       throw new IOException("Can't init null chunkMeta");
     }
@@ -180,8 +175,6 @@ public class FileLoaderUtils {
         chunkReader = new ChunkReader(chunk, timeFilter);
         chunkReader.hasNextSatisfiedPage();
       }
-      long duration = System.nanoTime() - start;
-      IOMonitor.incDataIOTime(duration);
       return chunkReader.loadPageReaderList();
     } catch (IOException e) {
       logger.error(

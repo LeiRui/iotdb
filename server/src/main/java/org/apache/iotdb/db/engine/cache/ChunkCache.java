@@ -19,7 +19,6 @@
 
 package org.apache.iotdb.db.engine.cache;
 
-import org.apache.iotdb.db.IOMonitor;
 import org.apache.iotdb.db.conf.IoTDBConfig;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.query.control.FileReaderManager;
@@ -78,9 +77,7 @@ public class ChunkCache {
                     TsFileSequenceReader reader =
                         FileReaderManager.getInstance()
                             .get(chunkMetadata.getFilePath(), chunkMetadata.isClosed());
-                    long start = System.nanoTime();
                     Chunk ret = reader.readMemChunk(chunkMetadata);
-                    IOMonitor.incReadMemChunkTime(System.nanoTime() - start);
                     return ret;
                   } catch (IOException e) {
                     logger.error("Something wrong happened in reading {}", chunkMetadata, e);

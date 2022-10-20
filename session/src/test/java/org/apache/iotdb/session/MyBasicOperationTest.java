@@ -1,11 +1,9 @@
 package org.apache.iotdb.session;
 
-import org.apache.iotdb.tsfile.utils.BytesUtils;
-
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-
 import java.text.DecimalFormat;
 import java.util.Random;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.iotdb.tsfile.utils.BytesUtils;
 
 public class MyBasicOperationTest {
 
@@ -13,7 +11,7 @@ public class MyBasicOperationTest {
     // op1: long v = BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth);
     // op2: compare bytes
 
-    int repeat = 1000000;
+    int repeat = 10000000;
     DescriptiveStatistics op1 = new DescriptiveStatistics();
     DescriptiveStatistics op2 = new DescriptiveStatistics();
     for (int k = 0; k < repeat; k++) {
@@ -36,7 +34,7 @@ public class MyBasicOperationTest {
         sum += BytesUtils.bytesToLong(buf, packWidth * i, packWidth);
       }
       long elapsedTime = System.nanoTime() - start;
-      System.out.println(elapsedTime / 1000.0 + "us");
+//      System.out.println(elapsedTime / 1000.0 + "us");
       System.out.println(sum);
       op1.addValue(elapsedTime / 1000.0);
 
@@ -50,11 +48,11 @@ public class MyBasicOperationTest {
         }
       }
       elapsedTime = System.nanoTime() - start;
-      System.out.println(elapsedTime / 1000.0 + "us");
+//      System.out.println(elapsedTime / 1000.0 + "us");
       System.out.println(sum);
       op2.addValue(elapsedTime / 1000.0);
     }
-    printStat(op1, "op1-convertBitToLong");
+    printStat(op1, "op1-bytesToLong");
     printStat(op2, "op2-compareByte");
     System.out.println("op1/op2=" + op1.getMean() / op2.getMean());
     System.out.println("op2/op1=" + op2.getMean() / op1.getMean());
