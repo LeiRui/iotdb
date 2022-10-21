@@ -43,6 +43,8 @@ public class SessionDataSet implements AutoCloseable {
 
   private final IoTDBRpcDataSet ioTDBRpcDataSet;
 
+  private String finishResult;
+
   public SessionDataSet(
       String sql,
       List<String> columnNameList,
@@ -96,6 +98,24 @@ public class SessionDataSet implements AutoCloseable {
             queryDataSet,
             Config.DEFAULT_FETCH_SIZE,
             timeout);
+  }
+
+  public SessionDataSet(String finishResult) {
+    this.finishResult = finishResult;
+    this.ioTDBRpcDataSet =
+        new IoTDBRpcDataSet(
+            null,
+            new ArrayList<>(),
+            new ArrayList<>(),
+            null,
+            true,
+            -1,
+            -1,
+            null,
+            -1,
+            null,
+            Config.DEFAULT_FETCH_SIZE,
+            0);
   }
 
   public int getFetchSize() {

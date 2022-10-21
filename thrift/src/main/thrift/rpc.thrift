@@ -80,6 +80,12 @@ struct TSExecuteStatementResp {
   12: optional TSTracingInfo tracingInfo
 }
 
+struct TSExecuteFinishResp{
+  1: required TSStatus status
+  2: optional i64 queryId
+  3: required string executionInfo
+}
+
 enum TSProtocolVersion {
   IOTDB_SERVICE_PROTOCOL_V1,
   IOTDB_SERVICE_PROTOCOL_V2,//V2 is the first version that we can check version compatibility
@@ -530,4 +536,6 @@ service TSIService {
   TSStatus dropSchemaTemplate(1:TSDropSchemaTemplateReq req);
 
   TSStatus executeOperationSync(1:TSOperationSyncWriteReq req);
+
+  TSExecuteFinishResp executeFinish();
 }

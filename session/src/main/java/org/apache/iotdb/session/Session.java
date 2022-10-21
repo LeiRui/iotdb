@@ -638,6 +638,10 @@ public class Session {
     return executeStatementMayRedirect(sql, timeoutInMs);
   }
 
+  public SessionDataSet executeFinish() throws TException, StatementExecutionException {
+    return defaultSessionConnection.executeFinish();
+  }
+
   /**
    * execute the query, may redirect query to other node.
    *
