@@ -774,8 +774,6 @@ public class TSServiceImpl implements TSIService.Iface {
       throws TException, MetadataException, QueryProcessException, StorageEngineException,
           SQLException, IOException, InterruptedException, QueryFilterOptimizationException,
           AuthException {
-    long start = System.currentTimeMillis();
-
     // check permissions
     List<? extends PartialPath> authPaths = plan.getAuthPaths();
     if (authPaths != null
@@ -803,6 +801,9 @@ public class TSServiceImpl implements TSIService.Iface {
     if (!(plan instanceof UDFPlan)) {
       resp = plan.getTSExecuteStatementResp(isJdbcQuery);
     }
+
+    long start = System.nanoTime();
+
     // create and cache dataset
     QueryDataSet newDataSet = serviceProvider.createQueryDataSet(context, plan, fetchSize);
 
@@ -838,6 +839,9 @@ public class TSServiceImpl implements TSIService.Iface {
         }
       }
     }
+
+    RLMonitor.record(RLMonitor.total_time, System.nanoTime() - start, true, false);
+
     QUERY_TIME_MANAGER.unRegisterQuery(context.getQueryId(), false);
 
     if (plan.isEnableTracing()) {
@@ -846,8 +850,6 @@ public class TSServiceImpl implements TSIService.Iface {
       TSTracingInfo tsTracingInfo = fillRpcReturnTracingInfo(queryId);
       resp.setTracingInfo(tsTracingInfo);
     }
-
-    RLMonitor.record(RLMonitor.total_time, System.nanoTime() - start, true, false);
 
     return resp;
   }
