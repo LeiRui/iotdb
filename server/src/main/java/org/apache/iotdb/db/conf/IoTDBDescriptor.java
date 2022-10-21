@@ -18,6 +18,17 @@
  */
 package org.apache.iotdb.db.conf;
 
+import com.google.common.net.InetAddresses;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.util.Properties;
+import java.util.ServiceLoader;
 import org.apache.iotdb.db.conf.directories.DirectoryManager;
 import org.apache.iotdb.db.engine.StorageEngine;
 import org.apache.iotdb.db.engine.compaction.constant.CompactionPriority;
@@ -35,21 +46,8 @@ import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.fileSystem.FSType;
 import org.apache.iotdb.tsfile.utils.FilePathUtils;
-
-import com.google.common.net.InetAddresses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.UnknownHostException;
-import java.util.Properties;
-import java.util.ServiceLoader;
 
 public class IoTDBDescriptor {
 
@@ -132,7 +130,9 @@ public class IoTDBDescriptor {
     }
   }
 
-  /** load an property file and set TsfileDBConfig variables. */
+  /**
+   * load an property file and set TsfileDBConfig variables.
+   */
   @SuppressWarnings("squid:S3776") // Suppress high Cognitive Complexity warning
   private void loadProps() {
     URL url = getPropsUrl();
@@ -334,6 +334,10 @@ public class IoTDBDescriptor {
             properties.getProperty(
                 "check_period_when_insert_blocked",
                 Integer.toString(conf.getCheckPeriodWhenInsertBlocked()))));
+
+    conf.setEnableM4LSM(
+        Boolean.parseBoolean(
+            properties.getProperty("enable_M4LSM", Boolean.toString(conf.isEnableM4LSM())).trim()));
 
     conf.setMaxWaitingTimeWhenInsertBlocked(
         Integer.parseInt(
@@ -1540,7 +1544,9 @@ public class IoTDBDescriptor {
             / (double) (proportionForCompaction + proportionForMemTable)));
   }
 
-  /** Get default encode algorithm by data type */
+  /**
+   * Get default encode algorithm by data type
+   */
   public TSEncoding getDefaultEncodingByType(TSDataType dataType) {
     switch (dataType) {
       case BOOLEAN:
@@ -1562,6 +1568,7 @@ public class IoTDBDescriptor {
 
     private static final IoTDBDescriptor INSTANCE = new IoTDBDescriptor();
 
-    private IoTDBDescriptorHolder() {}
+    private IoTDBDescriptorHolder() {
+    }
   }
 }

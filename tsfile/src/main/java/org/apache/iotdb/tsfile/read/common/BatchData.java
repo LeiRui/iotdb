@@ -797,7 +797,7 @@ public class BatchData {
     }
   }
 
-  private class BatchDataIterator implements IPointReader, IBatchDataIterator {
+  public class BatchDataIterator implements IPointReader, IBatchDataIterator {
 
     @Override
     public boolean hasNext() {

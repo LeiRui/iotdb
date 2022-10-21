@@ -16,8 +16,10 @@ import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.SessionDataSet.DataIterator;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
+import org.apache.iotdb.tsfile.encoding.encoder.DeltaBinaryEncoder;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -53,8 +55,10 @@ public class MySmallRealDataWriteQueryTest {
   private static long dataMaxTime = 25599285703L;
   private static long total_time_length = dataMaxTime - dataMinTime;
   private static int total_point_number = 50000;
-  private static int iotdb_chunk_point_size =
-      100; // must be smaller than BLOCK_DEFAULT_SIZE = 128 to fulfill the assumption that page=pack
+
+  // must be smaller than DeltaBinaryEncoder.BLOCK_DEFAULT_SIZE to fulfill the assumption that page=pack
+  private static int iotdb_chunk_point_size = 100;
+
   private static long chunkAvgTimeLen =
       (long)
           Math.ceil(
@@ -82,7 +86,9 @@ public class MySmallRealDataWriteQueryTest {
 
   @Before
   public void setUp() throws Exception {
-    //    config.setEnableCPV(true);
+    // this is because the implementation of M4-LSM uses the assumption that chunk=page=pack
+    Assert.assertTrue(DeltaBinaryEncoder.BLOCK_DEFAULT_SIZE + 1 >= iotdb_chunk_point_size);
+
     config.setTimestampPrecision(timestamp_precision);
     config.setAvgSeriesPointNumberThreshold(iotdb_chunk_point_size);
     config.setUnSeqTsFileSize(1073741824);
@@ -93,6 +99,8 @@ public class MySmallRealDataWriteQueryTest {
     config.setEnableUnseqSpaceCompaction(false);
     config.setEnableCrossSpaceCompaction(false);
     //    config.setEnablePerformanceStat(false);
+
+    config.setEnableM4LSM(true);
 
     TSFileDescriptor.getInstance().getConfig().setPageSizeInByte(1073741824);
 
@@ -151,17 +159,12 @@ public class MySmallRealDataWriteQueryTest {
     //            throw new IOException("Approach wrong. Only accepts m4-udf/m4-lsm");
     //        }
     System.out.println("[QueryData] approach=" + approach);
-    //        if (approach.equals("moc")) {
-    //            System.out.println(
-    //                    "MAKE SURE you have set the enable_CPV as false in
-    // `iotdb-engine.properties` for MOC!");
-    ////            Assert.assertFalse(config.isEnableCPV());
-    //        } else if (approach.equals("cpv")) {
-    //            System.out.println(
-    //                    "MAKE SURE you have set the enable_CPV as true in
-    // `iotdb-engine.properties` for CPV!");
-    ////            Assert.assertTrue(config.isEnableCPV());
-    //        }
+
+    if (approach == M4Implementations.M4_LSM) {
+      System.out.println(
+          "MAKE SURE you have set the enable_m4lsm as true in `iotdb - engine.properties` for M4-LSM!");
+      Assert.assertTrue(config.isEnableM4LSM());
+    }
 
     long minTime;
     long maxTime;
@@ -208,8 +211,7 @@ public class MySmallRealDataWriteQueryTest {
               timestamp_precision); // note the time precision unit
     }
 
-    // TODO
-    sql = "select * from " + device + " limit 10";
+//    sql = "select * from " + device + " limit 10";
 
     System.out.println("[QueryData] sql=" + sql);
 
@@ -217,7 +219,7 @@ public class MySmallRealDataWriteQueryTest {
     SessionDataSet dataSet = session
         .executeQueryStatement(sql, 3600000);// set long timeout for debug
     DataIterator iterator = dataSet.iterator();
-    //    System.out.println(dataSet.getColumnNames());
+    System.out.println(dataSet.getColumnNames());
     while (iterator.next()) { // this way avoid constructing rowRecord
       c++;
       String ans;

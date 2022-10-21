@@ -20,6 +20,7 @@ package org.apache.iotdb.tsfile.utils;
 
 import org.apache.iotdb.tsfile.common.conf.TSFileConfig;
 
+import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -600,6 +601,96 @@ public class BytesUtils {
       }
     }
     return ret;
+  }
+
+  /**
+   * given a byte array, read width bits from specified pos bits and convert it to an long.
+   *
+   * @param result          input byte array
+   * @param pos             bit offset rather than byte offset
+   * @param width           bit-width
+   * @param fallWithinMasks if width is a multiple of 8 or greater than 8, then this parameter null;
+   *                        if width<8, need this parameter to be (9-width) masks that are fully
+   *                        within a byte.
+   * @return long variable
+   */
+  public static long bytesToLong_rl(byte[] result, int pos, int width, int[] fallWithinMasks) {
+    // pos is global over the byte array, from low to high, starting from 0
+    // TODO new implementation
+    if (width == 0) {
+      return 0;
+    }
+
+    int endPos = pos + width - 1;
+    int startByte = pos / 8;
+    int endByte = endPos / 8;
+    int byteNum = endByte - startByte + 1;
+    int startPosInByte = pos % 8; // in a byte from high to low bits starting from 0
+    int endPosInByte = endPos % 8;
+
+    // TODO if in the same byte
+    if (byteNum == 1) {
+      if (endPosInByte - startPosInByte == 7) {
+        // put the whole byte into the long value
+        //        TsFileConstant.bytesToLong_byteNum1_wholeByte++;
+        return result[startByte] & 0xff;
+      } else {
+        // put bits in the byte from the global position pos to pos+width-1 into the long value
+        //        TsFileConstant.bytesToLong_byteNum1_smallByte++;
+        // TODO precompute and reuse masks
+        int mask = fallWithinMasks[startPosInByte];
+        return (result[startByte] & mask) >> (7 - endPosInByte);
+        // here mask is positive so no need &0xff
+      }
+    }
+    // TODO if across two bytes
+    else {
+      long value = 0;
+      // 1. deal with the first byte
+      int shift = width - (8 - startPosInByte);
+      if (startPosInByte == 0) {
+        // put the whole byte into the long value's front place among the last width bits
+        //        TsFileConstant.byteToLong_byteNums_firstByte_wholeByte++;
+        value = value | ((long) (result[startByte] & 0xff) << shift);
+        // & operates only on int data type, so need converting to long before shift
+      } else {
+        // put the bits in the first byte from relative position pos%8 to the end into the long
+        // value's front place among the last width bits
+        //        TsFileConstant.byteToLong_byteNums_firstByte_smallByte++;
+        //        int mask =
+        //            (int) Math.pow(2, 8 - startPosInByte) - 1; // TODO consider if this to make
+        // static
+        int mask = TsFileConstant.endInByteMasks[startPosInByte - 1];
+        value = value | ((long) (result[startByte] & mask) << shift);
+        // & operates only on int data type, so need converting to long before shift
+      }
+
+      // 2. deal with the last byte
+      if (endPosInByte == 7) {
+        // put the whole byte into the long value's back place among the last width bits
+        //        TsFileConstant.byteToLong_byteNums_lastByte_wholeByte++;
+        value = value | (result[endByte] & 0xff);
+      } else {
+        // put the bits in the last byte from relative position 0 to (pos+width-1)%8 into the long
+        // value's back place among the last width bits
+        //        TsFileConstant.byteToLong_byteNums_lastByte_smallByte++;
+        //        int mask =
+        //            (int) Math.pow(2, 7 - endPosInByte) - 1; // TODO consider if this to make
+        // static
+        int mask = TsFileConstant.endInByteMasks[endPosInByte];
+        value = value | ((result[endByte] & 0xff & ~mask) >> (7 - endPosInByte));
+        // here mask is negative so need &0xff
+      }
+
+      // 3. deal with the middle bytes
+      for (int k = startByte + 1; k < endByte; k++) {
+        //        TsFileConstant.byteToLong_byteNums_middleWholeByte++;
+        shift -= 8;
+        value = value | ((long) (result[k] & 0xff) << shift);
+        // & operates only on int data type, so need converting to long before shift
+      }
+      return value;
+    }
   }
 
   /**

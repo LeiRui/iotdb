@@ -19,6 +19,7 @@
 
 package org.apache.iotdb.db.query.dataset.groupby;
 
+import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.engine.StorageEngine;
 import org.apache.iotdb.db.engine.storagegroup.VirtualStorageGroupProcessor;
 import org.apache.iotdb.db.exception.StorageEngineException;
@@ -79,14 +80,19 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
    */
   protected Map<AlignedPath, List<List<Integer>>> alignedPathToAggrIndexesMap = new HashMap<>();
 
-  public GroupByWithoutValueFilterDataSet() {}
+  public GroupByWithoutValueFilterDataSet() {
+  }
 
-  /** constructor. */
+  /**
+   * constructor.
+   */
   public GroupByWithoutValueFilterDataSet(QueryContext context, GroupByTimePlan groupByTimePlan) {
     super(context, groupByTimePlan);
   }
 
-  /** init reader and aggregate function. This method should be called once after initializing */
+  /**
+   * init reader and aggregate function. This method should be called once after initializing
+   */
   public void initGroupBy(QueryContext context, GroupByTimePlan groupByTimePlan)
       throws StorageEngineException, QueryProcessException {
     IExpression expression = groupByTimePlan.getExpression();
@@ -111,7 +117,7 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
 
     Pair<List<VirtualStorageGroupProcessor>, Map<VirtualStorageGroupProcessor, List<PartialPath>>>
         lockListAndProcessorToSeriesMapPair =
-            StorageEngine.getInstance().mergeLock(groupedPathList);
+        StorageEngine.getInstance().mergeLock(groupedPathList);
     List<VirtualStorageGroupProcessor> lockList = lockListAndProcessorToSeriesMapPair.left;
     Map<VirtualStorageGroupProcessor, List<PartialPath>> processorToSeriesMap =
         lockListAndProcessorToSeriesMapPair.right;
@@ -246,7 +252,12 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
       TsFileFilter fileFilter,
       boolean ascending)
       throws StorageEngineException, QueryProcessException {
-    return new LocalGroupByExecutor(path, allSensors, context, timeFilter, fileFilter, ascending);
+    if (IoTDBDescriptor.getInstance().getConfig().isEnableM4LSM()) {
+      return new LocalGroupByExecutor4CPV(
+          path, allSensors, context, timeFilter, fileFilter, ascending,startTime,endTime,interval);
+    } else {
+      return new LocalGroupByExecutor(path, allSensors, context, timeFilter, fileFilter, ascending);
+    }
   }
 
   protected AlignedGroupByExecutor getAlignedGroupByExecutor(
