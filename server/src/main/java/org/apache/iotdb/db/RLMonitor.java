@@ -123,6 +123,7 @@ public class RLMonitor {
 
   public static String finish() {
     StringBuilder total = new StringBuilder();
+    total.append("[RLMonitor]query:").append(sql).append(System.getProperty("line.separator"));
     for (Map.Entry<String, List<Long>> entry : elapsedTimeInNanoSec.entrySet()) {
       StringBuilder res = new StringBuilder();
       res.append("[RLMonitor]");

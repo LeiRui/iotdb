@@ -1136,17 +1136,17 @@
         </profile>
         <!-- Add argLine for Java 16 and above, due to [JEP 396: Strongly Encapsulate JDK Internals by Default]
           (https://openjdk.java.net/jeps/396) -->
-<!--        <profile>-->
-<!--            <id>java-16-and-above</id>-->
-<!--            <activation>-->
-<!--                &lt;!&ndash; This needs to be updated as soon as Java 20 is shipped &ndash;&gt;-->
-<!--                <jdk>[16,20)</jdk>-->
-<!--            </activation>-->
-<!--            <properties>-->
-<!--                <maven.compiler.release>8</maven.compiler.release>-->
-<!--                <argLine>&#45;&#45;illegal-access=permit &#45;&#45;add-opens=java.base/java.util.concurrent=ALL-UNNAMED &#45;&#45;add-opens=java.base/java.lang=ALL-UNNAMED &#45;&#45;add-opens=java.base/java.util=ALL-UNNAMED &#45;&#45;add-opens=java.base/java.nio=ALL-UNNAMED &#45;&#45;add-opens=java.base/java.io=ALL-UNNAMED &#45;&#45;add-opens=java.base/java.net=ALL-UNNAMED &#45;&#45;add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED &#45;&#45;add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED &#45;&#45;add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED &#45;&#45;add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED &#45;&#45;add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</argLine>-->
-<!--            </properties>-->
-<!--        </profile>-->
+        <!--        <profile>-->
+        <!--            <id>java-16-and-above</id>-->
+        <!--            <activation>-->
+        <!--                &lt;!&ndash; This needs to be updated as soon as Java 20 is shipped &ndash;&gt;-->
+        <!--                <jdk>[16,20)</jdk>-->
+        <!--            </activation>-->
+        <!--            <properties>-->
+        <!--                <maven.compiler.release>8</maven.compiler.release>-->
+        <!--                <argLine>&#45;&#45;illegal-access=permit &#45;&#45;add-opens=java.base/java.util.concurrent=ALL-UNNAMED &#45;&#45;add-opens=java.base/java.lang=ALL-UNNAMED &#45;&#45;add-opens=java.base/java.util=ALL-UNNAMED &#45;&#45;add-opens=java.base/java.nio=ALL-UNNAMED &#45;&#45;add-opens=java.base/java.io=ALL-UNNAMED &#45;&#45;add-opens=java.base/java.net=ALL-UNNAMED &#45;&#45;add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED &#45;&#45;add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED &#45;&#45;add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED &#45;&#45;add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED &#45;&#45;add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</argLine>-->
+        <!--            </properties>-->
+        <!--        </profile>-->
         <!--
           Self activating profile, that activates itself as soon as a "src/main/thrift" directory is found.
           The different plugins here download the thrift executable matching the current os, make that

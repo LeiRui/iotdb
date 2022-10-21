@@ -797,12 +797,13 @@ public class TSServiceImpl implements TSIService.Iface {
     }
 
     TSExecuteStatementResp resp = null;
+
+    long start = System.nanoTime();
+
     // execute it before createDataSet since it may change the content of query plan
     if (!(plan instanceof UDFPlan)) {
       resp = plan.getTSExecuteStatementResp(isJdbcQuery);
     }
-
-    long start = System.nanoTime();
 
     // create and cache dataset
     QueryDataSet newDataSet = serviceProvider.createQueryDataSet(context, plan, fetchSize);
