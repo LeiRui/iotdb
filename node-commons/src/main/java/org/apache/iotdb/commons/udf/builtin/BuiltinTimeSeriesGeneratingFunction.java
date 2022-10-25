@@ -30,7 +30,9 @@ import org.apache.iotdb.commons.udf.builtin.String.UDTFSubstr;
 import org.apache.iotdb.commons.udf.builtin.String.UDTFTrim;
 import org.apache.iotdb.commons.udf.builtin.String.UDTFUpper;
 
-/** All built-in UDFs need to register their function names and classes here. */
+/**
+ * All built-in UDFs need to register their function names and classes here.
+ */
 public enum BuiltinTimeSeriesGeneratingFunction {
   CONST("CONST", UDTFConst.class),
   E("E", UDTFConstE.class),
@@ -89,7 +91,8 @@ public enum BuiltinTimeSeriesGeneratingFunction {
   EQUAL_SIZE_BUCKET_OUTLIER_SAMPLE(
       "EQUAL_SIZE_BUCKET_OUTLIER_SAMPLE", UDTFEqualSizeBucketOutlierSample.class),
   JEXL("JEXL", UDTFJexl.class),
-  MASTER_REPAIR("MASTER_REPAIR", UDTFMasterRepair.class);
+  MASTER_REPAIR("MASTER_REPAIR", UDTFMasterRepair.class),
+  M4("M4", UDTFM4.class);
 
   private final String functionName;
   private final Class<?> functionClass;
