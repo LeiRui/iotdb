@@ -170,7 +170,7 @@ public class UDTFAlignByTimeDataSet extends UDTFDataSet implements DirectAlignBy
 
         if (!reader.next() || reader.currentTime() != minTime) {
           if (rowOffset == 0) {
-            currentBitmapList[i] = (currentBitmapList[i] << 1);
+            currentBitmapList[i] = (currentBitmapList[i] << 1); // null field
           }
           continue;
         }

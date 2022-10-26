@@ -250,6 +250,7 @@ public class IoTDBUDFWindowQueryIT {
         (int) (0.33 * ITERATION_TIMES),
         (int) (0.33 * ITERATION_TIMES),
         (int) (0.33 * ITERATION_TIMES));
+    System.out.println("hh");
   }
 
   @Test
@@ -341,7 +342,8 @@ public class IoTDBUDFWindowQueryIT {
       int timeInterval, int slidingStep, int displayWindowBegin, int displayWindowEnd) {
     String sql =
         String.format(
-            "select accumulator(s1, s1, s1, '%s'='%s', '%s'='%s', '%s'='%s', '%s'='%s', '%s'='%s') from root.vehicle.d1",
+//            "select accumulator(s1, s1, s1, '%s'='%s', '%s'='%s', '%s'='%s', '%s'='%s', '%s'='%s') from root.vehicle.d1",
+            "select accumulator(s1, '%s'='%s', '%s'='%s', '%s'='%s', '%s'='%s', '%s'='%s') from root.vehicle.d1",
             ExampleUDFConstant.ACCESS_STRATEGY_KEY,
             ExampleUDFConstant.ACCESS_STRATEGY_SLIDING_TIME,
             ExampleUDFConstant.TIME_INTERVAL_KEY,

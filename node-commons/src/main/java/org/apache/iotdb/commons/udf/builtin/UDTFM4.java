@@ -20,444 +20,296 @@ package org.apache.iotdb.commons.udf.builtin;
 
 import java.io.IOException;
 import org.apache.iotdb.commons.exception.MetadataException;
+import org.apache.iotdb.commons.udf.utils.UDFDataTypeTransformer;
+import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.udf.api.UDTF;
 import org.apache.iotdb.udf.api.access.Row;
+import org.apache.iotdb.udf.api.access.RowWindow;
 import org.apache.iotdb.udf.api.collector.PointCollector;
 import org.apache.iotdb.udf.api.customizer.config.UDTFConfigurations;
 import org.apache.iotdb.udf.api.customizer.parameter.UDFParameterValidator;
 import org.apache.iotdb.udf.api.customizer.parameter.UDFParameters;
-import org.apache.iotdb.udf.api.customizer.strategy.RowByRowAccessStrategy;
+import org.apache.iotdb.udf.api.customizer.strategy.SlidingSizeWindowAccessStrategy;
+import org.apache.iotdb.udf.api.customizer.strategy.SlidingTimeWindowAccessStrategy;
+import org.apache.iotdb.udf.api.exception.UDFAttributeNotProvidedException;
 import org.apache.iotdb.udf.api.exception.UDFException;
+import org.apache.iotdb.udf.api.exception.UDFInputSeriesDataTypeNotValidException;
 import org.apache.iotdb.udf.api.type.Type;
 
-// This is the UDFM4 in paper.
-// The integration test for MAC is in org.apache.iotdb.db.integration.m4.MyTest3.test1_2
 public class UDTFM4 implements UDTF {
 
-  protected Type dataType;
-  protected long tqs;
-  protected long tqe;
-  protected int w;
-
-  private long minTime;
-  private long maxTime;
-
-  private long bottomTime;
-  private long topTime;
-
-  private int intMaxV;
-  private long longMaxV;
-  private float floatMaxV;
-  private double doubleMaxV;
-
-  private int intMinV;
-  private long longMinV;
-  private float floatMinV;
-  private double doubleMinV;
-
-  private int intFirstV;
-  private long longFirstV;
-  private float floatFirstV;
-  private double doubleFirstV;
-
-  private int intLastV;
-  private long longLastV;
-  private float floatLastV;
-  private double doubleLastV;
-
-  private String[] result;
-  private int idx;
-
-  private void init() {
-    this.minTime = Long.MAX_VALUE;
-    this.maxTime = Long.MIN_VALUE;
-
-    this.intFirstV = 0;
-    this.longFirstV = 0;
-    this.floatFirstV = 0;
-    this.doubleFirstV = 0;
-
-    this.intLastV = 0;
-    this.longLastV = 0;
-    this.floatLastV = 0;
-    this.doubleLastV = 0;
-
-    this.bottomTime = 0;
-    this.topTime = 0;
-
-    this.intMinV = Integer.MAX_VALUE;
-    this.longMinV = Long.MAX_VALUE;
-    this.floatMinV = Float.MAX_VALUE;
-    this.doubleMinV = Double.MAX_VALUE;
-
-    this.intMaxV = Integer.MIN_VALUE;
-    this.longMaxV = Long.MIN_VALUE;
-    this.floatMaxV = Float.MIN_VALUE;
-    this.doubleMaxV = Double.MIN_VALUE;
+  enum AccessStrategy {
+    SIZE_WINDOW,
+    TIME_WINDOW
   }
+
+  protected AccessStrategy accessStrategy;
+  protected TSDataType dataType;
+//  protected long timeInterval;
+
+  public static final String WINDOW_SIZE_KEY = "windowSize";
+  public static final String TIME_INTERVAL_KEY = "timeInterval";
+
+  public static final String SLIDING_STEP_KEY = "slidingStep";
+
+  public static final String DISPLAY_WINDOW_BEGIN_KEY = "displayWindowBegin";
+  public static final String DISPLAY_WINDOW_END_KEY = "displayWindowEnd";
 
   @Override
   public void validate(UDFParameterValidator validator) throws UDFException {
     validator
         .validateInputSeriesNumber(1)
-        .validateInputSeriesDataType(
-            0, Type.INT32, Type.INT64, Type.FLOAT, Type.DOUBLE)
-        .validateRequiredAttribute("tqs")
-        .validateRequiredAttribute("tqe")
-        .validateRequiredAttribute("w");
+        .validateInputSeriesDataType(0, Type.INT32, Type.INT64, Type.FLOAT, Type.DOUBLE);
+
+    if (!validator.getParameters().hasAttribute(WINDOW_SIZE_KEY)
+        && !validator.getParameters().hasAttribute(TIME_INTERVAL_KEY)) {
+      throw new UDFAttributeNotProvidedException(
+          String.format("attribute \"%s\"/\"%s\" is required but was not provided.",
+              WINDOW_SIZE_KEY,
+              TIME_INTERVAL_KEY
+          ));
+    }
+    if (validator.getParameters().hasAttribute(WINDOW_SIZE_KEY)
+        && validator.getParameters().hasAttribute(TIME_INTERVAL_KEY)) {
+      throw new UDFAttributeNotProvidedException(
+          String.format("use attribute \"%s\" or \"%s\" one at a time.",
+              WINDOW_SIZE_KEY,
+              TIME_INTERVAL_KEY
+          ));
+    }
+    if (validator.getParameters().hasAttribute(WINDOW_SIZE_KEY)) {
+      accessStrategy = AccessStrategy.SIZE_WINDOW;
+    } else {
+      accessStrategy = AccessStrategy.TIME_WINDOW;
+    }
+
+    dataType =
+        UDFDataTypeTransformer.transformToTsDataType(validator.getParameters().getDataType(0));
   }
 
   @Override
   public void beforeStart(UDFParameters parameters, UDTFConfigurations configurations)
       throws MetadataException {
-    dataType = parameters.getDataType(0);
-    tqs = parameters.getLong("tqs"); // closed
-    tqe = parameters.getLong("tqe"); // open
-    w = parameters.getInt("w");
-    if ((tqe - tqs) % w != 0) {
-      throw new MetadataException(
-          "You should make tqe-tqs integer divide w, according to the semantics of M4 aggregation for visualization.");
+    // set data type
+    configurations.setOutputDataType(UDFDataTypeTransformer.transformToUDFDataType(dataType));
+
+    // set access strategy
+    if (accessStrategy == AccessStrategy.SIZE_WINDOW) {
+      int windowSize = parameters.getInt(WINDOW_SIZE_KEY);
+      int slidingStep = parameters.getIntOrDefault(SLIDING_STEP_KEY, windowSize);
+      configurations.setAccessStrategy(
+          new SlidingSizeWindowAccessStrategy(windowSize, slidingStep));
+    } else {
+      long timeInterval = parameters.getLong(TIME_INTERVAL_KEY);
+      long displayWindowBegin = parameters.getLongOrDefault(DISPLAY_WINDOW_BEGIN_KEY,
+          Long.MIN_VALUE);
+      long displayWindowEnd = parameters.getLongOrDefault(DISPLAY_WINDOW_END_KEY, Long.MAX_VALUE);
+      long slidingStep = parameters.getLongOrDefault(SLIDING_STEP_KEY, timeInterval);
+      configurations.setAccessStrategy(
+          new SlidingTimeWindowAccessStrategy(timeInterval, slidingStep, displayWindowBegin,
+              displayWindowEnd));
     }
-    configurations
-        .setAccessStrategy(new RowByRowAccessStrategy())
-        .setOutputDataType(Type.TEXT);
-    init();
-    this.idx = 0;
-    result = new String[w];
-    for (int i = 0; i < w; i++) {
-      result[i] = "empty";
-    }
-    //    System.out.println("====DEBUG====: use UDTFM4MAC for MAC");
   }
+
 
   @Override
-  public void transform(Row row, PointCollector collector)
-      throws IOException {
+  public void transform(RowWindow rowWindow, PointCollector collector)
+      throws UDFException, IOException {
     switch (dataType) {
       case INT32:
-        transformInt(row.getTime(), row.getInt(0));
+        transformInt(rowWindow, collector);
         break;
       case INT64:
-        transformLong(row.getTime(), row.getLong(0));
+        transformLong(rowWindow, collector);
         break;
       case FLOAT:
-        transformFloat(row.getTime(), row.getFloat(0));
+        transformFloat(rowWindow, collector);
         break;
       case DOUBLE:
-        transformDouble(row.getTime(), row.getDouble(0));
+        transformDouble(rowWindow, collector);
         break;
       default:
-        break;
+        // This will not happen
+        throw new UDFInputSeriesDataTypeNotValidException(
+            0,
+            UDFDataTypeTransformer.transformToUDFDataType(dataType),
+            Type.INT32,
+            Type.INT64,
+            Type.FLOAT,
+            Type.DOUBLE);
     }
   }
 
-  protected void transformInt(long time, int value) throws IOException {
-    long intervalLen = (tqe - tqs) / w;
-    int pos = (int) Math.floor((time - tqs) * 1.0 / intervalLen);
-    if (pos >= w) {
-      throw new IOException("Make sure the range time filter is time>=tqs and time<tqe");
+  public void transformInt(RowWindow rowWindow, PointCollector collector) throws IOException {
+    if (rowWindow.windowSize() <= 4) {
+      for (int i = 0; i < rowWindow.windowSize(); i++) {
+        Row row = rowWindow.getRow(i);
+        collector.putInt(row.getTime(), row.getInt(0));
+      }
+      return;
     }
 
-    if (pos > idx) {
-      result[idx] =
-          "FirstPoint=("
-              + minTime
-              + ","
-              + intFirstV
-              + "), "
-              + "LastPoint=("
-              + maxTime
-              + ","
-              + intLastV
-              + "), "
-              + "BottomPoint=("
-              + bottomTime
-              + ","
-              + intMinV
-              + "), "
-              + "TopPoint=("
-              + topTime
-              + ","
-              + intMaxV
-              + ")";
-      idx = pos;
-      init(); // clear environment for this new interval
+    int minIndex = 1, maxIndex = 1;
+    int maxValue = rowWindow.getRow(1).getInt(0);
+    int minValue = rowWindow.getRow(1).getInt(0);
+    for (int i = 2; i < rowWindow.windowSize() - 1; i++) {
+      int value = rowWindow.getRow(i).getInt(0);
+      if (minValue > value) {
+        minValue = value;
+        minIndex = i;
+      }
+      if (maxValue < value) {
+        maxValue = value;
+        maxIndex = i;
+      }
     }
-    // update for the current interval
-    if (time < minTime) {
-      minTime = time;
-      intFirstV = value;
+    if (minIndex == maxIndex) {
+      maxIndex = rowWindow.windowSize() - 2;
     }
-    if (time > maxTime) {
-      maxTime = time;
-      intLastV = value;
+
+    Row row = rowWindow.getRow(0);
+    collector.putInt(row.getTime(), row.getInt(0));
+    if (maxIndex < minIndex) {
+      row = rowWindow.getRow(maxIndex);
+      collector.putInt(row.getTime(), row.getInt(0));
+      row = rowWindow.getRow(minIndex);
+    } else {
+      row = rowWindow.getRow(minIndex);
+      collector.putInt(row.getTime(), row.getInt(0));
+      row = rowWindow.getRow(maxIndex);
     }
-    if (value < intMinV) {
-      bottomTime = time;
-      intMinV = value;
-    }
-    if (value > intMaxV) {
-      topTime = time;
-      intMaxV = value;
-    }
+    collector.putInt(row.getTime(), row.getInt(0));
+    row = rowWindow.getRow(rowWindow.windowSize() - 1);
+    collector.putInt(row.getTime(), row.getInt(0));
   }
 
-  protected void transformLong(long time, long value) throws IOException {
-    long intervalLen = (tqe - tqs) / w;
-    int pos = (int) Math.floor((time - tqs) * 1.0 / intervalLen);
-
-    if (pos >= w) {
-      throw new IOException("Make sure the range time filter is time>=tqs and time<tqe");
+  public void transformLong(RowWindow rowWindow, PointCollector collector) throws IOException {
+    if (rowWindow.windowSize() <= 4) {
+      for (int i = 0; i < rowWindow.windowSize(); i++) {
+        Row row = rowWindow.getRow(i);
+        collector.putLong(row.getTime(), row.getLong(0));
+      }
+      return;
     }
 
-    if (pos > idx) {
-      result[idx] =
-          "FirstPoint=("
-              + minTime
-              + ","
-              + longFirstV
-              + "), "
-              + "LastPoint=("
-              + maxTime
-              + ","
-              + longLastV
-              + "), "
-              + "BottomPoint=("
-              + bottomTime
-              + ","
-              + longMinV
-              + "), "
-              + "TopPoint=("
-              + topTime
-              + ","
-              + longMaxV
-              + ")";
-      idx = pos;
-      init(); // clear environment for this new interval
+    int minIndex = 1, maxIndex = 1;
+    long maxValue = rowWindow.getRow(1).getLong(0);
+    long minValue = rowWindow.getRow(1).getLong(0);
+    for (int i = 2; i < rowWindow.windowSize() - 1; i++) {
+      long value = rowWindow.getRow(i).getLong(0);
+      if (minValue > value) {
+        minValue = value;
+        minIndex = i;
+      }
+      if (maxValue < value) {
+        maxValue = value;
+        maxIndex = i;
+      }
     }
-    if (time < minTime) {
-      minTime = time;
-      longFirstV = value;
+    if (minIndex == maxIndex) {
+      maxIndex = rowWindow.windowSize() - 2;
     }
-    if (time > maxTime) {
-      maxTime = time;
-      longLastV = value;
+
+    Row row = rowWindow.getRow(0);
+    collector.putLong(row.getTime(), row.getLong(0));
+    if (maxIndex < minIndex) {
+      row = rowWindow.getRow(maxIndex);
+      collector.putLong(row.getTime(), row.getLong(0));
+      row = rowWindow.getRow(minIndex);
+    } else {
+      row = rowWindow.getRow(minIndex);
+      collector.putLong(row.getTime(), row.getLong(0));
+      row = rowWindow.getRow(maxIndex);
     }
-    if (value < longMinV) {
-      bottomTime = time;
-      longMinV = value;
-    }
-    if (value > longMaxV) {
-      topTime = time;
-      longMaxV = value;
-    }
+    collector.putLong(row.getTime(), row.getLong(0));
+    row = rowWindow.getRow(rowWindow.windowSize() - 1);
+    collector.putLong(row.getTime(), row.getLong(0));
   }
 
-  protected void transformFloat(long time, float value) throws IOException {
-    long intervalLen = (tqe - tqs) / w;
-    int pos = (int) Math.floor((time - tqs) * 1.0 / intervalLen);
-
-    if (pos >= w) {
-      throw new IOException("Make sure the range time filter is time>=tqs and time<tqe");
+  public void transformFloat(RowWindow rowWindow, PointCollector collector) throws IOException {
+    if (rowWindow.windowSize() <= 4) {
+      for (int i = 0; i < rowWindow.windowSize(); i++) {
+        Row row = rowWindow.getRow(i);
+        collector.putFloat(row.getTime(), row.getFloat(0));
+      }
+      return;
     }
 
-    if (pos > idx) {
-      result[idx] =
-          "FirstPoint=("
-              + minTime
-              + ","
-              + floatFirstV
-              + "), "
-              + "LastPoint=("
-              + maxTime
-              + ","
-              + floatLastV
-              + "), "
-              + "BottomPoint=("
-              + bottomTime
-              + ","
-              + floatMinV
-              + "), "
-              + "TopPoint=("
-              + topTime
-              + ","
-              + floatMaxV
-              + ")";
-      idx = pos;
-      init(); // clear environment for this new interval
+    int minIndex = 1, maxIndex = 1;
+    float maxValue = rowWindow.getRow(1).getFloat(0);
+    float minValue = rowWindow.getRow(1).getFloat(0);
+    for (int i = 2; i < rowWindow.windowSize() - 1; i++) {
+      float value = rowWindow.getRow(i).getFloat(0);
+      if (minValue > value) {
+        minValue = value;
+        minIndex = i;
+      }
+      if (maxValue < value) {
+        maxValue = value;
+        maxIndex = i;
+      }
     }
-    if (time < minTime) {
-      minTime = time;
-      floatFirstV = value;
+    if (minIndex == maxIndex) {
+      maxIndex = rowWindow.windowSize() - 2;
     }
-    if (time > maxTime) {
-      maxTime = time;
-      floatLastV = value;
+
+    Row row = rowWindow.getRow(0);
+    collector.putFloat(row.getTime(), row.getFloat(0));
+    if (maxIndex < minIndex) {
+      row = rowWindow.getRow(maxIndex);
+      collector.putFloat(row.getTime(), row.getFloat(0));
+      row = rowWindow.getRow(minIndex);
+    } else {
+      row = rowWindow.getRow(minIndex);
+      collector.putFloat(row.getTime(), row.getFloat(0));
+      row = rowWindow.getRow(maxIndex);
     }
-    if (value < floatMinV) {
-      bottomTime = time;
-      floatMinV = value;
-    }
-    if (value > floatMaxV) {
-      topTime = time;
-      floatMaxV = value;
-    }
+    collector.putFloat(row.getTime(), row.getFloat(0));
+    row = rowWindow.getRow(rowWindow.windowSize() - 1);
+    collector.putFloat(row.getTime(), row.getFloat(0));
   }
 
-  protected void transformDouble(long time, double value) throws IOException {
-    long intervalLen = (tqe - tqs) / w;
-    int pos = (int) Math.floor((time - tqs) * 1.0 / intervalLen);
-
-    if (pos >= w) {
-      throw new IOException("Make sure the range time filter is time>=tqs and time<tqe");
+  public void transformDouble(RowWindow rowWindow, PointCollector collector) throws IOException {
+    if (rowWindow.windowSize() <= 4) {
+      for (int i = 0; i < rowWindow.windowSize(); i++) {
+        Row row = rowWindow.getRow(i);
+        collector.putDouble(row.getTime(), row.getDouble(0));
+      }
+      return;
     }
 
-    if (pos > idx) {
-      result[idx] =
-          "FirstPoint=("
-              + minTime
-              + ","
-              + doubleFirstV
-              + "), "
-              + "LastPoint=("
-              + maxTime
-              + ","
-              + doubleLastV
-              + "), "
-              + "BottomPoint=("
-              + bottomTime
-              + ","
-              + doubleMinV
-              + "), "
-              + "TopPoint=("
-              + topTime
-              + ","
-              + doubleMaxV
-              + ")";
-      idx = pos;
-      init(); // clear environment for this new interval
+    int minIndex = 1, maxIndex = 1;
+    double maxValue = rowWindow.getRow(1).getDouble(0);
+    double minValue = rowWindow.getRow(1).getDouble(0);
+    for (int i = 2; i < rowWindow.windowSize() - 1; i++) {
+      double value = rowWindow.getRow(i).getDouble(0);
+      if (minValue > value) {
+        minValue = value;
+        minIndex = i;
+      }
+      if (maxValue < value) {
+        maxValue = value;
+        maxIndex = i;
+      }
     }
-    if (time < minTime) {
-      minTime = time;
-      doubleFirstV = value;
+    if (minIndex == maxIndex) {
+      maxIndex = rowWindow.windowSize() - 2;
     }
-    if (time > maxTime) {
-      maxTime = time;
-      doubleLastV = value;
+
+    Row row = rowWindow.getRow(0);
+    collector.putDouble(row.getTime(), row.getDouble(0));
+    if (maxIndex < minIndex) {
+      row = rowWindow.getRow(maxIndex);
+      collector.putDouble(row.getTime(), row.getDouble(0));
+      row = rowWindow.getRow(minIndex);
+    } else {
+      row = rowWindow.getRow(minIndex);
+      collector.putDouble(row.getTime(), row.getDouble(0));
+      row = rowWindow.getRow(maxIndex);
     }
-    if (value < doubleMinV) {
-      bottomTime = time;
-      doubleMinV = value;
-    }
-    if (value > doubleMaxV) {
-      topTime = time;
-      doubleMaxV = value;
-    }
+    collector.putDouble(row.getTime(), row.getDouble(0));
+    row = rowWindow.getRow(rowWindow.windowSize() - 1);
+    collector.putDouble(row.getTime(), row.getDouble(0));
   }
 
-  @Override
-  public void terminate(PointCollector collector) throws IOException {
-    // record the last interval (not necessarily idx=w-1) in the transform stage
-    switch (dataType) {
-      case INT32:
-        result[idx] =
-            "FirstPoint=("
-                + minTime
-                + ","
-                + intFirstV
-                + "), "
-                + "LastPoint=("
-                + maxTime
-                + ","
-                + intLastV
-                + "), "
-                + "BottomPoint=("
-                + bottomTime
-                + ","
-                + intMinV
-                + "), "
-                + "TopPoint=("
-                + topTime
-                + ","
-                + intMaxV
-                + ")";
-        break;
-      case INT64:
-        result[idx] =
-            "FirstPoint=("
-                + minTime
-                + ","
-                + longFirstV
-                + "), "
-                + "LastPoint=("
-                + maxTime
-                + ","
-                + longLastV
-                + "), "
-                + "BottomPoint=("
-                + bottomTime
-                + ","
-                + longMinV
-                + "), "
-                + "TopPoint=("
-                + topTime
-                + ","
-                + longMaxV
-                + ")";
-        break;
-      case FLOAT:
-        result[idx] =
-            "FirstPoint=("
-                + minTime
-                + ","
-                + floatFirstV
-                + "), "
-                + "LastPoint=("
-                + maxTime
-                + ","
-                + floatLastV
-                + "), "
-                + "BottomPoint=("
-                + bottomTime
-                + ","
-                + floatMinV
-                + "), "
-                + "TopPoint=("
-                + topTime
-                + ","
-                + floatMaxV
-                + ")";
-        break;
-      case DOUBLE:
-        result[idx] =
-            "FirstPoint=("
-                + minTime
-                + ","
-                + doubleFirstV
-                + "), "
-                + "LastPoint=("
-                + maxTime
-                + ","
-                + doubleLastV
-                + "), "
-                + "BottomPoint=("
-                + bottomTime
-                + ","
-                + doubleMinV
-                + "), "
-                + "TopPoint=("
-                + topTime
-                + ","
-                + doubleMaxV
-                + ")";
-        break;
-      default:
-        break;
-    }
-    // collect result
-    for (int i = 0; i < w; i++) {
-      long startInterval = tqs + (tqe - tqs) / w * i;
-      collector.putString(startInterval, result[i]);
-    }
-  }
 }
