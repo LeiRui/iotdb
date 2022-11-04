@@ -19,7 +19,10 @@
 
 package org.apache.iotdb.db.query.reader.chunk;
 
+import java.io.IOException;
+import org.apache.iotdb.commons.service.metric.enums.Operation;
 import org.apache.iotdb.db.engine.cache.ChunkCache;
+import org.apache.iotdb.db.service.thrift.impl.ClientRPCServiceImpl;
 import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.IChunkMetadata;
 import org.apache.iotdb.tsfile.read.common.Chunk;
@@ -28,9 +31,9 @@ import org.apache.iotdb.tsfile.read.filter.basic.Filter;
 import org.apache.iotdb.tsfile.read.reader.IChunkReader;
 import org.apache.iotdb.tsfile.read.reader.chunk.ChunkReader;
 
-import java.io.IOException;
-
-/** To read one chunk from disk, and only used in iotdb server module */
+/**
+ * To read one chunk from disk, and only used in iotdb server module
+ */
 public class DiskChunkLoader implements IChunkLoader {
 
   private final boolean debug;
@@ -52,8 +55,15 @@ public class DiskChunkLoader implements IChunkLoader {
   @Override
   public IChunkReader getChunkReader(IChunkMetadata chunkMetaData, Filter timeFilter)
       throws IOException {
+    System.out.println("here we are DiskChunkLoader!!!");
     Chunk chunk = ChunkCache.getInstance().get((ChunkMetadata) chunkMetaData, debug);
     chunk.setFromOldFile(chunkMetaData.isFromOldTsFile());
-    return new ChunkReader(chunk, timeFilter);
+    long startTime = System.nanoTime();
+    IChunkReader chunkReader = new ChunkReader(chunk, timeFilter);
+    ClientRPCServiceImpl.addOperationLatency_ns(
+        Operation.DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA,
+        Operation.DCP_ITSELF, // means does not further decompose
+        startTime);
+    return chunkReader;
   }
 }

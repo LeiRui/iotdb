@@ -53,6 +53,7 @@ public abstract class AbstractDriverThread extends Thread implements Closeable {
 
   @Override
   public void run() {
+    logger.info("here here");
     DriverTask next;
     try {
       while (!closed && !Thread.currentThread().isInterrupted()) {

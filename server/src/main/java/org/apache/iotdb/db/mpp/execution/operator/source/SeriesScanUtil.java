@@ -514,6 +514,7 @@ public class SeriesScanUtil {
   }
 
   private void unpackOneChunkMetaData(IChunkMetadata chunkMetaData) throws IOException {
+    System.out.println("unpackOneChunkMetaData!!!");
     List<IPageReader> pageReaderList =
         FileLoaderUtils.loadPageReaderList(chunkMetaData, timeFilter);
 

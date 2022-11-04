@@ -299,7 +299,7 @@ public class DataRegion {
         new TsFileManager(storageGroupName, dataRegionId, storageGroupSysDir.getPath());
     if (storageGroupSysDir.mkdirs()) {
       logger.info(
-          "Storage Group system Directory {} doesn't exist, create it",
+          "mytesttmp Storage Group system Directory {} doesn't exist, create it",
           storageGroupSysDir.getPath());
     } else if (!storageGroupSysDir.exists()) {
       logger.error("create Storage Group system Directory {} failed", storageGroupSysDir.getPath());

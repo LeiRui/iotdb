@@ -19,24 +19,24 @@
 
 package org.apache.iotdb.db.engine.cache;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Weigher;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.iotdb.commons.service.metric.MetricService;
+import org.apache.iotdb.commons.service.metric.enums.Operation;
 import org.apache.iotdb.commons.utils.TestOnly;
 import org.apache.iotdb.db.conf.IoTDBConfig;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.query.control.FileReaderManager;
+import org.apache.iotdb.db.service.thrift.impl.ClientRPCServiceImpl;
 import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.read.TsFileSequenceReader;
 import org.apache.iotdb.tsfile.read.common.Chunk;
 import org.apache.iotdb.tsfile.utils.RamUsageEstimator;
-
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.Weigher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This class is used to cache <code>Chunk</code> of <code>ChunkMetaData</code> in IoTDB. The
@@ -75,7 +75,13 @@ public class ChunkCache {
                     TsFileSequenceReader reader =
                         FileReaderManager.getInstance()
                             .get(chunkMetadata.getFilePath(), chunkMetadata.isClosed());
-                    return reader.readMemChunk(chunkMetadata);
+                    logger.info("readMemChunk1");
+                    long startTime = System.nanoTime();
+                    Chunk chunk = reader.readMemChunk(chunkMetadata);
+                    ClientRPCServiceImpl.addOperationLatency_ns(Operation.DCP_B_READ_MEM_CHUNK,
+                        Operation.DCP_ITSELF, // means does not further decompose
+                        startTime);
+                    return chunk;
                   } catch (IOException e) {
                     logger.error("Something wrong happened in reading {}", chunkMetadata, e);
                     throw e;
@@ -103,7 +109,12 @@ public class ChunkCache {
       TsFileSequenceReader reader =
           FileReaderManager.getInstance()
               .get(chunkMetaData.getFilePath(), chunkMetaData.isClosed());
+      logger.info("readMemChunk2");
+      long startTime = System.nanoTime();
       Chunk chunk = reader.readMemChunk(chunkMetaData);
+      ClientRPCServiceImpl.addOperationLatency_ns(Operation.DCP_B_READ_MEM_CHUNK,
+          Operation.DCP_ITSELF, // means does not further decompose
+          startTime);
       return new Chunk(
           chunk.getHeader(),
           chunk.getData().duplicate(),
@@ -144,7 +155,9 @@ public class ChunkCache {
     return entryAverageSize.get();
   }
 
-  /** clear LRUCache. */
+  /**
+   * clear LRUCache.
+   */
   public void clear() {
     lruCache.invalidateAll();
     lruCache.cleanUp();
@@ -159,7 +172,9 @@ public class ChunkCache {
     return lruCache.asMap().isEmpty();
   }
 
-  /** singleton pattern. */
+  /**
+   * singleton pattern.
+   */
   private static class ChunkCacheHolder {
 
     private static final ChunkCache INSTANCE = new ChunkCache();

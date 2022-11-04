@@ -110,7 +110,7 @@ public class NewIoTDB implements NewIoTDBMBean {
       return;
     }
 
-    logger.info("{} has started.", IoTDBConstant.GLOBAL_DB_NAME);
+    logger.info("{} has started. mytest", IoTDBConstant.GLOBAL_DB_NAME);
   }
 
   void processPid() {

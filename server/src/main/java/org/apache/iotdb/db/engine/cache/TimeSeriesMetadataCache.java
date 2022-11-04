@@ -21,10 +21,12 @@ package org.apache.iotdb.db.engine.cache;
 
 import org.apache.iotdb.commons.conf.IoTDBConstant;
 import org.apache.iotdb.commons.service.metric.MetricService;
+import org.apache.iotdb.commons.service.metric.enums.Operation;
 import org.apache.iotdb.commons.utils.TestOnly;
 import org.apache.iotdb.db.conf.IoTDBConfig;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.query.control.FileReaderManager;
+import org.apache.iotdb.db.service.thrift.impl.ClientRPCServiceImpl;
 import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.TimeseriesMetadata;
 import org.apache.iotdb.tsfile.read.TsFileSequenceReader;
@@ -119,6 +121,8 @@ public class TimeSeriesMetadataCache {
       boolean debug)
       throws IOException {
     if (!CACHE_ENABLE) {
+      logger.info("TimeSeriesMetadataCache.get!!!");
+      long startTime = System.nanoTime();
       // bloom filter part
       TsFileSequenceReader reader = FileReaderManager.getInstance().get(key.filePath, true);
       BloomFilter bloomFilter = reader.readBloomFilter();
@@ -129,6 +133,9 @@ public class TimeSeriesMetadataCache {
       TimeseriesMetadata timeseriesMetadata =
           reader.readTimeseriesMetadata(
               new Path(key.device, key.measurement, true), ignoreNotExists);
+      ClientRPCServiceImpl.addOperationLatency_ns(Operation.DCP_A_GET_CHUNK_METADATAS,
+          Operation.DCP_ITSELF, // means does not further decompose
+          startTime);
       return (timeseriesMetadata == null || timeseriesMetadata.getStatistics().getCount() == 0)
           ? null
           : timeseriesMetadata;
@@ -163,9 +170,14 @@ public class TimeSeriesMetadataCache {
               return null;
             }
           }
+          logger.info("TimeSeriesMetadataCache.get2!!!");
+          long startTime = System.nanoTime();
           TsFileSequenceReader reader = FileReaderManager.getInstance().get(key.filePath, true);
           List<TimeseriesMetadata> timeSeriesMetadataList =
               reader.readTimeseriesMetadata(path, allSensors);
+          ClientRPCServiceImpl.addOperationLatency_ns(Operation.DCP_A_GET_CHUNK_METADATAS,
+              Operation.DCP_ITSELF, // means does not further decompose
+              startTime);
           // put TimeSeriesMetadata of all sensors used in this query into cache
           for (TimeseriesMetadata metadata : timeSeriesMetadataList) {
             TimeSeriesMetadataCacheKey k =

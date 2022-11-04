@@ -56,6 +56,7 @@ public class DriverTask implements IDIndexedAccessible {
   /** Initialize a dummy instance for queryHolder */
   public DriverTask() {
     this(new StubFragmentInstance(), 0L, null);
+    System.out.println("DriverTask construct1");
   }
 
   public DriverTask(IDriver instance, long timeoutMs, DriverTaskStatus status) {
@@ -65,6 +66,7 @@ public class DriverTask implements IDIndexedAccessible {
     this.schedulePriority = 0.0D;
     this.ddl = System.currentTimeMillis() + timeoutMs;
     this.lock = new ReentrantLock();
+    System.out.println("DriverTask construct2");
   }
 
   public DriverTaskID getId() {
