@@ -18,6 +18,18 @@
  */
 package org.apache.iotdb.db.engine.storagegroup;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.iotdb.common.rpc.thrift.TSStatus;
 import org.apache.iotdb.commons.conf.CommonDescriptor;
 import org.apache.iotdb.commons.exception.IllegalPathException;
@@ -35,6 +47,7 @@ import org.apache.iotdb.db.engine.flush.FlushListener;
 import org.apache.iotdb.db.engine.flush.FlushManager;
 import org.apache.iotdb.db.engine.flush.MemTableFlushTask;
 import org.apache.iotdb.db.engine.flush.NotifyFlushMemTable;
+import org.apache.iotdb.db.engine.memtable.AbstractMemTable;
 import org.apache.iotdb.db.engine.memtable.AlignedWritableMemChunk;
 import org.apache.iotdb.db.engine.memtable.AlignedWritableMemChunkGroup;
 import org.apache.iotdb.db.engine.memtable.IMemTable;
@@ -75,63 +88,73 @@ import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.utils.Binary;
 import org.apache.iotdb.tsfile.utils.Pair;
 import org.apache.iotdb.tsfile.write.writer.RestorableTsFileIOWriter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @SuppressWarnings("java:S1135") // ignore todos
 public class TsFileProcessor {
 
-  /** logger fot this class */
+  /**
+   * logger fot this class
+   */
   private static final Logger logger = LoggerFactory.getLogger(TsFileProcessor.class);
 
-  /** storgae group name of this tsfile */
+  /**
+   * storgae group name of this tsfile
+   */
   private final String storageGroupName;
 
-  /** IoTDB config */
+  /**
+   * IoTDB config
+   */
   private final IoTDBConfig config = IoTDBDescriptor.getInstance().getConfig();
 
-  /** whether it's enable mem control */
+  /**
+   * whether it's enable mem control
+   */
   private final boolean enableMemControl = config.isEnableMemControl();
 
-  /** storage group info for mem control */
+  /**
+   * storage group info for mem control
+   */
   private DataRegionInfo dataRegionInfo;
-  /** tsfile processor info for mem control */
+  /**
+   * tsfile processor info for mem control
+   */
   private TsFileProcessorInfo tsFileProcessorInfo;
 
-  /** sync this object in query() and asyncTryToFlush() */
+  /**
+   * sync this object in query() and asyncTryToFlush()
+   */
   private final ConcurrentLinkedDeque<IMemTable> flushingMemTables = new ConcurrentLinkedDeque<>();
 
-  /** modification to memtable mapping */
+  /**
+   * modification to memtable mapping
+   */
   private List<Pair<Modification, IMemTable>> modsToMemtable = new ArrayList<>();
 
-  /** writer for restore tsfile and flushing */
+  /**
+   * writer for restore tsfile and flushing
+   */
   private RestorableTsFileIOWriter writer;
 
-  /** tsfile resource for index this tsfile */
+  /**
+   * tsfile resource for index this tsfile
+   */
   private final TsFileResource tsFileResource;
 
-  /** time range index to indicate this processor belongs to which time range */
+  /**
+   * time range index to indicate this processor belongs to which time range
+   */
   private long timeRangeId;
   /**
    * Whether the processor is in the queue of the FlushManager or being flushed by a flush thread.
    */
   private volatile boolean managedByFlushManager;
 
-  /** a lock to mutual exclude query and query */
+  /**
+   * a lock to mutual exclude query and query
+   */
   private final ReadWriteLock flushQueryLock = new ReentrantReadWriteLock();
   /**
    * It is set by the StorageGroupProcessor and checked by flush threads. (If shouldClose == true
@@ -139,32 +162,48 @@ public class TsFileProcessor {
    */
   private volatile boolean shouldClose;
 
-  /** working memtable */
+  /**
+   * working memtable
+   */
   private IMemTable workMemTable;
 
-  /** last flush time to flush the working memtable */
+  /**
+   * last flush time to flush the working memtable
+   */
   private long lastWorkMemtableFlushTime;
 
-  /** this callback is called before the workMemtable is added into the flushingMemTables. */
+  /**
+   * this callback is called before the workMemtable is added into the flushingMemTables.
+   */
   private final UpdateEndTimeCallBack updateLatestFlushTimeCallback;
 
-  /** wal node */
+  /**
+   * wal node
+   */
   private final IWALNode walNode;
 
-  /** whether it's a sequence file or not */
+  /**
+   * whether it's a sequence file or not
+   */
   private final boolean sequence;
 
-  /** total memtable size for mem control */
+  /**
+   * total memtable size for mem control
+   */
   private long totalMemTableSize;
 
   private static final String FLUSH_QUERY_WRITE_LOCKED = "{}: {} get flushQueryLock write lock";
   private static final String FLUSH_QUERY_WRITE_RELEASE =
       "{}: {} get flushQueryLock write lock released";
 
-  /** close file listener */
+  /**
+   * close file listener
+   */
   private List<CloseFileListener> closeFileListeners = new ArrayList<>();
 
-  /** flush file listener */
+  /**
+   * flush file listener
+   */
   private List<FlushListener> flushListeners = new ArrayList<>();
 
   @SuppressWarnings("squid:S107")
@@ -341,9 +380,9 @@ public class TsFileProcessor {
    * non-null value, e.g., {1, null, 3, null, 5} will be {1, 3, 5, null, 5}
    *
    * @param insertTabletPlan insert a tablet of a device
-   * @param start start index of rows to be inserted in insertTabletPlan
-   * @param end end index of rows to be inserted in insertTabletPlan
-   * @param results result array
+   * @param start            start index of rows to be inserted in insertTabletPlan
+   * @param end              end index of rows to be inserted in insertTabletPlan
+   * @param results          result array
    */
   public void insertTablet(
       InsertTabletPlan insertTabletPlan, int start, int end, TSStatus[] results)
@@ -438,9 +477,9 @@ public class TsFileProcessor {
    * non-null value, e.g., {1, null, 3, null, 5} will be {1, 3, 5, null, 5}
    *
    * @param insertTabletNode insert a tablet of a device
-   * @param start start index of rows to be inserted in insertTabletPlan
-   * @param end end index of rows to be inserted in insertTabletPlan
-   * @param results result array
+   * @param start            start index of rows to be inserted in insertTabletPlan
+   * @param end              end index of rows to be inserted in insertTabletPlan
+   * @param results          result array
    */
   public void insertTablet(
       InsertTabletNode insertTabletNode, int start, int end, TSStatus[] results)
@@ -565,7 +604,7 @@ public class TsFileProcessor {
       }
     }
     updateMemoryInfo(memTableIncrement, chunkMetadataIncrement, textDataIncrement);
-    return new long[] {memTableIncrement, textDataIncrement, chunkMetadataIncrement};
+    return new long[]{memTableIncrement, textDataIncrement, chunkMetadataIncrement};
   }
 
   @SuppressWarnings("squid:S3776") // high Cognitive Complexity
@@ -620,7 +659,7 @@ public class TsFileProcessor {
       }
     }
     updateMemoryInfo(memTableIncrement, chunkMetadataIncrement, textDataIncrement);
-    return new long[] {memTableIncrement, textDataIncrement, chunkMetadataIncrement};
+    return new long[]{memTableIncrement, textDataIncrement, chunkMetadataIncrement};
   }
 
   private long[] checkMemCostAndAddToTspInfo(
@@ -632,7 +671,7 @@ public class TsFileProcessor {
       int end)
       throws WriteProcessException {
     if (start >= end) {
-      return new long[] {0, 0, 0};
+      return new long[]{0, 0, 0};
     }
     long[] memIncrements = new long[3]; // memTable, text, chunk metadata
 
@@ -667,7 +706,7 @@ public class TsFileProcessor {
       int end)
       throws WriteProcessException {
     if (start >= end) {
-      return new long[] {0, 0, 0};
+      return new long[]{0, 0, 0};
     }
     long[] memIncrements = new long[3]; // memTable, text, chunk metadata
 
@@ -887,9 +926,12 @@ public class TsFileProcessor {
     }
     if (workMemTable.reachTotalPointNumThreshold()) {
       logger.info(
-          "The avg series points num {} of tsfile {} reaches the threshold",
+          "The avg series points num {} of tsfile {} reaches the threshold {}",
           workMemTable.getTotalPointsNum() / workMemTable.getSeriesNumber(),
-          tsFileResource.getTsFile().getAbsolutePath());
+          tsFileResource.getTsFile().getAbsolutePath(),
+          ((AbstractMemTable) workMemTable).totalPointsNumThreshold
+      );
+      System.out.println(((AbstractMemTable) workMemTable).totalPointsNumThreshold + "!!!!");
       return true;
     }
     return false;
@@ -949,7 +991,9 @@ public class TsFileProcessor {
     logger.info("File {} is closed synchronously", tsFileResource.getTsFile().getAbsolutePath());
   }
 
-  /** async close one tsfile, register and close it by another thread */
+  /**
+   * async close one tsfile, register and close it by another thread
+   */
   void asyncClose() {
     flushQueryLock.writeLock().lock();
     if (logger.isDebugEnabled()) {
@@ -1075,7 +1119,9 @@ public class TsFileProcessor {
     }
   }
 
-  /** put the working memtable into flushing list and set the working memtable to null */
+  /**
+   * put the working memtable into flushing list and set the working memtable to null
+   */
   public void asyncFlush() {
     flushQueryLock.writeLock().lock();
     if (logger.isDebugEnabled()) {
@@ -1145,7 +1191,9 @@ public class TsFileProcessor {
     FlushManager.getInstance().registerTsFileProcessor(this);
   }
 
-  /** put back the memtable to MemTablePool and make metadata in writer visible */
+  /**
+   * put back the memtable to MemTablePool and make metadata in writer visible
+   */
   private void releaseFlushedMemTable(IMemTable memTable) {
     flushQueryLock.writeLock().lock();
     if (logger.isDebugEnabled()) {
@@ -1204,7 +1252,9 @@ public class TsFileProcessor {
     }
   }
 
-  /** This method will synchronize the memTable and release its flushing resources */
+  /**
+   * This method will synchronize the memTable and release its flushing resources
+   */
   private void syncReleaseFlushedMemTable(IMemTable memTable) {
     synchronized (memTable) {
       releaseFlushedMemTable(memTable);
@@ -1417,7 +1467,9 @@ public class TsFileProcessor {
     }
   }
 
-  /** end file and write some meta */
+  /**
+   * end file and write some meta
+   */
   private void endFile() throws IOException, TsFileProcessorException {
     logger.info("Start to end file {}", tsFileResource);
     long closeStartTime = System.currentTimeMillis();
@@ -1463,7 +1515,9 @@ public class TsFileProcessor {
     this.managedByFlushManager = managedByFlushManager;
   }
 
-  /** sync method */
+  /**
+   * sync method
+   */
   public boolean isMemtableNotNull() {
     flushQueryLock.writeLock().lock();
     try {
@@ -1473,7 +1527,9 @@ public class TsFileProcessor {
     }
   }
 
-  /** close this tsfile */
+  /**
+   * close this tsfile
+   */
   public void close() throws TsFileProcessorException {
     try {
       // when closing resource file, its corresponding mod file is also closed.
@@ -1573,7 +1629,9 @@ public class TsFileProcessor {
     this.timeRangeId = timeRangeId;
   }
 
-  /** release resource of a memtable */
+  /**
+   * release resource of a memtable
+   */
   public void putMemTableBackAndClose() throws TsFileProcessorException {
     if (workMemTable != null) {
       workMemTable.release();
@@ -1598,7 +1656,9 @@ public class TsFileProcessor {
     return workMemTable != null ? workMemTable.getTVListsRamCost() : 0;
   }
 
-  /** Return Long.MAX_VALUE if workMemTable is null */
+  /**
+   * Return Long.MAX_VALUE if workMemTable is null
+   */
   public long getWorkMemTableCreatedTime() {
     return workMemTable != null ? workMemTable.getCreatedTime() : Long.MAX_VALUE;
   }

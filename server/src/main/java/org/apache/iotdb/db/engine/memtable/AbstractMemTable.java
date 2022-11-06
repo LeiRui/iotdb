@@ -93,7 +93,7 @@ public abstract class AbstractMemTable implements IMemTable {
 
   private long totalPointsNum = 0;
 
-  private long totalPointsNumThreshold = 0;
+  public long totalPointsNumThreshold = 0;
 
   private long maxPlanIndex = Long.MIN_VALUE;
 
