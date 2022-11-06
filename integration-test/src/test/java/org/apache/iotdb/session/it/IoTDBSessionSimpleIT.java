@@ -388,9 +388,6 @@ public class IoTDBSessionSimpleIT {
       while (dataSet.hasNext()) {
         RowRecord rowRecord = dataSet.next();
         System.out.println(rowRecord.toString());
-        //        assertEquals(10L, rowRecord.getFields().get(0).getLongV());
-        //        assertEquals(10L, rowRecord.getFields().get(1).getLongV());
-        //        assertEquals(10L, rowRecord.getFields().get(2).getLongV());
       }
     } catch (Exception e) {
       e.printStackTrace();
