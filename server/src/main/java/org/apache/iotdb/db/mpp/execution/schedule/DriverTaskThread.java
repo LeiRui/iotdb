@@ -19,7 +19,6 @@
 package org.apache.iotdb.db.mpp.execution.schedule;
 
 import org.apache.iotdb.commons.concurrent.IoTDBThreadPoolFactory;
-import org.apache.iotdb.consensus.config.RatisConfig.Log;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.mpp.execution.driver.IDriver;
 import org.apache.iotdb.db.mpp.execution.schedule.queue.IndexedBlockingQueue;
@@ -60,7 +59,6 @@ public class DriverTaskThread extends AbstractDriverThread {
     if (!scheduler.readyToRunning(task)) {
       return;
     }
-    System.out.println("here we are");
     IDriver instance = task.getFragmentInstance();
     CpuTimer timer = new CpuTimer();
     ListenableFuture<?> future = instance.processFor(EXECUTION_TIME_SLICE);

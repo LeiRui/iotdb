@@ -383,7 +383,8 @@ public class IoTDBSessionSimpleIT {
         session.executeNonQueryStatement("flush");
       }
 
-      SessionDataSet dataSet = session.executeQueryStatement("select s3 from root.sg1.d1",10800000);
+      SessionDataSet dataSet =
+          session.executeQueryStatement("select s3 from root.sg1.d1", 10800000);
       System.out.println(dataSet.getColumnNames());
       while (dataSet.hasNext()) {
         RowRecord rowRecord = dataSet.next();

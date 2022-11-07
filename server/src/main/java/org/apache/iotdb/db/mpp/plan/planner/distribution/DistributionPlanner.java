@@ -91,7 +91,7 @@ public class DistributionPlanner {
         context.getQueryType() == QueryType.READ
             ? new SimpleFragmentParallelPlanner(subPlan, analysis, context)
             : new WriteFragmentParallelPlanner(subPlan, analysis, context);
-      return parallelPlaner.parallelPlan();
+    return parallelPlaner.parallelPlan();
   }
 
   // TODO: (xingtanzjr) Maybe we should handle ResultNode in LogicalPlanner ?

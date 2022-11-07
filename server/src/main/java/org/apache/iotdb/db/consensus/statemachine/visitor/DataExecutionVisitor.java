@@ -62,6 +62,7 @@ public class DataExecutionVisitor extends PlanVisitor<TSStatus, DataRegion> {
   @Override
   public TSStatus visitInsertTablet(InsertTabletNode node, DataRegion dataRegion) {
     try {
+      System.out.println("visitInsertTablet!!!!");
       dataRegion.insertTablet(node);
       return StatusUtils.OK;
     } catch (TriggerExecutionException | WriteProcessException e) {

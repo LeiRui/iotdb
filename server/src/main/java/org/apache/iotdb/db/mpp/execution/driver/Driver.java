@@ -173,7 +173,6 @@ public abstract class Driver implements IDriver {
   }
 
   private ListenableFuture<?> processInternal() {
-    LOGGER.info("running Driver.processInternal!!!!!");
     try {
       ListenableFuture<?> blocked = root.isBlocked();
       if (!blocked.isDone()) {

@@ -133,7 +133,8 @@ public class TimeSeriesMetadataCache {
       TimeseriesMetadata timeseriesMetadata =
           reader.readTimeseriesMetadata(
               new Path(key.device, key.measurement, true), ignoreNotExists);
-      ClientRPCServiceImpl.addOperationLatency_ns(Operation.DCP_A_GET_CHUNK_METADATAS,
+      ClientRPCServiceImpl.addOperationLatency_ns(
+          Operation.DCP_A_GET_CHUNK_METADATAS,
           Operation.DCP_ITSELF, // means does not further decompose
           startTime);
       return (timeseriesMetadata == null || timeseriesMetadata.getStatistics().getCount() == 0)
@@ -170,12 +171,12 @@ public class TimeSeriesMetadataCache {
               return null;
             }
           }
-          logger.info("TimeSeriesMetadataCache.get2!!!");
           long startTime = System.nanoTime();
           TsFileSequenceReader reader = FileReaderManager.getInstance().get(key.filePath, true);
           List<TimeseriesMetadata> timeSeriesMetadataList =
               reader.readTimeseriesMetadata(path, allSensors);
-          ClientRPCServiceImpl.addOperationLatency_ns(Operation.DCP_A_GET_CHUNK_METADATAS,
+          ClientRPCServiceImpl.addOperationLatency_ns(
+              Operation.DCP_A_GET_CHUNK_METADATAS,
               Operation.DCP_ITSELF, // means does not further decompose
               startTime);
           // put TimeSeriesMetadata of all sensors used in this query into cache

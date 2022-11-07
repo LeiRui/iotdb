@@ -371,6 +371,7 @@ public class LogicalPlanVisitor extends StatementVisitor<PlanNode, MPPQueryConte
   public PlanNode visitInsertTablet(
       InsertTabletStatement insertTabletStatement, MPPQueryContext context) {
     // convert insert statement to insert node
+    System.out.println("visitInsertTablet1!!!");
     return new InsertTabletNode(
         context.getQueryId().genPlanNodeId(),
         insertTabletStatement.getDevicePath(),

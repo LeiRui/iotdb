@@ -91,7 +91,6 @@ public class DriverScheduler implements IDriverScheduler, IService {
 
   @Override
   public void start() throws StartupException {
-    System.out.println("DriverScheduler.start!!!");
     for (int i = 0; i < WORKER_THREAD_NUM; i++) {
       int index = i;
       String threadName = "Query-Worker-Thread-" + i;
