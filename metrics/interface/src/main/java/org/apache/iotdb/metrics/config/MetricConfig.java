@@ -19,53 +19,82 @@
 
 package org.apache.iotdb.metrics.config;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import org.apache.iotdb.metrics.utils.MetricLevel;
 import org.apache.iotdb.metrics.utils.MonitorType;
 import org.apache.iotdb.metrics.utils.ReporterType;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-
 public class MetricConfig {
-  /** Is metric service enabled */
-  private Boolean enableMetric = false;
 
-  /** Is stat performance of operations enabled */
-  private Boolean enablePerformanceStat = false;
+  /**
+   * Is metric service enabled
+   */
+  private Boolean enableMetric = true;
 
-  /** The type of the implementation of metric service */
+  /**
+   * Is stat performance of operations enabled
+   */
+  private Boolean enablePerformanceStat = true;
+
+  /**
+   * The type of the implementation of metric service
+   */
   private MonitorType monitorType = MonitorType.MICROMETER;
 
-  /** The list of reporters provide data for external system */
+  /**
+   * The list of reporters provide data for external system
+   */
   private List<ReporterType> metricReporterList =
-      Arrays.asList(ReporterType.JMX, ReporterType.PROMETHEUS);
+      Arrays.asList(ReporterType.JMX, ReporterType.PROMETHEUS, ReporterType.IOTDB);
 
-  /** The level of metric service */
+  /**
+   * The level of metric service
+   */
   private MetricLevel metricLevel = MetricLevel.IMPORTANT;
 
   private Integer asyncCollectPeriodInSecond = 5;
 
-  /** The http server's port for prometheus reporter to get metric data. */
+  /**
+   * The http server's port for prometheus reporter to get metric data.
+   */
   private Integer prometheusExporterPort = 9091;
 
-  /** The config for iotdb reporter to push metric data */
+  /**
+   * The config for iotdb reporter to push metric data
+   */
   private IoTDBReporterConfig ioTDBReporterConfig = new IoTDBReporterConfig();
 
   public static class IoTDBReporterConfig {
-    /** The host of iotdb that store metric value */
+
+    /**
+     * The host of iotdb that store metric value
+     */
     private String host = "127.0.0.1";
-    /** The port of iotdb that store metric value */
+    /**
+     * The port of iotdb that store metric value
+     */
     private Integer port = 6667;
-    /** The username of iotdb */
+    /**
+     * The username of iotdb
+     */
     private String username = "root";
-    /** The password of iotdb */
+    /**
+     * The password of iotdb
+     */
     private String password = "root";
-    /** The max number of connection */
+    /**
+     * The max number of connection
+     */
     private Integer maxConnectionNumber = 3;
-    /** The location of iotdb metrics */
+    /**
+     * The location of iotdb metrics
+     */
     private String location = "metric";
-    /** The period of data pushed by the reporter to the remote monitoring system. */
+    /**
+     * The period of data pushed by the reporter to the remote monitoring system.
+     */
     private Integer pushPeriodInSecond = 15;
 
     public String getHost() {
@@ -147,9 +176,13 @@ public class MetricConfig {
     }
   }
 
-  /** the address of iotdb instance that is monitored */
+  /**
+   * the address of iotdb instance that is monitored
+   */
   private String rpcAddress = "0.0.0.0";
-  /** the port of iotdb instance that is monitored */
+  /**
+   * the port of iotdb instance that is monitored
+   */
   private Integer rpcPort = 6667;
 
   public void copy(MetricConfig newMetricConfig) {

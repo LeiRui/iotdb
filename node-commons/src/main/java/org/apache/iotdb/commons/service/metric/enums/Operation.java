@@ -18,6 +18,10 @@
  */
 package org.apache.iotdb.commons.service.metric.enums;
 
+import org.apache.iotdb.commons.service.metric.MetricService;
+import org.apache.iotdb.metrics.config.MetricConfigDescriptor;
+import org.apache.iotdb.metrics.utils.MetricLevel;
+
 public enum Operation {
   EXECUTE_JDBC_BATCH("EXECUTE_JDBC_BATCH"),
   EXECUTE_ONE_SQL_IN_BATCH("EXECUTE_ONE_SQL_IN_BATCH"),
@@ -25,7 +29,15 @@ public enum Operation {
   EXECUTE_MULTI_TIMESERIES_PLAN_IN_BATCH("EXECUTE_MULTI_TIMESERIES_PLAN_IN_BATCH"),
   EXECUTE_RPC_BATCH_INSERT("EXECUTE_RPC_BATCH_INSERT"),
   EXECUTE_QUERY("EXECUTE_QUERY"),
-  EXECUTE_SELECT_INTO("EXECUTE_SELECT_INTO");
+  EXECUTE_SELECT_INTO("EXECUTE_SELECT_INTO"),
+
+  // DCP short for decompose
+  DCP_A_GET_CHUNK_METADATAS("DCP_A_GET_CHUNK_METADATAS"),
+  DCP_B_READ_MEM_CHUNK("DCP_B_READ_MEM_CHUNK"),
+  DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA(
+      "DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA"),
+  DCP_D_DECODE_PAGEDATA("DCP_D_DECODE_PAGEDATA"),
+  DCP_ITSELF("ITSELF");
 
   public String getName() {
     return name;
@@ -35,5 +47,18 @@ public enum Operation {
 
   Operation(String name) {
     this.name = name;
+  }
+
+  public static void addOperationLatency_ns(
+      Operation metricName, Operation tagName, long startTime) {
+    if (MetricConfigDescriptor.getInstance().getMetricConfig().getEnablePerformanceStat()) {
+      MetricService.getInstance()
+          .histogram(
+              System.nanoTime() - startTime,
+              metricName.getName() + "_histogram",
+              MetricLevel.IMPORTANT,
+              Tag.NAME.toString(),
+              tagName.getName());
+    }
   }
 }
