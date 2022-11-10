@@ -1129,8 +1129,8 @@ public class SeriesScanUtil {
       long startTime = System.nanoTime();
       TsBlock tsBlock = data.getAllSatisfiedData();
       Operation.addOperationLatency_ns(
+          Operation.DCP_SeriesScanOperator_hasNext,
           Operation.DCP_D_DECODE_PAGEDATA,
-          Operation.DCP_ITSELF, // means does not further decompose
           startTime);
       if (!ascending) {
         tsBlock.reverse();

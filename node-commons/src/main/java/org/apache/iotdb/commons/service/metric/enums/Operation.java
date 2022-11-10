@@ -18,6 +18,7 @@
  */
 package org.apache.iotdb.commons.service.metric.enums;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.iotdb.commons.service.metric.MetricService;
 import org.apache.iotdb.metrics.config.MetricConfigDescriptor;
 import org.apache.iotdb.metrics.utils.MetricLevel;
@@ -37,7 +38,10 @@ public enum Operation {
   DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA(
       "DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA"),
   DCP_D_DECODE_PAGEDATA("DCP_D_DECODE_PAGEDATA"),
-  DCP_ITSELF("ITSELF");
+  DCP_ITSELF("DCP_ITSELF"), // when there is no further decomposition
+  DCP_SeriesScanOperator_hasNext("DCP_SeriesScanOperator_hasNext"),
+  DCP_Server_Query_Execute("DCP_Server_Query_Execute"),
+  DCP_Server_Query_Fetch("DCP_Server_Query_Fetch");
 
   public String getName() {
     return name;
@@ -53,9 +57,10 @@ public enum Operation {
       Operation metricName, Operation tagName, long startTime) {
     if (MetricConfigDescriptor.getInstance().getMetricConfig().getEnablePerformanceStat()) {
       MetricService.getInstance()
-          .histogram(
+          .timer(
               System.nanoTime() - startTime,
-              metricName.getName() + "_histogram",
+              TimeUnit.NANOSECONDS,
+              metricName.getName(),
               MetricLevel.IMPORTANT,
               Tag.NAME.toString(),
               tagName.getName());

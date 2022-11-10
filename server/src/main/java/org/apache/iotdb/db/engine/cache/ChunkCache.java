@@ -79,8 +79,8 @@ public class ChunkCache {
                     long startTime = System.nanoTime();
                     Chunk chunk = reader.readMemChunk(chunkMetadata);
                     Operation.addOperationLatency_ns(
+                        Operation.DCP_SeriesScanOperator_hasNext,
                         Operation.DCP_B_READ_MEM_CHUNK,
-                        Operation.DCP_ITSELF, // means does not further decompose
                         startTime);
                     return chunk;
                   } catch (IOException e) {
@@ -113,8 +113,8 @@ public class ChunkCache {
       long startTime = System.nanoTime();
       Chunk chunk = reader.readMemChunk(chunkMetaData);
       Operation.addOperationLatency_ns(
+          Operation.DCP_SeriesScanOperator_hasNext,
           Operation.DCP_B_READ_MEM_CHUNK,
-          Operation.DCP_ITSELF, // means does not further decompose
           startTime);
       return new Chunk(
           chunk.getHeader(),

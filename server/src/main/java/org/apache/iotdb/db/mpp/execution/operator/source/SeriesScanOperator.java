@@ -19,6 +19,7 @@
 package org.apache.iotdb.db.mpp.execution.operator.source;
 
 import org.apache.iotdb.commons.path.PartialPath;
+import org.apache.iotdb.commons.service.metric.enums.Operation;
 import org.apache.iotdb.db.engine.querycontext.QueryDataSource;
 import org.apache.iotdb.db.mpp.execution.operator.OperatorContext;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.PlanNodeId;
@@ -82,9 +83,14 @@ public class SeriesScanOperator implements DataSourceOperator {
 
   @Override
   public boolean hasNext() {
-
+    long startTime = System.nanoTime();
     try {
       if (hasCachedTsBlock) {
+
+        Operation.addOperationLatency_ns(
+            Operation.DCP_SeriesScanOperator_hasNext,
+            Operation.DCP_ITSELF,
+            startTime);
         return true;
       }
 
@@ -93,6 +99,11 @@ public class SeriesScanOperator implements DataSourceOperator {
        */
       if (readPageData()) {
         hasCachedTsBlock = true;
+
+        Operation.addOperationLatency_ns(
+            Operation.DCP_SeriesScanOperator_hasNext,
+            Operation.DCP_ITSELF,
+            startTime);
         return true;
       }
 
@@ -101,6 +112,11 @@ public class SeriesScanOperator implements DataSourceOperator {
        */
       if (readChunkData()) {
         hasCachedTsBlock = true;
+
+        Operation.addOperationLatency_ns(
+            Operation.DCP_SeriesScanOperator_hasNext,
+            Operation.DCP_ITSELF,
+            startTime);
         return true;
       }
 
@@ -110,9 +126,19 @@ public class SeriesScanOperator implements DataSourceOperator {
       while (seriesScanUtil.hasNextFile()) {
         if (readChunkData()) {
           hasCachedTsBlock = true;
+
+          Operation.addOperationLatency_ns(
+              Operation.DCP_SeriesScanOperator_hasNext,
+              Operation.DCP_ITSELF,
+              startTime);
           return true;
         }
       }
+
+      Operation.addOperationLatency_ns(
+          Operation.DCP_SeriesScanOperator_hasNext,
+          Operation.DCP_ITSELF,
+          startTime);
       return hasCachedTsBlock;
     } catch (IOException e) {
       throw new RuntimeException("Error happened while scanning the file", e);

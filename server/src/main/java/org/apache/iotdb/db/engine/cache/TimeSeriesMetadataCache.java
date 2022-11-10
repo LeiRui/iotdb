@@ -132,8 +132,8 @@ public class TimeSeriesMetadataCache {
           reader.readTimeseriesMetadata(
               new Path(key.device, key.measurement, true), ignoreNotExists);
       Operation.addOperationLatency_ns(
+          Operation.DCP_SeriesScanOperator_hasNext,
           Operation.DCP_A_GET_CHUNK_METADATAS,
-          Operation.DCP_ITSELF, // means does not further decompose
           startTime);
       return (timeseriesMetadata == null || timeseriesMetadata.getStatistics().getCount() == 0)
           ? null
@@ -174,8 +174,8 @@ public class TimeSeriesMetadataCache {
           List<TimeseriesMetadata> timeSeriesMetadataList =
               reader.readTimeseriesMetadata(path, allSensors);
           Operation.addOperationLatency_ns(
+              Operation.DCP_SeriesScanOperator_hasNext,
               Operation.DCP_A_GET_CHUNK_METADATAS,
-              Operation.DCP_ITSELF, // means does not further decompose
               startTime);
           // put TimeSeriesMetadata of all sensors used in this query into cache
           for (TimeseriesMetadata metadata : timeSeriesMetadataList) {

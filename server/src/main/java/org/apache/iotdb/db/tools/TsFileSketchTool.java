@@ -475,8 +475,8 @@ public class TsFileSketchTool {
   }
 
   private static Pair<String, String> checkArgs(String[] args) {
-    String filename = "test.tsfile";
-    String outFile = "TsFile_sketch_view.txt";
+    String filename = "D:\\github\\1668068810016-1-0-0.tsfile";
+    String outFile = "D:\\github\\TsFile_sketch_view.txt";
     if (args.length == 1) {
       filename = args[0];
     } else if (args.length == 2) {

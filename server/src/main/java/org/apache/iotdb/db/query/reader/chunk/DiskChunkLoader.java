@@ -58,8 +58,8 @@ public class DiskChunkLoader implements IChunkLoader {
     long startTime = System.nanoTime();
     IChunkReader chunkReader = new ChunkReader(chunk, timeFilter);
     Operation.addOperationLatency_ns(
+        Operation.DCP_SeriesScanOperator_hasNext,
         Operation.DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA,
-        Operation.DCP_ITSELF, // means does not further decompose
         startTime);
     return chunkReader;
   }
