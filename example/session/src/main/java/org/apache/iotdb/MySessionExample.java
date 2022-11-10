@@ -19,11 +19,6 @@
 
 package org.apache.iotdb;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
@@ -34,6 +29,12 @@ import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.read.common.Field;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MySessionExample {
 
@@ -62,11 +63,7 @@ public class MySessionExample {
         new MeasurementSchema(sensorName, valueDataType, valueEncoding, compressionType);
     List<MeasurementSchema> schemaList = new ArrayList<>();
     schemaList.add(measurementSchema);
-    Tablet tablet =
-        new Tablet(
-            deviceName,
-            schemaList
-        );
+    Tablet tablet = new Tablet(deviceName, schemaList);
     long[] timestamps = tablet.timestamps;
     Object[] values = tablet.values;
     int desiredChunkPointNum = 100000;
@@ -109,9 +106,9 @@ public class MySessionExample {
 
         if (tablet.rowSize == tablet.getMaxRowNumber()) {
           sessionEnableRedirect.insertTablet(tablet, true);
-//          sessionEnableRedirect.executeNonQueryStatement("flush");
+          //          sessionEnableRedirect.executeNonQueryStatement("flush");
           tablet.reset();
-//          chunksWritten++;
+          //          chunksWritten++;
         }
 
         if (currentChunkPointNum == desiredChunkPointNum) {

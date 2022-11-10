@@ -19,18 +19,6 @@
 
 package org.apache.iotdb.db.engine.cache;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Weigher;
-import java.io.IOException;
-import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.iotdb.commons.conf.IoTDBConstant;
 import org.apache.iotdb.commons.service.metric.MetricService;
 import org.apache.iotdb.commons.service.metric.enums.Operation;
@@ -46,8 +34,22 @@ import org.apache.iotdb.tsfile.utils.BloomFilter;
 import org.apache.iotdb.tsfile.utils.FilePathUtils;
 import org.apache.iotdb.tsfile.utils.Pair;
 import org.apache.iotdb.tsfile.utils.RamUsageEstimator;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Weigher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This class is used to cache <code>TimeSeriesMetadata</code> in IoTDB. The caching strategy is
@@ -94,11 +96,11 @@ public class TimeSeriesMetadataCache {
                                 + RamUsageEstimator.sizeOf(value.getMeasurementId())
                                 + RamUsageEstimator.shallowSizeOf(value.getStatistics())
                                 + (value.getChunkMetadataList().get(0) == null
-                                ? 0
-                                : ((ChunkMetadata) value.getChunkMetadataList().get(0))
-                                    .calculateRamSize()
-                                    + RamUsageEstimator.NUM_BYTES_OBJECT_REF)
-                                * value.getChunkMetadataList().size()
+                                        ? 0
+                                        : ((ChunkMetadata) value.getChunkMetadataList().get(0))
+                                                .calculateRamSize()
+                                            + RamUsageEstimator.NUM_BYTES_OBJECT_REF)
+                                    * value.getChunkMetadataList().size()
                                 + RamUsageEstimator.shallowSizeOf(value.getChunkMetadataList())))
             .recordStats()
             .build();
@@ -236,9 +238,7 @@ public class TimeSeriesMetadataCache {
         ((double) bloomFilterPreventCount.get() / (double) bloomFilterRequestCount.get() * 100L);
   }
 
-  /**
-   * clear LRUCache.
-   */
+  /** clear LRUCache. */
   public void clear() {
     lruCache.invalidateAll();
     lruCache.cleanUp();
@@ -296,9 +296,7 @@ public class TimeSeriesMetadataCache {
     }
   }
 
-  /**
-   * singleton pattern.
-   */
+  /** singleton pattern. */
   private static class TimeSeriesMetadataCacheHolder {
 
     private static final TimeSeriesMetadataCache INSTANCE = new TimeSeriesMetadataCache();
