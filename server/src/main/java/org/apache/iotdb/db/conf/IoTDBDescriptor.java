@@ -29,7 +29,7 @@ import org.apache.iotdb.confignode.rpc.thrift.TCQConfig;
 import org.apache.iotdb.confignode.rpc.thrift.TGlobalConfig;
 import org.apache.iotdb.confignode.rpc.thrift.TRatisConfig;
 import org.apache.iotdb.db.conf.directories.DirectoryManager;
-import org.apache.iotdb.db.engine.StorageEngine;
+import org.apache.iotdb.db.engine.StorageEngineV2;
 import org.apache.iotdb.db.engine.compaction.constant.CompactionPriority;
 import org.apache.iotdb.db.engine.compaction.constant.CrossCompactionPerformer;
 import org.apache.iotdb.db.engine.compaction.constant.CrossCompactionSelector;
@@ -1457,7 +1457,7 @@ public class IoTDBDescriptor {
 
       // update timed flush & close conf
       loadTimedService(properties);
-      StorageEngine.getInstance().rebootTimedService();
+      StorageEngineV2.getInstance().rebootTimedService();
 
       long seqTsFileSize =
           Long.parseLong(
@@ -1789,9 +1789,7 @@ public class IoTDBDescriptor {
   }
 
   private void loadTriggerProps(Properties properties) {
-    conf.setTriggerDir(properties.getProperty("trigger_root_dir", conf.getTriggerDir()));
-    conf.setTriggerTemporaryLibDir(
-        properties.getProperty("trigger_temporary_lib_dir", conf.getTriggerTemporaryLibDir()));
+    conf.setTriggerDir(properties.getProperty("trigger_lib_dir", conf.getTriggerDir()));
     conf.setRetryNumToFindStatefulTrigger(
         Integer.parseInt(
             properties.getProperty(
