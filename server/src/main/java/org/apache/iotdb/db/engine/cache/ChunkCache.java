@@ -113,9 +113,7 @@ public class ChunkCache {
       long startTime = System.nanoTime();
       Chunk chunk = reader.readMemChunk(chunkMetaData);
       Operation.addOperationLatency_ns(
-          Operation.DCP_SeriesScanOperator_hasNext,
-          Operation.DCP_B_READ_MEM_CHUNK,
-          startTime);
+          Operation.DCP_SeriesScanOperator_hasNext, Operation.DCP_B_READ_MEM_CHUNK, startTime);
       return new Chunk(
           chunk.getHeader(),
           chunk.getData().duplicate(),

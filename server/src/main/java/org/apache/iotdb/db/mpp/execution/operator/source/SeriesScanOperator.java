@@ -88,9 +88,7 @@ public class SeriesScanOperator implements DataSourceOperator {
       if (hasCachedTsBlock) {
 
         Operation.addOperationLatency_ns(
-            Operation.DCP_SeriesScanOperator_hasNext,
-            Operation.DCP_ITSELF,
-            startTime);
+            Operation.DCP_SeriesScanOperator_hasNext, Operation.DCP_ITSELF, startTime);
         return true;
       }
 
@@ -101,9 +99,7 @@ public class SeriesScanOperator implements DataSourceOperator {
         hasCachedTsBlock = true;
 
         Operation.addOperationLatency_ns(
-            Operation.DCP_SeriesScanOperator_hasNext,
-            Operation.DCP_ITSELF,
-            startTime);
+            Operation.DCP_SeriesScanOperator_hasNext, Operation.DCP_ITSELF, startTime);
         return true;
       }
 
@@ -114,9 +110,7 @@ public class SeriesScanOperator implements DataSourceOperator {
         hasCachedTsBlock = true;
 
         Operation.addOperationLatency_ns(
-            Operation.DCP_SeriesScanOperator_hasNext,
-            Operation.DCP_ITSELF,
-            startTime);
+            Operation.DCP_SeriesScanOperator_hasNext, Operation.DCP_ITSELF, startTime);
         return true;
       }
 
@@ -128,17 +122,13 @@ public class SeriesScanOperator implements DataSourceOperator {
           hasCachedTsBlock = true;
 
           Operation.addOperationLatency_ns(
-              Operation.DCP_SeriesScanOperator_hasNext,
-              Operation.DCP_ITSELF,
-              startTime);
+              Operation.DCP_SeriesScanOperator_hasNext, Operation.DCP_ITSELF, startTime);
           return true;
         }
       }
 
       Operation.addOperationLatency_ns(
-          Operation.DCP_SeriesScanOperator_hasNext,
-          Operation.DCP_ITSELF,
-          startTime);
+          Operation.DCP_SeriesScanOperator_hasNext, Operation.DCP_ITSELF, startTime);
       return hasCachedTsBlock;
     } catch (IOException e) {
       throw new RuntimeException("Error happened while scanning the file", e);

@@ -19,11 +19,6 @@
 
 package org.apache.iotdb;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
@@ -35,6 +30,12 @@ import org.apache.iotdb.tsfile.read.common.Field;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 public class MySessionExample {
 
   private static Session sessionEnableRedirect;
@@ -43,21 +44,21 @@ public class MySessionExample {
 
   /**
    * Before starting IoTDB, set the following config parameters:
-   * <p>
-   * // IoTDBConfig // 分区问题 enablePartition = false; // 只要一个time partition
+   *
+   * <p>// IoTDBConfig // 分区问题 enablePartition = false; // 只要一个time partition
    * timePartitionIntervalForRouting = 315360000000L; //
    * 10年。设大避免用户输入的一个tablet被切碎从而无法精确控制flush的chunk点数
-   * <p>
-   * // 控制chunk点数 enableSeqSpaceCompaction = false; enableUnseqSpaceCompaction = false;
+   *
+   * <p>// 控制chunk点数 enableSeqSpaceCompaction = false; enableUnseqSpaceCompaction = false;
    * enableCrossSpaceCompaction = false;
-   * <p>
-   * enableTimedFlushSeqMemtable = false; enableTimedFlushUnseqMemtable = false; enableMemControl =
-   * false; avgSeriesPointNumberThreshold = Integer.MAX_VALUE;
-   * <p>
-   * // TsFileConfig // 控制page点数 maxNumberOfPointsInPage = desired_pagePointNum; pageSizeInByte =
+   *
+   * <p>enableTimedFlushSeqMemtable = false; enableTimedFlushUnseqMemtable = false; enableMemControl
+   * = false; avgSeriesPointNumberThreshold = Integer.MAX_VALUE;
+   *
+   * <p>// TsFileConfig // 控制page点数 maxNumberOfPointsInPage = desired_pagePointNum; pageSizeInByte =
    * maxNumberOfPointsInPage * 2 * 8 * 2; // timeEncoding = "TS_2DIFF"; // 这个不必动了
-   * <p>
-   * // MetricConfig // metric参数 enableMetric = true; enablePerformanceStat = true;
+   *
+   * <p>// MetricConfig // metric参数 enableMetric = true; enablePerformanceStat = true;
    * metricReporterList = Arrays.asList(ReporterType.JMX, ReporterType.PROMETHEUS,
    * ReporterType.IOTDB); pushPeriodInSecond = 15;
    */

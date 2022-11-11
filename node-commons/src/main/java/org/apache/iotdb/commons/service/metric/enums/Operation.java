@@ -18,10 +18,11 @@
  */
 package org.apache.iotdb.commons.service.metric.enums;
 
-import java.util.concurrent.TimeUnit;
 import org.apache.iotdb.commons.service.metric.MetricService;
 import org.apache.iotdb.metrics.config.MetricConfigDescriptor;
 import org.apache.iotdb.metrics.utils.MetricLevel;
+
+import java.util.concurrent.TimeUnit;
 
 public enum Operation {
   EXECUTE_JDBC_BATCH("EXECUTE_JDBC_BATCH"),

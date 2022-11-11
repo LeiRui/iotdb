@@ -18,21 +18,6 @@
  */
 package org.apache.iotdb.db.service.thrift.impl;
 
-import static org.apache.iotdb.db.service.basic.ServiceProvider.AUDIT_LOGGER;
-import static org.apache.iotdb.db.service.basic.ServiceProvider.CURRENT_RPC_VERSION;
-import static org.apache.iotdb.db.service.basic.ServiceProvider.QUERY_FREQUENCY_RECORDER;
-import static org.apache.iotdb.db.utils.ErrorHandlingUtils.onIoTDBException;
-import static org.apache.iotdb.db.utils.ErrorHandlingUtils.onNPEOrUnexpectedException;
-import static org.apache.iotdb.db.utils.ErrorHandlingUtils.onQueryException;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import org.apache.iotdb.common.rpc.thrift.TSStatus;
 import org.apache.iotdb.commons.conf.CommonDescriptor;
 import org.apache.iotdb.commons.conf.IoTDBConstant;
@@ -128,9 +113,26 @@ import org.apache.iotdb.service.rpc.thrift.TSyncTransportMetaInfo;
 import org.apache.iotdb.tsfile.read.common.block.TsBlock;
 import org.apache.iotdb.tsfile.read.common.block.column.Column;
 import org.apache.iotdb.tsfile.utils.Pair;
+
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.apache.iotdb.db.service.basic.ServiceProvider.AUDIT_LOGGER;
+import static org.apache.iotdb.db.service.basic.ServiceProvider.CURRENT_RPC_VERSION;
+import static org.apache.iotdb.db.service.basic.ServiceProvider.QUERY_FREQUENCY_RECORDER;
+import static org.apache.iotdb.db.utils.ErrorHandlingUtils.onIoTDBException;
+import static org.apache.iotdb.db.utils.ErrorHandlingUtils.onNPEOrUnexpectedException;
+import static org.apache.iotdb.db.utils.ErrorHandlingUtils.onQueryException;
 
 public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
 
@@ -383,9 +385,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
       long startTime = System.nanoTime();
       TSExecuteStatementResp resp = executeStatementV2(req);
       Operation.addOperationLatency_ns(
-          Operation.DCP_Server_Query_Execute,
-          Operation.DCP_ITSELF,
-          startTime);
+          Operation.DCP_Server_Query_Execute, Operation.DCP_ITSELF, startTime);
       return resp;
     }
   }
@@ -445,9 +445,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
       return RpcUtils.getTSFetchResultsResp(onQueryException(e, OperationType.FETCH_RESULTS));
     } finally {
       Operation.addOperationLatency_ns(
-          Operation.DCP_Server_Query_Fetch,
-          Operation.DCP_ITSELF,
-          startTime);
+          Operation.DCP_Server_Query_Fetch, Operation.DCP_ITSELF, startTime);
       addOperationLatency(Operation.EXECUTE_QUERY, startTime);
       if (finished) {
         COORDINATOR.cleanupQueryExecution(req.queryId);
@@ -483,7 +481,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
   public TSStatus closeSession(TSCloseSessionReq req) {
     return new TSStatus(
         !SESSION_MANAGER.closeSession(
-            SESSION_MANAGER.getCurrSession(), COORDINATOR::cleanupQueryExecution)
+                SESSION_MANAGER.getCurrSession(), COORDINATOR::cleanupQueryExecution)
             ? RpcUtils.getStatus(TSStatusCode.NOT_LOGIN_ERROR)
             : RpcUtils.getStatus(TSStatusCode.SUCCESS_STATUS));
   }
@@ -1792,9 +1790,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
         "Log in failed. Either you are not authorized or the session has timed out.");
   }
 
-  /**
-   * Add stat of operation into metrics
-   */
+  /** Add stat of operation into metrics */
   private void addOperationLatency(Operation operation, long startTime) {
     if (MetricConfigDescriptor.getInstance().getMetricConfig().getEnablePerformanceStat()) {
       MetricService.getInstance()
