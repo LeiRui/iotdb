@@ -19,6 +19,7 @@
 package org.apache.iotdb.tsfile.read.reader.page;
 
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
+import org.apache.iotdb.tsfile.encoding.decoder.DeltaBinaryDecoder.LongDeltaDecoder;
 import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
 import org.apache.iotdb.tsfile.file.header.PageHeader;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -65,6 +66,9 @@ public class PageReader implements IPageReader {
   private List<TimeRange> deleteIntervalList;
 
   private int deleteCursor = 0;
+
+  public long loadIntBatch_ns = 0; // for DCP metric
+  public int loadIntBatch_cnt = 0; // for DCP metric
 
   public PageReader(
       ByteBuffer pageData,
@@ -235,6 +239,12 @@ public class PageReader implements IPageReader {
           throw new UnSupportedDataTypeException(String.valueOf(dataType));
       }
     }
+    loadIntBatch_ns = ((LongDeltaDecoder) timeDecoder).loadIntBatch_ns;
+    loadIntBatch_cnt = ((LongDeltaDecoder) timeDecoder).loadIntBatch_cnt;
+    ((LongDeltaDecoder) timeDecoder).loadIntBatch_ns =
+        0; // reset because timeDecoder is global for all pageReaders of a chunk
+    ((LongDeltaDecoder) timeDecoder).loadIntBatch_cnt =
+        0; // reset because timeDecoder is global for all pageReaders of a chunk
     return builder.build();
   }
 

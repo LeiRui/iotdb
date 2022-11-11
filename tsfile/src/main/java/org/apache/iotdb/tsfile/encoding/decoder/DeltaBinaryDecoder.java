@@ -168,6 +168,9 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     /** minimum value for all difference. */
     private long minDeltaBase;
 
+    public long loadIntBatch_ns = 0; // for DCP metric
+    public int loadIntBatch_cnt = 0; // for DCP metric
+
     public LongDeltaDecoder() {
       super();
     }
@@ -192,6 +195,8 @@ public abstract class DeltaBinaryDecoder extends Decoder {
      * @return long value
      */
     protected long loadIntBatch(ByteBuffer buffer) {
+      long startTime = System.nanoTime();
+
       packNum = ReadWriteIOUtils.readInt(buffer);
       packWidth = ReadWriteIOUtils.readInt(buffer);
       count++;
@@ -206,6 +211,9 @@ public abstract class DeltaBinaryDecoder extends Decoder {
       readIntTotalCount = packNum;
       nextReadIndex = 0;
       readPack();
+
+      loadIntBatch_ns += (System.nanoTime() - startTime);
+      loadIntBatch_cnt++;
       return firstValue;
     }
 

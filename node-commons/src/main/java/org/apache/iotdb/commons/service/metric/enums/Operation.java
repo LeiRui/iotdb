@@ -42,7 +42,8 @@ public enum Operation {
   DCP_ITSELF("DCP_ITSELF"), // when there is no further decomposition
   DCP_SeriesScanOperator_hasNext("DCP_SeriesScanOperator_hasNext"),
   DCP_Server_Query_Execute("DCP_Server_Query_Execute"),
-  DCP_Server_Query_Fetch("DCP_Server_Query_Fetch");
+  DCP_Server_Query_Fetch("DCP_Server_Query_Fetch"),
+  DCP_LongDeltaDecoder_loadIntBatch("DCP_LongDeltaDecoder_loadIntBatch");
 
   public String getName() {
     return name;
@@ -65,6 +66,26 @@ public enum Operation {
               MetricLevel.IMPORTANT,
               Tag.NAME.toString(),
               tagName.getName());
+    }
+  }
+
+  public static void addOperationLatency_loadIntBatch(long elapsedTime_ns, long cnt) {
+    if (MetricConfigDescriptor.getInstance().getMetricConfig().getEnablePerformanceStat()) {
+      MetricService.getInstance()
+          .timer(
+              elapsedTime_ns,
+              TimeUnit.NANOSECONDS,
+              DCP_LongDeltaDecoder_loadIntBatch.getName() + "_timer",
+              MetricLevel.IMPORTANT,
+              Tag.NAME.toString(),
+              DCP_ITSELF.getName());
+      MetricService.getInstance()
+          .count(
+              cnt,
+              DCP_LongDeltaDecoder_loadIntBatch.getName() + "_count",
+              MetricLevel.IMPORTANT,
+              Tag.NAME.toString(),
+              DCP_ITSELF.getName());
     }
   }
 }

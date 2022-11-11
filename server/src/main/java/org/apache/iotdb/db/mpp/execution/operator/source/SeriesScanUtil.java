@@ -44,6 +44,7 @@ import org.apache.iotdb.tsfile.read.filter.basic.UnaryFilter;
 import org.apache.iotdb.tsfile.read.reader.IAlignedPageReader;
 import org.apache.iotdb.tsfile.read.reader.IPageReader;
 import org.apache.iotdb.tsfile.read.reader.IPointReader;
+import org.apache.iotdb.tsfile.read.reader.page.PageReader;
 import org.apache.iotdb.tsfile.utils.TsPrimitiveType;
 
 import java.io.IOException;
@@ -1130,6 +1131,8 @@ public class SeriesScanUtil {
       TsBlock tsBlock = data.getAllSatisfiedData();
       Operation.addOperationLatency_ns(
           Operation.DCP_SeriesScanOperator_hasNext, Operation.DCP_D_DECODE_PAGEDATA, startTime);
+      Operation.addOperationLatency_loadIntBatch(
+          ((PageReader) data).loadIntBatch_ns, ((PageReader) data).loadIntBatch_cnt);
       if (!ascending) {
         tsBlock.reverse();
       }
