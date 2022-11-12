@@ -965,7 +965,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
       // check whether measurement is legal according to syntax convention
       PathUtils.isLegalSingleMeasurementLists(req.getMeasurementsList());
 
-      // Step 1: TODO(INSERT) transfer from TSInsertTabletsReq to Statement
+      // Step 1:  transfer from TSInsertRecordsReq to Statement
       InsertRowsStatement statement = (InsertRowsStatement) StatementGenerator.createStatement(req);
       // return success when this statement is empty because server doesn't need to execute it
       if (statement.isEmpty()) {
@@ -1020,7 +1020,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
       // check whether measurement is legal according to syntax convention
       PathUtils.isLegalSingleMeasurementLists(req.getMeasurementsList());
 
-      // Step 1: TODO(INSERT) transfer from TSInsertTabletsReq to Statement
+      // Step 1: transfer from TSInsertRecordsOfOneDeviceReq to Statement
       InsertRowsOfOneDeviceStatement statement =
           (InsertRowsOfOneDeviceStatement) StatementGenerator.createStatement(req);
       // return success when this statement is empty because server doesn't need to execute it
@@ -1076,7 +1076,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
       // check whether measurement is legal according to syntax convention
       PathUtils.isLegalSingleMeasurementLists(req.getMeasurementsList());
 
-      // Step 1: TODO(INSERT) transfer from TSInsertTabletsReq to Statement
+      // Step 1: transfer from TSInsertStringRecordsOfOneDeviceReq to Statement
       InsertRowsOfOneDeviceStatement statement =
           (InsertRowsOfOneDeviceStatement) StatementGenerator.createStatement(req);
       // return success when this statement is empty because server doesn't need to execute it
@@ -1178,7 +1178,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
 
       PathUtils.isLegalSingleMeasurementLists(req.getMeasurementsList());
 
-      // Step 1: TODO(INSERT) transfer from TSInsertTabletsReq to Statement
+      // Step 1: transfer from TSInsertTabletsReq to Statement
       InsertMultiTabletsStatement statement =
           (InsertMultiTabletsStatement) StatementGenerator.createStatement(req);
       // return success when this statement is empty because server doesn't need to execute it
@@ -1225,7 +1225,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
 
       // check whether measurement is legal according to syntax convention
       PathUtils.isLegalSingleMeasurements(req.getMeasurements());
-      // Step 1: TODO(INSERT) transfer from TSInsertTabletReq to Statement
+      // Step 1: transfer from TSInsertTabletReq to Statement
       InsertTabletStatement statement =
           (InsertTabletStatement) StatementGenerator.createStatement(req);
       // return success when this statement is empty because server doesn't need to execute it
