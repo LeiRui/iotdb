@@ -70,10 +70,10 @@ public class MySessionExample {
     sessionEnableRedirect.open(false);
     sessionEnableRedirect.setFetchSize(100000000); // large enough to avoid fetchResults
 
-    // NOTE: deleting storage group is used to facilitate debugging.
-    // For formal performance testing, you should take care of clearing cache.
-    sessionEnableRedirect.executeNonQueryStatement("delete storage group root.**");
-    Thread.sleep(5000);
+    //    // NOTE: deleting storage group is used to facilitate debugging.
+    //    // For formal performance testing, you should take care of clearing cache.
+    //    sessionEnableRedirect.executeNonQueryStatement("delete storage group root.**");
+    //    Thread.sleep(5000);
 
     writeRealData();
     // For formal performance testing, you should take care of clearing cache.

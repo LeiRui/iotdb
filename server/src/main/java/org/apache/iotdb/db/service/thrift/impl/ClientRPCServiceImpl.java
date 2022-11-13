@@ -183,6 +183,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
 
   private TSExecuteStatementResp executeStatementInternal(
       TSExecuteStatementReq req, SelectResult setResult) {
+    //    LOGGER.info("executeStatementInternal sql=" + req.statement + "!!!"); // TODO tmp
     boolean finished = false;
     long queryId = Long.MIN_VALUE;
     String statement = req.getStatement();
@@ -378,8 +379,11 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
 
   @Override
   public TSExecuteStatementResp executeQueryStatementV2(TSExecuteStatementReq req) {
+    //    LOGGER.info("executeQueryStatementV2 sql=" + req.statement + "!!!"); // TODO tmp
     String statement = req.statement;
-    if (statement.contains("DCP")) { // DCP metric query
+    if (statement.contains("DCP") || statement.contains("show storage group")) {
+      // DCP metric query, or "show storage group root.__system" by
+      // IoTDBMetricUtils.checkOrCreateStorageGroup
       return executeStatementV2(req);
     } else { // add measure point for non DCP metric query
       long startTime = System.nanoTime();
@@ -897,6 +901,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
 
   @Override
   public TSExecuteStatementResp executeQueryStatement(TSExecuteStatementReq req) {
+    //    LOGGER.info("executeQueryStatement sql=" + req.statement + "!!!"); // TODO tmp
     return executeStatement(req);
   }
 

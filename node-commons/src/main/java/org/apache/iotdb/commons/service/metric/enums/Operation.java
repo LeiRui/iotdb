@@ -58,6 +58,8 @@ public enum Operation {
   public static void addOperationLatency_ns(
       Operation metricName, Operation tagName, long startTime) {
     if (MetricConfigDescriptor.getInstance().getMetricConfig().getEnablePerformanceStat()) {
+      //      System.out.println("addOperationLatency_ns~~~" + metricName + " " + tagName); // TODO
+      // tmp
       MetricService.getInstance()
           .timer(
               System.nanoTime() - startTime,
