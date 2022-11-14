@@ -42,6 +42,7 @@ public class MySessionExample {
 
   private static Session sessionEnableRedirect;
   private static final String deviceName = "root.sg1.d1";
+
   private static final String sensorName = "s1";
 
   /**
@@ -68,26 +69,51 @@ public class MySessionExample {
     sessionEnableRedirect = new Session("127.0.0.1", 6667, "root", "root");
     sessionEnableRedirect.setEnableQueryRedirection(true);
     sessionEnableRedirect.open(false);
-    sessionEnableRedirect.setFetchSize(100000000); // large enough to avoid fetchResults
 
-    //    // NOTE: deleting storage group is used to facilitate debugging.
-    //    // For formal performance testing, you should take care of clearing cache.
-    //    sessionEnableRedirect.executeNonQueryStatement("delete storage group root.**");
-    //    Thread.sleep(5000);
+    if (args.length == 0) {
+      throw new IOException("The first argument should be 'w' or 'r'!");
+    }
 
-    writeRealData();
-    // For formal performance testing, you should take care of clearing cache.
-    query4Redirect();
+    String mode = args[0].toLowerCase();
+    if (mode.equals("w")) {
+      try {
+        int desiredChunkPointNum = Integer.parseInt(args[1]);
+        String csvData = args[2];
+        TSDataType valueDataType = TSDataType.valueOf(args[3]);
+        TSEncoding valueEncoding = TSEncoding.valueOf(args[4]);
+        CompressionType compressionType = CompressionType.valueOf(args[5]);
+        writeRealData(desiredChunkPointNum, csvData, valueDataType, valueEncoding, compressionType);
+      } catch (Exception e) {
+        System.out.println(
+            "Correct usage: w desiredChunkPointNum csvData valueDataType valueEncoding compressionType");
+        System.out.println("Example: w 100000000 ZT11529.csv DOUBLE GORILLA SNAPPY");
+        throw new IOException(e);
+      }
+    } else if (mode.equals("r")) {
+      try {
+        int fetchSize = Integer.parseInt(args[1]); // large enough to make all in one chunk
+        String queryMetricResultCsvPath = args[2];
+        sessionEnableRedirect.setFetchSize(fetchSize);
+        query4Redirect(queryMetricResultCsvPath);
+      } catch (Exception e) {
+        System.out.println("Correct usage: r fetchSize queryMetricResultCsvPath");
+        System.out.println("Example: r 100000000 dcp.csv");
+        throw new IOException(e);
+      }
+    } else {
+      throw new IOException("The first argument should be 'w' or 'r'!");
+    }
 
     sessionEnableRedirect.close();
   }
 
-  private static void writeRealData() throws Exception {
-    int desiredChunkPointNum = 100000000; // large enough to make all in one chunk
-    String csvData = "D:\\LabSync\\iotdb\\我的Gitbook基地\\RUI Lei gitbook\\ZC data\\ZT11529.csv";
-    TSDataType valueDataType = TSDataType.DOUBLE;
-    TSEncoding valueEncoding = TSEncoding.RLE;
-    CompressionType compressionType = CompressionType.SNAPPY;
+  private static void writeRealData(
+      int desiredChunkPointNum,
+      String csvData,
+      TSDataType valueDataType,
+      TSEncoding valueEncoding,
+      CompressionType compressionType)
+      throws Exception {
     MeasurementSchema measurementSchema =
         new MeasurementSchema(sensorName, valueDataType, valueEncoding, compressionType);
     List<MeasurementSchema> schemaList = new ArrayList<>();
@@ -160,10 +186,10 @@ public class MySessionExample {
     }
   }
 
-  private static void query4Redirect()
+  private static void query4Redirect(String queryMetricResultCsvPath)
       throws IoTDBConnectionException, StatementExecutionException, InterruptedException,
           FileNotFoundException {
-    PrintWriter pw = new PrintWriter("dcp.csv");
+    PrintWriter pw = new PrintWriter(queryMetricResultCsvPath);
 
     String query_data = String.format("select %s from %s", sensorName, deviceName);
     System.out.println("begin query: " + query_data);
