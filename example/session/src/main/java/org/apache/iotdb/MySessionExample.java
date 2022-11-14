@@ -100,7 +100,7 @@ public class MySessionExample {
         query4Redirect(queryMetricResultCsvPath, ip);
       } catch (Exception e) {
         System.out.println("Correct usage: r fetchSize queryMetricResultCsvPath IP");
-        System.out.println("Example: r 100000000 dcp.csv 127.0.0.1");
+        System.out.println("Example: r 100000000 dcp.csv 0.0.0.0");
         throw new IOException(e);
       }
     } else {
