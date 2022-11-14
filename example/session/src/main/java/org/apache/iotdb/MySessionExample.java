@@ -23,6 +23,7 @@ import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
 import org.apache.iotdb.session.SessionDataSet;
+import org.apache.iotdb.session.SessionDataSet.DataIterator;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
@@ -198,8 +199,14 @@ public class MySessionExample {
     System.out.println("begin query: " + query_data);
     long cnt = 0;
     long startTime = System.nanoTime();
+    //    try (SessionDataSet dataSet = sessionEnableRedirect.executeQueryStatement(query_data)) {
+    //      while (dataSet.next() != null) {
+    //        cnt++;
+    //      }
+    //    }
     try (SessionDataSet dataSet = sessionEnableRedirect.executeQueryStatement(query_data)) {
-      while (dataSet.next() != null) {
+      DataIterator dataIterator = dataSet.iterator();
+      while (dataIterator.next()) { // avoid constructRowRecordFromValueArray
         cnt++;
       }
     }
