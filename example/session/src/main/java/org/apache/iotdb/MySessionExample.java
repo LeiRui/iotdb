@@ -87,6 +87,8 @@ public class MySessionExample {
         System.out.println(
             "Correct usage: w desiredChunkPointNum csvData valueDataType valueEncoding compressionType");
         System.out.println("Example: w 100000000 ZT11529.csv DOUBLE GORILLA SNAPPY");
+        // w 100000000 "D:\LabSync\iotdb\我的Gitbook基地\RUI Lei gitbook\ZC data\ZT11529.csv" DOUBLE
+        // GORILLA SNAPPY
         throw new IOException(e);
       }
     } else if (mode.equals("r")) {

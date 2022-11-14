@@ -381,8 +381,8 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
   public TSExecuteStatementResp executeQueryStatementV2(TSExecuteStatementReq req) {
     //    LOGGER.info("executeQueryStatementV2 sql=" + req.statement + "!!!"); // TODO tmp
     String statement = req.statement;
-    if (statement.contains("DCP") || statement.contains("show storage group")) {
-      // DCP metric query, or "show storage group root.__system" by
+    if (statement.contains("DCP") || statement.contains("root.__system")) {
+      // DCP metric query, or "SHOW DATABASES root.__system" by
       // IoTDBMetricUtils.checkOrCreateStorageGroup
       return executeStatementV2(req);
     } else { // add measure point for non DCP metric query
