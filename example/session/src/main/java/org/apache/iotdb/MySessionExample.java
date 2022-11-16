@@ -68,7 +68,7 @@ public class MySessionExample {
    */
   public static void main(String[] args) throws Exception {
     sessionEnableRedirect = new Session("127.0.0.1", 6667, "root", "root");
-    sessionEnableRedirect.setEnableQueryRedirection(true);
+    sessionEnableRedirect.setEnableQueryRedirection(false);
     sessionEnableRedirect.open(false);
 
     if (args.length == 0) {
