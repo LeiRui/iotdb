@@ -330,7 +330,7 @@ public class IoTDBConfig {
   private int maxPendingWindowEvaluationTasks = 64;
 
   /** Is the write mem control for writing enable. */
-  private boolean enableMemControl = false;
+  private boolean enableMemControl = true;
 
   /** Is the write ahead log enable. */
   private boolean enableIndex = false;
@@ -369,7 +369,7 @@ public class IoTDBConfig {
   private long seqMemtableFlushCheckInterval = 10 * 60 * 1000L;
 
   /** Whether to timed flush unsequence tsfiles' memtables. */
-  private boolean enableTimedFlushUnseqMemtable = false;
+  private boolean enableTimedFlushUnseqMemtable = true;
 
   /**
    * If a memTable's created time is older than current time minus this, the memtable will be
@@ -384,16 +384,16 @@ public class IoTDBConfig {
   private TVListSortAlgorithm tvListSortAlgorithm = TVListSortAlgorithm.TIM;
 
   /** When average series point number reaches this, flush the memtable to disk */
-  private int avgSeriesPointNumberThreshold = Integer.MAX_VALUE;
+  private int avgSeriesPointNumberThreshold = 100000;
 
   /** Enable inner space compaction for sequence files */
-  private boolean enableSeqSpaceCompaction = false;
+  private boolean enableSeqSpaceCompaction = true;
 
   /** Enable inner space compaction for unsequence files */
-  private boolean enableUnseqSpaceCompaction = false;
+  private boolean enableUnseqSpaceCompaction = true;
 
   /** Compact the unsequence files into the overlapped sequence files */
-  private boolean enableCrossSpaceCompaction = false;
+  private boolean enableCrossSpaceCompaction = true;
 
   /**
    * The strategy of inner space compaction task. There are just one inner space compaction strategy
@@ -744,13 +744,13 @@ public class IoTDBConfig {
   private int primitiveArraySize = 32;
 
   /** whether enable data partition. If disabled, all data belongs to partition 0 */
-  private boolean enablePartition = false;
+  private boolean enablePartition = true;
 
   /** Time partition interval for storage in milliseconds */
   private long timePartitionIntervalForStorage = 604_800_000;
 
   /** Time partition interval for routing in milliseconds */
-  private long timePartitionIntervalForRouting = 315360000000L;
+  private long timePartitionIntervalForRouting = 604_800_000;
 
   /**
    * Level of TimeIndex, which records the start time and end time of TsFileResource. Currently,

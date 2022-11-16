@@ -28,19 +28,18 @@ import java.util.List;
 import java.util.Objects;
 
 public class MetricConfig {
-
   /** Is metric service enabled */
-  private Boolean enableMetric = true;
+  private Boolean enableMetric = false;
 
   /** Is stat performance of operations enabled */
-  private Boolean enablePerformanceStat = true;
+  private Boolean enablePerformanceStat = false;
 
   /** The type of the implementation of metric service */
   private MonitorType monitorType = MonitorType.MICROMETER;
 
   /** The list of reporters provide data for external system */
   private List<ReporterType> metricReporterList =
-      Arrays.asList(ReporterType.JMX, ReporterType.PROMETHEUS, ReporterType.IOTDB);
+      Arrays.asList(ReporterType.JMX, ReporterType.PROMETHEUS);
 
   /** The level of metric service */
   private MetricLevel metricLevel = MetricLevel.IMPORTANT;
@@ -54,7 +53,6 @@ public class MetricConfig {
   private IoTDBReporterConfig ioTDBReporterConfig = new IoTDBReporterConfig();
 
   public static class IoTDBReporterConfig {
-
     /** The host of iotdb that store metric value */
     private String host = "127.0.0.1";
     /** The port of iotdb that store metric value */
