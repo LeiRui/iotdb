@@ -26,6 +26,7 @@ import org.apache.iotdb.commons.utils.TestOnly;
 import org.apache.iotdb.db.conf.IoTDBConfig;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.query.control.FileReaderManager;
+import org.apache.iotdb.metrics.utils.IoTDBMetricsUtils;
 import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.TimeseriesMetadata;
 import org.apache.iotdb.tsfile.read.TsFileSequenceReader;
@@ -120,22 +121,40 @@ public class TimeSeriesMetadataCache {
       boolean debug)
       throws IOException {
     if (!CACHE_ENABLE) {
-      long startTime = System.nanoTime();
-      // bloom filter part
-      TsFileSequenceReader reader = FileReaderManager.getInstance().get(key.filePath, true);
-      BloomFilter bloomFilter = reader.readBloomFilter();
-      if (bloomFilter != null
-          && !bloomFilter.contains(key.device + IoTDBConstant.PATH_SEPARATOR + key.measurement)) {
-        return null;
+      if (key.device.contains(IoTDBMetricsUtils.STORAGE_GROUP)) {
+        // bloom filter part
+        TsFileSequenceReader reader = FileReaderManager.getInstance().get(key.filePath, true);
+        BloomFilter bloomFilter = reader.readBloomFilter();
+        if (bloomFilter != null
+            && !bloomFilter.contains(key.device + IoTDBConstant.PATH_SEPARATOR + key.measurement)) {
+          return null;
+        }
+        TimeseriesMetadata timeseriesMetadata =
+            reader.readTimeseriesMetadata(
+                new Path(key.device, key.measurement, true), ignoreNotExists);
+        return (timeseriesMetadata == null || timeseriesMetadata.getStatistics().getCount() == 0)
+            ? null
+            : timeseriesMetadata;
+      } else { // add metric point for non-DCP metric query
+        long startTime = System.nanoTime();
+        // bloom filter part
+        TsFileSequenceReader reader = FileReaderManager.getInstance().get(key.filePath, true);
+        BloomFilter bloomFilter = reader.readBloomFilter();
+        if (bloomFilter != null
+            && !bloomFilter.contains(key.device + IoTDBConstant.PATH_SEPARATOR + key.measurement)) {
+          return null;
+        }
+        TimeseriesMetadata timeseriesMetadata =
+            reader.readTimeseriesMetadata(
+                new Path(key.device, key.measurement, true), ignoreNotExists);
+        Operation.addOperationLatency_ns(
+            Operation.DCP_SeriesScanOperator_hasNext,
+            Operation.DCP_A_GET_CHUNK_METADATAS,
+            startTime);
+        return (timeseriesMetadata == null || timeseriesMetadata.getStatistics().getCount() == 0)
+            ? null
+            : timeseriesMetadata;
       }
-      TimeseriesMetadata timeseriesMetadata =
-          reader.readTimeseriesMetadata(
-              new Path(key.device, key.measurement, true), ignoreNotExists);
-      Operation.addOperationLatency_ns(
-          Operation.DCP_SeriesScanOperator_hasNext, Operation.DCP_A_GET_CHUNK_METADATAS, startTime);
-      return (timeseriesMetadata == null || timeseriesMetadata.getStatistics().getCount() == 0)
-          ? null
-          : timeseriesMetadata;
     }
 
     TimeseriesMetadata timeseriesMetadata = lruCache.getIfPresent(key);
@@ -167,14 +186,19 @@ public class TimeSeriesMetadataCache {
               return null;
             }
           }
-          long startTime = System.nanoTime();
-          TsFileSequenceReader reader = FileReaderManager.getInstance().get(key.filePath, true);
-          List<TimeseriesMetadata> timeSeriesMetadataList =
-              reader.readTimeseriesMetadata(path, allSensors);
-          Operation.addOperationLatency_ns(
-              Operation.DCP_SeriesScanOperator_hasNext,
-              Operation.DCP_A_GET_CHUNK_METADATAS,
-              startTime);
+          List<TimeseriesMetadata> timeSeriesMetadataList;
+          if (key.device.contains(IoTDBMetricsUtils.STORAGE_GROUP)) {
+            TsFileSequenceReader reader = FileReaderManager.getInstance().get(key.filePath, true);
+            timeSeriesMetadataList = reader.readTimeseriesMetadata(path, allSensors);
+          } else { // add metric point for non-DCP metric query
+            long startTime = System.nanoTime();
+            TsFileSequenceReader reader = FileReaderManager.getInstance().get(key.filePath, true);
+            timeSeriesMetadataList = reader.readTimeseriesMetadata(path, allSensors);
+            Operation.addOperationLatency_ns(
+                Operation.DCP_SeriesScanOperator_hasNext,
+                Operation.DCP_A_GET_CHUNK_METADATAS,
+                startTime);
+          }
           // put TimeSeriesMetadata of all sensors used in this query into cache
           for (TimeseriesMetadata metadata : timeSeriesMetadataList) {
             TimeSeriesMetadataCacheKey k =
