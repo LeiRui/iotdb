@@ -193,6 +193,14 @@ public class MySessionExample {
   private static void query4Redirect(String queryMetricResultCsvPath, String ip)
       throws IoTDBConnectionException, StatementExecutionException, InterruptedException,
           FileNotFoundException {
+    try {
+      System.out.println("Deleting old metric database root.__system ...");
+      sessionEnableRedirect.executeNonQueryStatement("delete database root.__system");
+      Thread.sleep(30000);
+    } catch (StatementExecutionException e) {
+      System.out.println(e);
+    }
+
     PrintWriter pw = new PrintWriter(queryMetricResultCsvPath);
 
     String query_data = String.format("select %s from %s", sensorName, deviceName);
@@ -216,7 +224,7 @@ public class MySessionExample {
     pw.println("ClientElapsedTime_ns," + elapsedTimeNanoSec);
 
     System.out.println("Waiting some time for the metrics to be pushed into IoTDB...");
-    Thread.sleep(30000);
+    Thread.sleep(30000); // NECESSARY because of the 15s interval to push metrics into IoTDB
     System.out.println("waiting finish.");
     String query_metric =
         "select sum(DCP_SeriesScanOperator_hasNext_count.`name=DCP_A_GET_CHUNK_METADATAS`.value) as A_cnt, sum(DCP_SeriesScanOperator_hasNext_count.`name=DCP_B_READ_MEM_CHUNK`.value) as B_cnt, sum(DCP_SeriesScanOperator_hasNext_count.`name=DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA`.value) as C_cnt, sum(DCP_SeriesScanOperator_hasNext_count.`name=DCP_D_DECODE_PAGEDATA`.value) as D_cnt, sum(DCP_LongDeltaDecoder_loadIntBatch_count.`name=DCP_ITSELF`.value) as LongDeltaDecoder_loadIntBatch_cnt, sum(DCP_SeriesScanOperator_hasNext_count.`name=DCP_ITSELF`.value) as SeriesScanOperator_hasNext_cnt, sum(DCP_Server_Query_Execute_count.`name=DCP_ITSELF`.value) as Server_Query_Execute_cnt, sum(DCP_Server_Query_Fetch_count.`name=DCP_ITSELF`.value) as Server_Query_Fetch_cnt, sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_A_GET_CHUNK_METADATAS`.value) as A_ns, sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_B_READ_MEM_CHUNK`.value) as B_ns, sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA`.value) as C_ns, sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_D_DECODE_PAGEDATA`.value) as D_ns, sum(DCP_LongDeltaDecoder_loadIntBatch_timer_total.`name=DCP_ITSELF`.value) as LongDeltaDecoder_loadIntBatch_ns, sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_A_GET_CHUNK_METADATAS`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_B_READ_MEM_CHUNK`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_D_DECODE_PAGEDATA`.value) as sum_ABCD_ns, sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_ITSELF`.value) as SeriesScanOperator_hasNext_ns, sum(DCP_Server_Query_Execute_total.`name=DCP_ITSELF`.value) as Server_Query_Execute_ns, sum(DCP_Server_Query_Fetch_total.`name=DCP_ITSELF`.value) as Server_Query_Fetch_ns, 100*(sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_A_GET_CHUNK_METADATAS`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_B_READ_MEM_CHUNK`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_D_DECODE_PAGEDATA`.value))/sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_ITSELF`.value) as `ABCD/SeriesScanOperator_hasNext(%)`, 100*(sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_A_GET_CHUNK_METADATAS`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_B_READ_MEM_CHUNK`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_D_DECODE_PAGEDATA`.value))/sum(DCP_Server_Query_Execute_total.`name=DCP_ITSELF`.value) as `ABCD/Server_execute(%)`, 100*(sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_A_GET_CHUNK_METADATAS`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_B_READ_MEM_CHUNK`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA`.value)+sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_D_DECODE_PAGEDATA`.value))/(sum(DCP_Server_Query_Execute_total.`name=DCP_ITSELF`.value)+sum(DCP_Server_Query_Fetch_total.`name=DCP_ITSELF`.value)) as `ABCD/Server_execute_fetch(%)`, 100*sum(DCP_LongDeltaDecoder_loadIntBatch_timer_total.`name=DCP_ITSELF`.value)/sum(DCP_SeriesScanOperator_hasNext_total.`name=DCP_D_DECODE_PAGEDATA`.value) as `loadIntBatch/D(%)`, 100*sum(DCP_LongDeltaDecoder_loadIntBatch_timer_total.`name=DCP_ITSELF`.value)/sum(DCP_Server_Query_Execute_total.`name=DCP_ITSELF`.value) as `loadIntBatch/Server_execute(%)`, 100*sum(DCP_LongDeltaDecoder_loadIntBatch_timer_total.`name=DCP_ITSELF`.value)/(sum(DCP_Server_Query_Execute_total.`name=DCP_ITSELF`.value)+sum(DCP_Server_Query_Fetch_total.`name=DCP_ITSELF`.value)) as `loadIntBatch/Server_execute_fetch(%)` from root.__system.metric.`"
@@ -227,6 +235,12 @@ public class MySessionExample {
       outputResult(dataSet, pw);
     }
     pw.close();
+
+    //    System.out.println("Waiting some time for the metrics to be pushed into IoTDB...");
+    //    Thread.sleep(30000);
+    sessionEnableRedirect.executeNonQueryStatement(
+        "flush"); // hope to flush all metrics to facilitate deleting to avoid interfering next
+    // experiment
   }
 
   private static void outputResult(SessionDataSet resultSet, PrintWriter pw)
