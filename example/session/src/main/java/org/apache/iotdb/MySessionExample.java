@@ -198,7 +198,7 @@ public class MySessionExample {
       sessionEnableRedirect.executeNonQueryStatement("delete database root.__system");
       Thread.sleep(30000);
     } catch (StatementExecutionException e) {
-      System.out.println(e);
+      System.out.println("failed to delete old metric database root.__system because " + e);
     }
 
     PrintWriter pw = new PrintWriter(queryMetricResultCsvPath);
