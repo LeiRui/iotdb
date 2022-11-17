@@ -236,11 +236,9 @@ public class MySessionExample {
     }
     pw.close();
 
-    //    System.out.println("Waiting some time for the metrics to be pushed into IoTDB...");
-    //    Thread.sleep(30000);
-    sessionEnableRedirect.executeNonQueryStatement(
-        "flush"); // hope to flush all metrics to facilitate deleting to avoid interfering next
-    // experiment
+    // hope to flush all metrics to facilitate deleting to avoid interfering next experiment
+    sessionEnableRedirect.executeNonQueryStatement("flush");
+    Thread.sleep(6000);
   }
 
   private static void outputResult(SessionDataSet resultSet, PrintWriter pw)
