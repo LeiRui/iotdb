@@ -66,6 +66,7 @@ import org.apache.iotdb.db.sync.SyncService;
 import org.apache.iotdb.db.utils.QueryDataSetUtils;
 import org.apache.iotdb.db.utils.SetThreadName;
 import org.apache.iotdb.metrics.config.MetricConfigDescriptor;
+import org.apache.iotdb.metrics.utils.IoTDBMetricsUtils;
 import org.apache.iotdb.metrics.utils.MetricLevel;
 import org.apache.iotdb.rpc.RpcUtils;
 import org.apache.iotdb.rpc.TSStatusCode;
@@ -381,7 +382,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
   public TSExecuteStatementResp executeQueryStatementV2(TSExecuteStatementReq req) {
     //    LOGGER.info("executeQueryStatementV2 sql=" + req.statement + "!!!"); // TODO tmp
     String statement = req.statement;
-    if (statement.contains("root.__system")) {
+    if (statement.contains(IoTDBMetricsUtils.STORAGE_GROUP)) {
       // DCP metric query, or "SHOW DATABASES root.__system" by
       // IoTDBMetricUtils.checkOrCreateStorageGroup
       return executeStatementV2(req);
