@@ -1223,6 +1223,17 @@ public class SessionPool {
       List<Object> values)
       throws IoTDBConnectionException, StatementExecutionException {
     for (int i = 0; i < RETRY; i++) {
+      logger.info(
+          "SessionPool.insertRecord!!!! retry:"
+              + i
+              + ": "
+              + deviceId
+              + " "
+              + time
+              + " "
+              + measurements.get(0)
+              + " "
+              + values.get(0)); // TODO tmp
       Session session = getSession();
       try {
         session.insertRecord(deviceId, time, measurements, types, values);
@@ -1899,12 +1910,12 @@ public class SessionPool {
    * Create a template with flat measurements, not tree structured. Need to specify datatype,
    * encoding and compressor of each measurement, and alignment of these measurements at once.
    *
-   * @oaram templateName name of template to create
    * @param measurements flat measurements of the template, cannot contain character dot
    * @param dataTypes datatype of each measurement in the template
    * @param encodings encodings of each measurement in the template
    * @param compressors compression type of each measurement in the template
    * @param isAligned specify whether these flat measurements are aligned
+   * @oaram templateName name of template to create
    */
   public void createSchemaTemplate(
       String templateName,

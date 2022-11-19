@@ -143,6 +143,7 @@ public class IoTDBReporter extends ScheduledReporter {
       SortedMap<String, Histogram> histograms,
       SortedMap<String, Meter> meters,
       SortedMap<String, Timer> timers) {
+    logger.info("IoTDBReporter.report!!!!!"); // TODO tmp
     for (Map.Entry<String, Gauge> entry : gauges.entrySet()) {
       sendGauge(entry.getKey(), entry.getValue());
     }
@@ -185,6 +186,7 @@ public class IoTDBReporter extends ScheduledReporter {
   }
 
   private void sendHistogram(String name, Histogram histogram) {
+    logger.info("IoTDBReporter.sendHistogram!!! " + name); // TODO tmp
     if (null == histogram) {
       return;
     }
