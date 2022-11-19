@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class IoTDBMeterRegistry extends StepMeterRegistry {
+
   private static final Logger logger = LoggerFactory.getLogger(IoTDBMeterRegistry.class);
   private static final MetricConfig.IoTDBReporterConfig ioTDBReporterConfig =
       MetricConfigDescriptor.getInstance().getMetricConfig().getIoTDBReporterConfig();
@@ -128,6 +129,7 @@ public class IoTDBMeterRegistry extends StepMeterRegistry {
   }
 
   private void updateValue(String name, Map<String, String> labels, Double value, Long time) {
+    System.out.println("IoTDBMeterRegistry.updateValue!!!!"); // TODO tmp
     if (value != null) {
       String deviceId = IoTDBMetricsUtils.generatePath(name, labels);
       List<String> sensors = Collections.singletonList("value");
@@ -137,7 +139,7 @@ public class IoTDBMeterRegistry extends StepMeterRegistry {
       try {
         sessionPool.insertRecord(deviceId, time, sensors, dataTypes, values);
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        logger.warn("Failed to insert record");
+        logger.warn("Failed to insert record", e);
       }
     }
   }

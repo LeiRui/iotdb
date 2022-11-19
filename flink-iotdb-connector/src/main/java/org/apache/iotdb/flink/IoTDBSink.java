@@ -127,6 +127,7 @@ public class IoTDBSink<IN> extends RichSinkFunction<IN> {
     }
 
     convertText(event.getDevice(), event.getMeasurements(), event.getValues());
+    LOG.info("IoTDBSink.insertRecord!!!"); // TODO tmp
     pool.insertRecord(
         event.getDevice(),
         event.getTimestamp(),

@@ -162,6 +162,7 @@ public class IoTDBReporter extends ScheduledReporter {
   }
 
   private void sendGauge(String name, Gauge gauge) {
+    logger.info("IoTDBReporter.sendGauge!!! " + name); // TODO tmp
     if (null == gauge) {
       return;
     }
@@ -177,6 +178,7 @@ public class IoTDBReporter extends ScheduledReporter {
   }
 
   private void sendCounter(String name, Counter counter) {
+    logger.info("IoTDBReporter.sendCounter!!! " + name); // TODO tmp
     if (null == counter) {
       return;
     }
@@ -201,6 +203,7 @@ public class IoTDBReporter extends ScheduledReporter {
   }
 
   private void sendMeter(String name, Meter meter) {
+    logger.info("IoTDBReporter.sendMeter!!! " + name); // TODO tmp
     if (null == meter) {
       return;
     }
@@ -210,6 +213,7 @@ public class IoTDBReporter extends ScheduledReporter {
   }
 
   private void sendTimer(String name, Timer timer) {
+    logger.info("IoTDBReporter.sendTimer!!! " + name); // TODO tmp
     if (null == timer) {
       return;
     }
@@ -224,6 +228,7 @@ public class IoTDBReporter extends ScheduledReporter {
 
   private void writeSnapshotAndCount(
       String name, Map<String, String> tags, Snapshot snapshot, long count, double factor) {
+    logger.info("IoTDBReporter.writeSnapshotAndCount!!! " + name); // TODO tmp
     updateValue(name, addTags(tags, "quantile", "0.5"), snapshot.getMedian() * factor);
     updateValue(name, addTags(tags, "quantile", "0.75"), snapshot.get75thPercentile() * factor);
     updateValue(name, addTags(tags, "quantile", "0.95"), snapshot.get95thPercentile() * factor);
@@ -239,6 +244,7 @@ public class IoTDBReporter extends ScheduledReporter {
   }
 
   private void updateValue(String name, Map<String, String> labels, Object value) {
+    System.out.println("IoTDBReporter.updateValue!!!"); // TODO tmp
     if (value != null) {
       String deviceId = IoTDBMetricsUtils.generatePath(name, labels);
       List<String> sensors = Collections.singletonList("value");
