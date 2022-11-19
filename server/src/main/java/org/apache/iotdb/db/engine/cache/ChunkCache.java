@@ -19,11 +19,6 @@
 
 package org.apache.iotdb.db.engine.cache;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.Weigher;
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.iotdb.commons.service.metric.MetricService;
 import org.apache.iotdb.commons.service.metric.enums.Operation;
 import org.apache.iotdb.commons.utils.TestOnly;
@@ -35,8 +30,15 @@ import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.read.TsFileSequenceReader;
 import org.apache.iotdb.tsfile.read.common.Chunk;
 import org.apache.iotdb.tsfile.utils.RamUsageEstimator;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Weigher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This class is used to cache <code>Chunk</code> of <code>ChunkMetaData</code> in IoTDB. The
@@ -163,9 +165,7 @@ public class ChunkCache {
     return entryAverageSize.get();
   }
 
-  /**
-   * clear LRUCache.
-   */
+  /** clear LRUCache. */
   public void clear() {
     lruCache.invalidateAll();
     lruCache.cleanUp();
@@ -180,9 +180,7 @@ public class ChunkCache {
     return lruCache.asMap().isEmpty();
   }
 
-  /**
-   * singleton pattern.
-   */
+  /** singleton pattern. */
   private static class ChunkCacheHolder {
 
     private static final ChunkCache INSTANCE = new ChunkCache();

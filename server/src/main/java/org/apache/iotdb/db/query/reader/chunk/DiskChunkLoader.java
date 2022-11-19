@@ -19,7 +19,6 @@
 
 package org.apache.iotdb.db.query.reader.chunk;
 
-import java.io.IOException;
 import org.apache.iotdb.commons.service.metric.enums.Operation;
 import org.apache.iotdb.db.engine.cache.ChunkCache;
 import org.apache.iotdb.metrics.utils.IoTDBMetricsUtils;
@@ -31,9 +30,9 @@ import org.apache.iotdb.tsfile.read.filter.basic.Filter;
 import org.apache.iotdb.tsfile.read.reader.IChunkReader;
 import org.apache.iotdb.tsfile.read.reader.chunk.ChunkReader;
 
-/**
- * To read one chunk from disk, and only used in iotdb server module
- */
+import java.io.IOException;
+
+/** To read one chunk from disk, and only used in iotdb server module */
 public class DiskChunkLoader implements IChunkLoader {
 
   private final boolean debug;
