@@ -22,8 +22,6 @@ import org.apache.iotdb.commons.service.metric.MetricService;
 import org.apache.iotdb.metrics.config.MetricConfigDescriptor;
 import org.apache.iotdb.metrics.utils.MetricLevel;
 
-import java.util.concurrent.TimeUnit;
-
 public enum Operation {
   EXECUTE_JDBC_BATCH("EXECUTE_JDBC_BATCH"),
   EXECUTE_ONE_SQL_IN_BATCH("EXECUTE_ONE_SQL_IN_BATCH"),
@@ -58,24 +56,24 @@ public enum Operation {
   public static void addOperationLatency_ns(
       Operation metricName, Operation tagName, long startTime) {
     if (MetricConfigDescriptor.getInstance().getMetricConfig().getEnablePerformanceStat()) {
-      System.out.println("addOperationLatency_ns~~~" + metricName + " " + tagName); // TODO tmp
       MetricService.getInstance()
-          .timer(
+          .histogram(
               System.nanoTime() - startTime,
-              TimeUnit.NANOSECONDS,
+              //              TimeUnit.NANOSECONDS,
               metricName.getName(),
               MetricLevel.IMPORTANT,
               Tag.NAME.toString(),
               tagName.getName());
+      System.out.println("addOperationLatency_ns~~~" + metricName + " " + tagName); // TODO tmp
     }
   }
 
   public static void addOperationLatency_loadIntBatch(long elapsedTime_ns, long cnt) {
     if (MetricConfigDescriptor.getInstance().getMetricConfig().getEnablePerformanceStat()) {
       MetricService.getInstance()
-          .timer(
+          .histogram(
               elapsedTime_ns,
-              TimeUnit.NANOSECONDS,
+              //              TimeUnit.NANOSECONDS,
               DCP_LongDeltaDecoder_loadIntBatch.getName() + "_timer",
               MetricLevel.IMPORTANT,
               Tag.NAME.toString(),
@@ -87,6 +85,7 @@ public enum Operation {
               MetricLevel.IMPORTANT,
               Tag.NAME.toString(),
               DCP_ITSELF.getName());
+      System.out.println("addOperationLatency_ns~~~" + "loadIntBatch"); // TODO tmp
     }
   }
 }
