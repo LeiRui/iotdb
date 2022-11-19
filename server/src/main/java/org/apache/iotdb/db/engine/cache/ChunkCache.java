@@ -19,25 +19,24 @@
 
 package org.apache.iotdb.db.engine.cache;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Weigher;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.iotdb.commons.service.metric.MetricService;
 import org.apache.iotdb.commons.service.metric.enums.Operation;
 import org.apache.iotdb.commons.utils.TestOnly;
 import org.apache.iotdb.db.conf.IoTDBConfig;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.query.control.FileReaderManager;
+import org.apache.iotdb.metrics.utils.IoTDBMetricsUtils;
 import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.read.TsFileSequenceReader;
 import org.apache.iotdb.tsfile.read.common.Chunk;
 import org.apache.iotdb.tsfile.utils.RamUsageEstimator;
-
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.Weigher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This class is used to cache <code>Chunk</code> of <code>ChunkMetaData</code> in IoTDB. The
@@ -76,12 +75,17 @@ public class ChunkCache {
                     TsFileSequenceReader reader =
                         FileReaderManager.getInstance()
                             .get(chunkMetadata.getFilePath(), chunkMetadata.isClosed());
-                    long startTime = System.nanoTime();
-                    Chunk chunk = reader.readMemChunk(chunkMetadata);
-                    Operation.addOperationLatency_ns(
-                        Operation.DCP_SeriesScanOperator_hasNext,
-                        Operation.DCP_B_READ_MEM_CHUNK,
-                        startTime);
+                    Chunk chunk;
+                    if (chunkMetadata.getFilePath().contains(IoTDBMetricsUtils.STORAGE_GROUP)) {
+                      chunk = reader.readMemChunk(chunkMetadata);
+                    } else { // add metric point for non-DCP metric query
+                      long startTime = System.nanoTime();
+                      chunk = reader.readMemChunk(chunkMetadata);
+                      Operation.addOperationLatency_ns(
+                          Operation.DCP_SeriesScanOperator_hasNext,
+                          Operation.DCP_B_READ_MEM_CHUNK,
+                          startTime);
+                    }
                     return chunk;
                   } catch (IOException e) {
                     logger.error("Something wrong happened in reading {}", chunkMetadata, e);
@@ -110,10 +114,15 @@ public class ChunkCache {
       TsFileSequenceReader reader =
           FileReaderManager.getInstance()
               .get(chunkMetaData.getFilePath(), chunkMetaData.isClosed());
-      long startTime = System.nanoTime();
-      Chunk chunk = reader.readMemChunk(chunkMetaData);
-      Operation.addOperationLatency_ns(
-          Operation.DCP_SeriesScanOperator_hasNext, Operation.DCP_B_READ_MEM_CHUNK, startTime);
+      Chunk chunk;
+      if (chunkMetaData.getFilePath().contains(IoTDBMetricsUtils.STORAGE_GROUP)) {
+        chunk = reader.readMemChunk(chunkMetaData);
+      } else { // add metric point for non-DCP metric query
+        long startTime = System.nanoTime();
+        chunk = reader.readMemChunk(chunkMetaData);
+        Operation.addOperationLatency_ns(
+            Operation.DCP_SeriesScanOperator_hasNext, Operation.DCP_B_READ_MEM_CHUNK, startTime);
+      }
       return new Chunk(
           chunk.getHeader(),
           chunk.getData().duplicate(),
@@ -154,7 +163,9 @@ public class ChunkCache {
     return entryAverageSize.get();
   }
 
-  /** clear LRUCache. */
+  /**
+   * clear LRUCache.
+   */
   public void clear() {
     lruCache.invalidateAll();
     lruCache.cleanUp();
@@ -169,7 +180,9 @@ public class ChunkCache {
     return lruCache.asMap().isEmpty();
   }
 
-  /** singleton pattern. */
+  /**
+   * singleton pattern.
+   */
   private static class ChunkCacheHolder {
 
     private static final ChunkCache INSTANCE = new ChunkCache();

@@ -102,7 +102,7 @@ public class MySessionExample {
         if (args.length > 4) {
           waitTimeSecond = Integer.parseInt(args[4]);
         } else {
-          waitTimeSecond = 120; // default wait time in seconds
+          waitTimeSecond = 30; // default wait time in seconds
         }
         sessionEnableRedirect.setFetchSize(fetchSize);
         query4Redirect(queryMetricResultCsvPath, ip, waitTimeSecond);
@@ -233,6 +233,8 @@ public class MySessionExample {
 
     System.out.println("Waiting some time for the metrics to be pushed into IoTDB...");
     // NECESSARY waiting because of the 15s interval to push metrics into IoTDB
+    Thread.sleep(waitTimeSecond * 1000L);
+    sessionEnableRedirect.executeNonQueryStatement("flush");
     Thread.sleep(waitTimeSecond * 1000L);
     System.out.println("waiting finish.");
     String query_metric =
