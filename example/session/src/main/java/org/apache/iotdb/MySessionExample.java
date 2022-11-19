@@ -193,13 +193,13 @@ public class MySessionExample {
   private static void query4Redirect(String queryMetricResultCsvPath, String ip)
       throws IoTDBConnectionException, StatementExecutionException, InterruptedException,
           FileNotFoundException {
-    try {
-      System.out.println("Deleting old metric database root.__system ...");
-      sessionEnableRedirect.executeNonQueryStatement("delete database root.__system");
-      Thread.sleep(30000);
-    } catch (StatementExecutionException e) {
-      System.out.println("failed to delete old metric database root.__system because " + e);
-    }
+//    try {
+//      System.out.println("Deleting old metric database root.__system ...");
+//      sessionEnableRedirect.executeNonQueryStatement("delete database root.__system");
+//      Thread.sleep(30000);
+//    } catch (StatementExecutionException e) {
+//      System.out.println("failed to delete old metric database root.__system because " + e);
+//    }
 
     PrintWriter pw = new PrintWriter(queryMetricResultCsvPath);
 
@@ -237,8 +237,8 @@ public class MySessionExample {
     pw.close();
 
     // hope to flush all metrics to facilitate deleting to avoid interfering next experiment
-    sessionEnableRedirect.executeNonQueryStatement("flush");
-    Thread.sleep(6000);
+//    sessionEnableRedirect.executeNonQueryStatement("flush");
+//    Thread.sleep(6000);
   }
 
   private static void outputResult(SessionDataSet resultSet, PrintWriter pw)
