@@ -19,6 +19,8 @@
 
 package org.apache.iotdb.tsfile.encoding.decoder;
 
+import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
+import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.encoding.encoder.DeltaBinaryEncoder;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.utils.BytesUtils;
@@ -171,8 +173,15 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     public long loadIntBatch_ns = 0; // for DCP metric
     public int loadIntBatch_cnt = 0; // for DCP metric
 
+    private boolean enableRegularityTimeDecode;
+    private long regularTimeInterval;
+
     public LongDeltaDecoder() {
       super();
+      this.enableRegularityTimeDecode =
+          TSFileDescriptor.getInstance().getConfig().isEnableRegularityTimeDecode();
+      this.regularTimeInterval =
+          TSFileDescriptor.getInstance().getConfig().getRegularTimeInterval();
     }
 
     /**
@@ -197,20 +206,103 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     protected long loadIntBatch(ByteBuffer buffer) {
       long startTime = System.nanoTime();
 
+      //      packNum = ReadWriteIOUtils.readInt(buffer);
+      //      packWidth = ReadWriteIOUtils.readInt(buffer);
+      //      count++;
+      //      readHeader(buffer);
+      //
+      //      encodingLength = ceil(packNum * packWidth);
+      //      deltaBuf = new byte[encodingLength];
+      //      buffer.get(deltaBuf);
+      //      allocateDataArray();
+      //
+      //      previous = firstValue;
+      //      readIntTotalCount = packNum;
+      //      nextReadIndex = 0;
+      //      readPack();
+
       packNum = ReadWriteIOUtils.readInt(buffer);
       packWidth = ReadWriteIOUtils.readInt(buffer);
       count++;
       readHeader(buffer);
 
-      encodingLength = ceil(packNum * packWidth);
-      deltaBuf = new byte[encodingLength];
-      buffer.get(deltaBuf);
-      allocateDataArray();
-
       previous = firstValue;
       readIntTotalCount = packNum;
       nextReadIndex = 0;
-      readPack();
+
+      if (enableRegularityTimeDecode) {
+        long newRegularDelta = regularTimeInterval - minDeltaBase;
+        if (packWidth == 0) {
+          // [CASE 1]
+          encodingLength = ceil(0);
+          deltaBuf = new byte[encodingLength];
+          buffer.get(deltaBuf);
+          allocateDataArray();
+          for (int i = 0; i < packNum; i++) {
+            data[i] = previous + minDeltaBase; // v=0
+            previous = data[i];
+          }
+        } else if (newRegularDelta < 0 || newRegularDelta >= Math.pow(2, packWidth)) {
+          // [CASE 2] no need to compare equality cause impossible
+          encodingLength = ceil(packNum * packWidth);
+          deltaBuf = new byte[encodingLength];
+          buffer.get(deltaBuf);
+          allocateDataArray();
+          for (int i = 0; i < packNum; i++) {
+            long v = BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth);
+            data[i] = previous + minDeltaBase + v;
+            previous = data[i];
+          }
+        } else {
+          // [CASE 3]
+          // read regularBytes and deltaBuf
+          byte[][] regularBytes = TsFileConstant.readRegularBytes(buffer);
+          encodingLength = ceil(packNum * packWidth);
+          deltaBuf = new byte[encodingLength];
+          buffer.get(deltaBuf);
+          allocateDataArray();
+
+          // Begin decoding each number in this pack
+          for (int i = 0; i < packNum; i++) {
+            //  (1) extract bytes from deltaBuf,
+            //  (2) compare bytes with encodedRegularTimeInterval,
+            //  (3) equal to reuse, else to convert
+
+            boolean equal = true;
+
+            int pos =
+                i * packWidth
+                    % 8; // the starting relative position in the byte from high to low bits
+
+            byte[] byteArray = regularBytes[pos]; // the regular padded bytes to be compared
+
+            int posByteIdx = i * packWidth / 8; // the start byte of the encoded new delta
+
+            for (int k = 0; k < byteArray.length; k++, posByteIdx++) {
+              byte regular = byteArray[k];
+              byte data = deltaBuf[posByteIdx];
+              if (regular != data) {
+                equal = false;
+                break;
+              }
+            }
+
+            if (equal) {
+              data[i] = previous + regularTimeInterval;
+            } else {
+              long v = BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth);
+              data[i] = previous + minDeltaBase + v;
+            }
+            previous = data[i];
+          }
+        }
+      } else { // without regularity-aware decoding
+        encodingLength = ceil(packNum * packWidth);
+        deltaBuf = new byte[encodingLength];
+        buffer.get(deltaBuf);
+        allocateDataArray();
+        readPack();
+      }
 
       loadIntBatch_ns += (System.nanoTime() - startTime);
       loadIntBatch_cnt++;

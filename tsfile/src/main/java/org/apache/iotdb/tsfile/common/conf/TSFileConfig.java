@@ -30,6 +30,10 @@ import java.util.Properties;
 public class TSFileConfig implements Serializable {
 
   /** encoding configuration */
+  private boolean enableRegularityTimeDecode = false;
+
+  private long regularTimeInterval = 1L;
+
   public static final int RLE_MIN_REPEATED_NUM = 8;
 
   public static final int RLE_MAX_REPEATED_NUM = 0x7FFF;
@@ -163,6 +167,22 @@ public class TSFileConfig implements Serializable {
   private Properties customizedProperties = new Properties();
 
   public TSFileConfig() {}
+
+  public void setEnableRegularityTimeDecode(boolean enableRegularityTimeDecode) {
+    this.enableRegularityTimeDecode = enableRegularityTimeDecode;
+  }
+
+  public boolean isEnableRegularityTimeDecode() {
+    return enableRegularityTimeDecode;
+  }
+
+  public void setRegularTimeInterval(long regularTimeInterval) {
+    this.regularTimeInterval = regularTimeInterval;
+  }
+
+  public long getRegularTimeInterval() {
+    return regularTimeInterval;
+  }
 
   public int getGroupSizeInByte() {
     return groupSizeInByte;

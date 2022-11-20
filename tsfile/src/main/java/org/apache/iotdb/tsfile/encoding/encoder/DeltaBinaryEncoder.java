@@ -19,6 +19,7 @@
 
 package org.apache.iotdb.tsfile.encoding.encoder;
 
+import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.utils.BytesUtils;
 import org.apache.iotdb.tsfile.utils.ReadWriteIOUtils;
@@ -84,11 +85,13 @@ public abstract class DeltaBinaryEncoder extends Encoder {
     out.write(encodingBlockBuffer, 0, encodingLength);
   }
 
-  private void writeHeaderToBytes() throws IOException {
-    ReadWriteIOUtils.write(writeIndex, out);
-    ReadWriteIOUtils.write(writeWidth, out);
-    writeHeader();
-  }
+  //  private void writeHeaderToBytes() throws IOException {
+  //    ReadWriteIOUtils.write(writeIndex, out);
+  //    ReadWriteIOUtils.write(writeWidth, out);
+  //    writeHeader();
+  //  }
+
+  protected abstract void writeHeaderToBytes() throws IOException;
 
   private void flushBlockBuffer(ByteArrayOutputStream out) throws IOException {
     if (writeIndex == -1) {
@@ -139,6 +142,13 @@ public abstract class DeltaBinaryEncoder extends Encoder {
       deltaBlockBuffer = new int[this.blockSize];
       encodingBlockBuffer = new byte[blockSize * 4];
       reset();
+    }
+
+    @Override
+    protected void writeHeaderToBytes() throws IOException {
+      ReadWriteIOUtils.write(writeIndex, out);
+      ReadWriteIOUtils.write(writeWidth, out);
+      writeHeader();
     }
 
     @Override
@@ -255,6 +265,68 @@ public abstract class DeltaBinaryEncoder extends Encoder {
         minDeltaBase = delta;
       }
       deltaBlockBuffer[writeIndex++] = delta;
+    }
+
+    @Override
+    protected void writeHeaderToBytes() throws IOException {
+      ReadWriteIOUtils.write(writeIndex, out);
+      ReadWriteIOUtils.write(writeWidth, out);
+      writeHeader();
+      // TODO write (relativePos->bytes) for regular new delta
+      if (TSFileDescriptor.getInstance().getConfig().isEnableRegularityTimeDecode()) {
+        long newRegularDelta =
+            TSFileDescriptor.getInstance().getConfig().getRegularTimeInterval() - minDeltaBase;
+        if (writeWidth > 0 && 0 <= newRegularDelta && newRegularDelta < Math.pow(2, writeWidth)) {
+
+          //          byte[][] regularBytes = new byte[8][]; // 8 relative positions.
+          // relativePos->bytes
+          for (int i = 0; i < 8; i++) {
+            // i is the starting position in the byte from high to low bits
+
+            int endPos = i + writeWidth - 1; // starting from 0
+            int byteNum = endPos / 8 + 1;
+            byte[] byteArray = new byte[byteNum];
+            if (newRegularDelta != 0) {
+              // put bit-packed newRegularDelta starting at position i,
+              //  and pad the front and back with newRegularDeltas.
+              // Otherwise if newRegularDelta=0, just leave byteArray as initial zeros
+
+              // 1. deal with padding the first byte
+              for (int x = i - 1; x >= 0; x--) {
+                // y is the position in the bit-packed newRegularDelta, 0->packWidth-1 from low to
+                // high bits
+                int y = (i - x - 1) % writeWidth;
+                // get the bit indicated by y pos
+                int value = BytesUtils.getLongN(newRegularDelta, y);
+                // put the bit indicated by y pos into regularBytes
+                // setByte pos is from high to low starting from 0, corresponding to x
+                byteArray[0] = BytesUtils.setByteN(byteArray[0], x, value);
+              }
+
+              // 2. deal with putting newRegularDeltas
+              BytesUtils.longToBytes(newRegularDelta, byteArray, i, writeWidth);
+
+              // 3. deal with padding the last byte
+              for (int x = endPos + 1; x < byteNum * 8; x++) {
+                // y is the position in the bit-packed newRegularDelta, 0->packWidth-1 from low to
+                // high bits
+                int y = writeWidth - 1 - (x - endPos - 1) % writeWidth;
+                // get the bit indicated by y pos
+                int value = BytesUtils.getLongN(newRegularDelta, y);
+                // put the bit indicated by y pos into regularBytes
+                // setByte pos is from high to low starting from 0, corresponding to x
+                byteArray[byteNum - 1] = BytesUtils.setByteN(byteArray[byteNum - 1], x, value);
+              }
+            }
+            // flush byteArray
+            int num = byteArray.length;
+            ReadWriteIOUtils.write(num, out);
+            for (int j = 0; j < num; j++) {
+              ReadWriteIOUtils.write(byteArray[j], out);
+            }
+          }
+        }
+      }
     }
 
     @Override
