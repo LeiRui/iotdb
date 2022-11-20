@@ -20,6 +20,7 @@
 package org.apache.iotdb.db.engine.cache;
 
 import org.apache.iotdb.commons.service.metric.MetricService;
+import org.apache.iotdb.commons.service.metric.enums.Operation;
 import org.apache.iotdb.commons.utils.TestOnly;
 import org.apache.iotdb.db.conf.IoTDBConfig;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
@@ -75,7 +76,11 @@ public class ChunkCache {
                     TsFileSequenceReader reader =
                         FileReaderManager.getInstance()
                             .get(chunkMetadata.getFilePath(), chunkMetadata.isClosed());
-                    return reader.readMemChunk(chunkMetadata);
+                    Chunk chunk;
+                    long startTime = System.nanoTime();
+                    chunk = reader.readMemChunk(chunkMetadata);
+                    Operation.addOperationLatency_ns(Operation.DCP_B_READ_MEM_CHUNK, startTime);
+                    return chunk;
                   } catch (IOException e) {
                     logger.error("Something wrong happened in reading {}", chunkMetadata, e);
                     throw e;
@@ -103,7 +108,10 @@ public class ChunkCache {
       TsFileSequenceReader reader =
           FileReaderManager.getInstance()
               .get(chunkMetaData.getFilePath(), chunkMetaData.isClosed());
-      Chunk chunk = reader.readMemChunk(chunkMetaData);
+      Chunk chunk;
+      long startTime = System.nanoTime();
+      chunk = reader.readMemChunk(chunkMetaData);
+      Operation.addOperationLatency_ns(Operation.DCP_B_READ_MEM_CHUNK, startTime);
       return new Chunk(
           chunk.getHeader(),
           chunk.getData().duplicate(),

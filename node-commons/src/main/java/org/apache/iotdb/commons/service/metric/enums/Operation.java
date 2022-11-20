@@ -18,6 +18,8 @@
  */
 package org.apache.iotdb.commons.service.metric.enums;
 
+import org.apache.iotdb.commons.service.metric.IOMonitor;
+
 public enum Operation {
   EXECUTE_JDBC_BATCH("EXECUTE_JDBC_BATCH"),
   EXECUTE_ONE_SQL_IN_BATCH("EXECUTE_ONE_SQL_IN_BATCH"),
@@ -25,7 +27,19 @@ public enum Operation {
   EXECUTE_MULTI_TIMESERIES_PLAN_IN_BATCH("EXECUTE_MULTI_TIMESERIES_PLAN_IN_BATCH"),
   EXECUTE_RPC_BATCH_INSERT("EXECUTE_RPC_BATCH_INSERT"),
   EXECUTE_QUERY("EXECUTE_QUERY"),
-  EXECUTE_SELECT_INTO("EXECUTE_SELECT_INTO");
+  EXECUTE_SELECT_INTO("EXECUTE_SELECT_INTO"),
+
+  // DCP short for decompose
+  DCP_A_GET_CHUNK_METADATAS("DCP_A_GET_CHUNK_METADATAS"),
+  DCP_B_READ_MEM_CHUNK("DCP_B_READ_MEM_CHUNK"),
+  DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA(
+      "DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA"),
+  DCP_D_DECODE_PAGEDATA("DCP_D_DECODE_PAGEDATA"),
+  //  DCP_ITSELF("DCP_ITSELF"), // when there is no further decomposition
+  DCP_SeriesScanOperator_hasNext("DCP_SeriesScanOperator_hasNext"),
+  DCP_Server_Query_Execute("DCP_Server_Query_Execute"),
+  DCP_Server_Query_Fetch("DCP_Server_Query_Fetch"),
+  DCP_LongDeltaDecoder_loadIntBatch("DCP_LongDeltaDecoder_loadIntBatch");
 
   public String getName() {
     return name;
@@ -35,5 +49,15 @@ public enum Operation {
 
   Operation(String name) {
     this.name = name;
+  }
+
+  public static void addOperationLatency_ns(Operation metricName, long startTime) {
+    IOMonitor.addMeasure(metricName, System.nanoTime() - startTime);
+    //    System.out.println("addOperationLatency_ns~~~" + metricName); // TODO tmp
+  }
+
+  public static void addOperationLatency_loadIntBatch(long elapsedTime, int count) {
+    IOMonitor.addMeasure_loadIntBatch(elapsedTime, count);
+    //    System.out.println("addOperationLatency_loadIntBatch~~~"); // TODO tmp
   }
 }

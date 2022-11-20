@@ -19,6 +19,7 @@
 
 package org.apache.iotdb.db.query.reader.chunk;
 
+import org.apache.iotdb.commons.service.metric.enums.Operation;
 import org.apache.iotdb.db.engine.cache.ChunkCache;
 import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.IChunkMetadata;
@@ -54,6 +55,11 @@ public class DiskChunkLoader implements IChunkLoader {
       throws IOException {
     Chunk chunk = ChunkCache.getInstance().get((ChunkMetadata) chunkMetaData, debug);
     chunk.setFromOldFile(chunkMetaData.isFromOldTsFile());
-    return new ChunkReader(chunk, timeFilter);
+    IChunkReader chunkReader;
+    long startTime = System.nanoTime();
+    chunkReader = new ChunkReader(chunk, timeFilter);
+    Operation.addOperationLatency_ns(
+        Operation.DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA, startTime);
+    return chunkReader;
   }
 }

@@ -19,6 +19,7 @@
 package org.apache.iotdb.db.mpp.execution.operator.source;
 
 import org.apache.iotdb.commons.path.PartialPath;
+import org.apache.iotdb.commons.service.metric.enums.Operation;
 import org.apache.iotdb.commons.utils.TestOnly;
 import org.apache.iotdb.db.engine.querycontext.QueryDataSource;
 import org.apache.iotdb.db.engine.storagegroup.TsFileResource;
@@ -43,6 +44,7 @@ import org.apache.iotdb.tsfile.read.filter.basic.UnaryFilter;
 import org.apache.iotdb.tsfile.read.reader.IAlignedPageReader;
 import org.apache.iotdb.tsfile.read.reader.IPageReader;
 import org.apache.iotdb.tsfile.read.reader.IPointReader;
+import org.apache.iotdb.tsfile.read.reader.page.PageReader;
 import org.apache.iotdb.tsfile.utils.TsPrimitiveType;
 
 import java.io.IOException;
@@ -1124,7 +1126,14 @@ public class SeriesScanUtil {
     }
 
     TsBlock getAllSatisfiedPageData(boolean ascending) throws IOException {
-      TsBlock tsBlock = data.getAllSatisfiedData();
+      TsBlock tsBlock;
+      long startTime = System.nanoTime();
+      tsBlock = data.getAllSatisfiedData();
+      Operation.addOperationLatency_ns(Operation.DCP_D_DECODE_PAGEDATA, startTime);
+      if (data instanceof PageReader) {
+        Operation.addOperationLatency_loadIntBatch(
+            ((PageReader) data).loadIntBatch_ns, ((PageReader) data).loadIntBatch_cnt);
+      }
       if (!ascending) {
         tsBlock.reverse();
       }

@@ -449,6 +449,7 @@ struct TSConnectionInfo {
 
 struct TSConnectionInfoResp {
   1: required list<TSConnectionInfo> connectionInfoList
+  2: optional string metrics
 }
 
 service IClientRPCService {

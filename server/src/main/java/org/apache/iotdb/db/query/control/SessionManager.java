@@ -23,6 +23,7 @@ import org.apache.iotdb.commons.auth.AuthException;
 import org.apache.iotdb.commons.auth.entity.PrivilegeType;
 import org.apache.iotdb.commons.conf.IoTDBConstant;
 import org.apache.iotdb.commons.service.JMXService;
+import org.apache.iotdb.commons.service.metric.IOMonitor;
 import org.apache.iotdb.db.auth.AuthorityChecker;
 import org.apache.iotdb.db.auth.AuthorizerManager;
 import org.apache.iotdb.db.conf.OperationType;
@@ -378,11 +379,14 @@ public class SessionManager implements SessionManagerMBean {
   }
 
   public TSConnectionInfoResp getAllConnectionInfo() {
-    return new TSConnectionInfoResp(
-        sessions.keySet().stream()
-            .map(IClientSession::convertToTSConnectionInfo)
-            .sorted(Comparator.comparingLong(TSConnectionInfo::getLogInTime))
-            .collect(Collectors.toList()));
+    TSConnectionInfoResp resp =
+        new TSConnectionInfoResp(
+            sessions.keySet().stream()
+                .map(IClientSession::convertToTSConnectionInfo)
+                .sorted(Comparator.comparingLong(TSConnectionInfo::getLogInTime))
+                .collect(Collectors.toList()));
+    resp.setMetrics(IOMonitor.print());
+    return resp;
   }
 
   private static class SessionManagerHelper {

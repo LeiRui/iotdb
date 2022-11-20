@@ -21,6 +21,7 @@ package org.apache.iotdb.db.engine.cache;
 
 import org.apache.iotdb.commons.conf.IoTDBConstant;
 import org.apache.iotdb.commons.service.metric.MetricService;
+import org.apache.iotdb.commons.service.metric.enums.Operation;
 import org.apache.iotdb.commons.utils.TestOnly;
 import org.apache.iotdb.db.conf.IoTDBConfig;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
@@ -119,6 +120,7 @@ public class TimeSeriesMetadataCache {
       boolean debug)
       throws IOException {
     if (!CACHE_ENABLE) {
+      long startTime = System.nanoTime();
       // bloom filter part
       TsFileSequenceReader reader = FileReaderManager.getInstance().get(key.filePath, true);
       BloomFilter bloomFilter = reader.readBloomFilter();
@@ -129,6 +131,7 @@ public class TimeSeriesMetadataCache {
       TimeseriesMetadata timeseriesMetadata =
           reader.readTimeseriesMetadata(
               new Path(key.device, key.measurement, true), ignoreNotExists);
+      Operation.addOperationLatency_ns(Operation.DCP_A_GET_CHUNK_METADATAS, startTime);
       return (timeseriesMetadata == null || timeseriesMetadata.getStatistics().getCount() == 0)
           ? null
           : timeseriesMetadata;
@@ -163,9 +166,11 @@ public class TimeSeriesMetadataCache {
               return null;
             }
           }
+          long startTime = System.nanoTime();
           TsFileSequenceReader reader = FileReaderManager.getInstance().get(key.filePath, true);
           List<TimeseriesMetadata> timeSeriesMetadataList =
               reader.readTimeseriesMetadata(path, allSensors);
+          Operation.addOperationLatency_ns(Operation.DCP_A_GET_CHUNK_METADATAS, startTime);
           // put TimeSeriesMetadata of all sensors used in this query into cache
           for (TimeseriesMetadata metadata : timeSeriesMetadataList) {
             TimeSeriesMetadataCacheKey k =

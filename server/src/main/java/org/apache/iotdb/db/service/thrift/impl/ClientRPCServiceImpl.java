@@ -377,7 +377,10 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
 
   @Override
   public TSExecuteStatementResp executeQueryStatementV2(TSExecuteStatementReq req) {
-    return executeStatementV2(req);
+    long startTime = System.nanoTime();
+    TSExecuteStatementResp resp = executeStatementV2(req);
+    Operation.addOperationLatency_ns(Operation.DCP_Server_Query_Execute, startTime);
+    return resp;
   }
 
   @Override
@@ -403,6 +406,7 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
   @Override
   public TSFetchResultsResp fetchResultsV2(TSFetchResultsReq req) {
     long startTime = System.currentTimeMillis();
+    long startTimeIOMonitor = System.nanoTime();
     boolean finished = false;
     try {
       if (!SESSION_MANAGER.checkLogin(SESSION_MANAGER.getCurrSession())) {
@@ -434,6 +438,8 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
       finished = true;
       return RpcUtils.getTSFetchResultsResp(onQueryException(e, OperationType.FETCH_RESULTS));
     } finally {
+      Operation.addOperationLatency_ns(
+          Operation.DCP_Server_Query_Fetch, startTimeIOMonitor); // NOTE nanoseconds
       addOperationLatency(Operation.EXECUTE_QUERY, startTime);
       if (finished) {
         COORDINATOR.cleanupQueryExecution(req.queryId);
