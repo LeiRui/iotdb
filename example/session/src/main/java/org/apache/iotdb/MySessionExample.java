@@ -47,6 +47,8 @@ public class MySessionExample {
 
   private static final String sensorName = "s1";
 
+  private static String query_data;
+
   /**
    * Before starting IoTDB, set the following config parameters:
    *
@@ -96,12 +98,32 @@ public class MySessionExample {
     } else if (mode.equals("r")) {
       try {
         int fetchSize = Integer.parseInt(args[1]); // large enough to make all in one chunk
-        String queryMetricResultCsvPath = args[2];
         sessionEnableRedirect.setFetchSize(fetchSize);
+        String queryMetricResultCsvPath = args[2];
+
+        int queryType; // 0 for raw data query without filters, 1 for M4 native UDF query
+        if (args.length == 3) { // not specify queryType
+          queryType = 0; // default 0
+        } else {
+          queryType = Integer.parseInt(args[3]);
+        }
+        if (queryType < 0 || queryType > 1) {
+          throw new IOException("Not supported query type!");
+        }
+        if (queryType == 0) {
+          query_data = String.format("select %s from %s", sensorName, deviceName);
+        } else {
+          int queryParameter = Integer.parseInt(args[4]); // windowSize for M4 native UDF
+          query_data =
+              String.format("select M4(s1,'windowSize'='%s') from root.sg1.d1", queryParameter);
+        }
         query4Redirect(queryMetricResultCsvPath);
       } catch (Exception e) {
-        System.out.println("Correct usage: r fetchSize queryMetricResultCsvPath");
-        System.out.println("Example: r 100000000 dcp.csv");
+        System.out.println(
+            "Correct usage: r fetchSize queryMetricResultCsvPath queryType <queryParameters>");
+        System.out.println("Example: r 100000000 dcp.csv 0");
+        System.out.println(
+            "Example: r 100000000 dcp.csv 1 100000000"); // windowSize measured in point number
         throw new IOException(e);
       }
     } else {
@@ -192,10 +214,7 @@ public class MySessionExample {
 
   private static void query4Redirect(String queryMetricResultCsvPath)
       throws IoTDBConnectionException, StatementExecutionException, FileNotFoundException {
-
     PrintWriter pw = new PrintWriter(queryMetricResultCsvPath);
-
-    String query_data = String.format("select %s from %s", sensorName, deviceName);
     System.out.println("begin query: " + query_data);
     long cnt = 0;
     long startTime = System.nanoTime();
