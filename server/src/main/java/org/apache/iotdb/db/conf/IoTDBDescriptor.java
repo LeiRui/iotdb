@@ -1223,6 +1223,28 @@ public class IoTDBDescriptor {
   private void loadTsFileProps(Properties properties) {
     TSFileDescriptor.getInstance()
         .getConfig()
+        .setEnableRegularityTimeDecode(
+            Boolean.parseBoolean(
+                properties
+                    .getProperty(
+                        "enable_regularity_time_decode",
+                        Boolean.toString(
+                            TSFileDescriptor.getInstance()
+                                .getConfig()
+                                .isEnableRegularityTimeDecode()))
+                    .trim()));
+    TSFileDescriptor.getInstance()
+        .getConfig()
+        .setRegularTimeInterval(
+            Long.parseLong(
+                properties
+                    .getProperty(
+                        "regular_time_interval",
+                        Long.toString(
+                            TSFileDescriptor.getInstance().getConfig().getRegularTimeInterval()))
+                    .trim()));
+    TSFileDescriptor.getInstance()
+        .getConfig()
         .setGroupSizeInByte(
             Integer.parseInt(
                 properties.getProperty(
