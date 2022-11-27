@@ -330,6 +330,7 @@ public abstract class DeltaBinaryDecoder extends Decoder {
     protected void readHeader(ByteBuffer buffer) {
       minDeltaBase = ReadWriteIOUtils.readLong(buffer);
       firstValue = ReadWriteIOUtils.readLong(buffer);
+      TsFileConstant.DCP_loadIntBatch_total_cnt++;
     }
 
     @Override
