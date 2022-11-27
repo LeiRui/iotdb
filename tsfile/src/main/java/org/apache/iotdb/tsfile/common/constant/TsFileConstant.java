@@ -53,6 +53,9 @@ public class TsFileConstant {
   public static final Pattern NODE_NAME_IN_INTO_PATH_PATTERN =
       Pattern.compile(NODE_NAME_IN_INTO_PATH_MATCHER);
 
+  public static long DCP_loadIntBatch_total_cnt = 0;
+  public static long DCP_loadIntBatch_equal_cnt = 0;
+
   private TsFileConstant() {}
 
   /**
