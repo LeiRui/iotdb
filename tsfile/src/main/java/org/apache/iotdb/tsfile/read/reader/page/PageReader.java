@@ -167,78 +167,84 @@ public class PageReader implements IPageReader {
     TsBlockBuilder builder = new TsBlockBuilder(Collections.singletonList(dataType));
     TimeColumnBuilder timeBuilder = builder.getTimeColumnBuilder();
     ColumnBuilder valueBuilder = builder.getColumnBuilder(0);
-    if (filter == null || filter.satisfy(getStatistics())) {
-      switch (dataType) {
-        case BOOLEAN:
-          while (timeDecoder.hasNext(timeBuffer)) {
-            long timestamp = timeDecoder.readLong(timeBuffer);
-            boolean aBoolean = valueDecoder.readBoolean(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aBoolean))) {
-              timeBuilder.writeLong(timestamp);
-              valueBuilder.writeBoolean(aBoolean);
-              builder.declarePosition();
-            }
-          }
-          break;
-        case INT32:
-          while (timeDecoder.hasNext(timeBuffer)) {
-            long timestamp = timeDecoder.readLong(timeBuffer);
-            int anInt = valueDecoder.readInt(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, anInt))) {
-              timeBuilder.writeLong(timestamp);
-              valueBuilder.writeInt(anInt);
-              builder.declarePosition();
-            }
-          }
-          break;
-        case INT64:
-          while (timeDecoder.hasNext(timeBuffer)) {
-            long timestamp = timeDecoder.readLong(timeBuffer);
-            long aLong = valueDecoder.readLong(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aLong))) {
-              timeBuilder.writeLong(timestamp);
-              valueBuilder.writeLong(aLong);
-              builder.declarePosition();
-            }
-          }
-          break;
-        case FLOAT:
-          while (timeDecoder.hasNext(timeBuffer)) {
-            long timestamp = timeDecoder.readLong(timeBuffer);
-            float aFloat = valueDecoder.readFloat(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aFloat))) {
-              timeBuilder.writeLong(timestamp);
-              valueBuilder.writeFloat(aFloat);
-              builder.declarePosition();
-            }
-          }
-          break;
-        case DOUBLE:
-          while (timeDecoder.hasNext(timeBuffer)) {
-            long timestamp = timeDecoder.readLong(timeBuffer);
-            double aDouble = valueDecoder.readDouble(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aDouble))) {
-              timeBuilder.writeLong(timestamp);
-              valueBuilder.writeDouble(aDouble);
-              builder.declarePosition();
-            }
-          }
-          break;
-        case TEXT:
-          while (timeDecoder.hasNext(timeBuffer)) {
-            long timestamp = timeDecoder.readLong(timeBuffer);
-            Binary aBinary = valueDecoder.readBinary(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aBinary))) {
-              timeBuilder.writeLong(timestamp);
-              valueBuilder.writeBinary(aBinary);
-              builder.declarePosition();
-            }
-          }
-          break;
-        default:
-          throw new UnSupportedDataTypeException(String.valueOf(dataType));
-      }
+    //    if (filter == null || filter.satisfy(getStatistics())) {
+    switch (dataType) {
+      case BOOLEAN:
+        while (timeDecoder.hasNext(timeBuffer)) {
+          long timestamp = timeDecoder.readLong(timeBuffer);
+          boolean aBoolean = valueDecoder.readBoolean(valueBuffer);
+          //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+          // aBoolean))) {
+          timeBuilder.writeLong(timestamp);
+          valueBuilder.writeBoolean(aBoolean);
+          builder.declarePosition();
+          //            }
+        }
+        break;
+      case INT32:
+        while (timeDecoder.hasNext(timeBuffer)) {
+          long timestamp = timeDecoder.readLong(timeBuffer);
+          int anInt = valueDecoder.readInt(valueBuffer);
+          //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+          // anInt))) {
+          timeBuilder.writeLong(timestamp);
+          valueBuilder.writeInt(anInt);
+          builder.declarePosition();
+          //            }
+        }
+        break;
+      case INT64:
+        while (timeDecoder.hasNext(timeBuffer)) {
+          long timestamp = timeDecoder.readLong(timeBuffer);
+          long aLong = valueDecoder.readLong(valueBuffer);
+          //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+          // aLong))) {
+          timeBuilder.writeLong(timestamp);
+          valueBuilder.writeLong(aLong);
+          builder.declarePosition();
+          //            }
+        }
+        break;
+      case FLOAT:
+        while (timeDecoder.hasNext(timeBuffer)) {
+          long timestamp = timeDecoder.readLong(timeBuffer);
+          float aFloat = valueDecoder.readFloat(valueBuffer);
+          //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+          // aFloat))) {
+          timeBuilder.writeLong(timestamp);
+          valueBuilder.writeFloat(aFloat);
+          builder.declarePosition();
+          //            }
+        }
+        break;
+      case DOUBLE:
+        while (timeDecoder.hasNext(timeBuffer)) {
+          long timestamp = timeDecoder.readLong(timeBuffer);
+          double aDouble = valueDecoder.readDouble(valueBuffer);
+          //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+          // aDouble))) {
+          timeBuilder.writeLong(timestamp);
+          valueBuilder.writeDouble(aDouble);
+          builder.declarePosition();
+          //            }
+        }
+        break;
+      case TEXT:
+        while (timeDecoder.hasNext(timeBuffer)) {
+          long timestamp = timeDecoder.readLong(timeBuffer);
+          Binary aBinary = valueDecoder.readBinary(valueBuffer);
+          //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+          // aBinary))) {
+          timeBuilder.writeLong(timestamp);
+          valueBuilder.writeBinary(aBinary);
+          builder.declarePosition();
+          //            }
+        }
+        break;
+      default:
+        throw new UnSupportedDataTypeException(String.valueOf(dataType));
     }
+    //    }
     loadIntBatch_ns = ((LongDeltaDecoder) timeDecoder).loadIntBatch_ns;
     loadIntBatch_cnt = ((LongDeltaDecoder) timeDecoder).loadIntBatch_cnt;
     ((LongDeltaDecoder) timeDecoder).loadIntBatch_ns =
