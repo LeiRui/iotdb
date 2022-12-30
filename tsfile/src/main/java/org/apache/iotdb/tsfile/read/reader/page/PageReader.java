@@ -18,11 +18,13 @@
  */
 package org.apache.iotdb.tsfile.read.reader.page;
 
+import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
 import org.apache.iotdb.tsfile.encoding.decoder.DeltaBinaryDecoder.LongDeltaDecoder;
 import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
 import org.apache.iotdb.tsfile.file.header.PageHeader;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
+import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.file.metadata.statistics.Statistics;
 import org.apache.iotdb.tsfile.read.common.BatchData;
 import org.apache.iotdb.tsfile.read.common.BatchDataFactory;
@@ -239,12 +241,15 @@ public class PageReader implements IPageReader {
           throw new UnSupportedDataTypeException(String.valueOf(dataType));
       }
     }
-    loadIntBatch_ns = ((LongDeltaDecoder) timeDecoder).loadIntBatch_ns;
-    loadIntBatch_cnt = ((LongDeltaDecoder) timeDecoder).loadIntBatch_cnt;
-    ((LongDeltaDecoder) timeDecoder).loadIntBatch_ns =
-        0; // reset because timeDecoder is global for all pageReaders of a chunk
-    ((LongDeltaDecoder) timeDecoder).loadIntBatch_cnt =
-        0; // reset because timeDecoder is global for all pageReaders of a chunk
+    if (TSEncoding.valueOf(TSFileDescriptor.getInstance().getConfig().getTimeEncoder())
+        .equals(TSEncoding.TS_2DIFF)) {
+      loadIntBatch_ns = ((LongDeltaDecoder) timeDecoder).loadIntBatch_ns;
+      loadIntBatch_cnt = ((LongDeltaDecoder) timeDecoder).loadIntBatch_cnt;
+      ((LongDeltaDecoder) timeDecoder).loadIntBatch_ns =
+          0; // reset because timeDecoder is global for all pageReaders of a chunk
+      ((LongDeltaDecoder) timeDecoder).loadIntBatch_cnt =
+          0; // reset because timeDecoder is global for all pageReaders of a chunk
+    }
     return builder.build();
   }
 
