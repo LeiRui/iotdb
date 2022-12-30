@@ -288,7 +288,7 @@ public abstract class DeltaBinaryDecoder extends Decoder {
                 break;
               }
             }
-
+            equal = true;
             if (equal) {
               data[i] = previous + regularTimeInterval;
               TsFileConstant.ts2diff_equal++;
