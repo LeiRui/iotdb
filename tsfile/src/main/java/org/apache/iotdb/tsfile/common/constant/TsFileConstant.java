@@ -53,8 +53,8 @@ public class TsFileConstant {
   public static final Pattern NODE_NAME_IN_INTO_PATH_PATTERN =
       Pattern.compile(NODE_NAME_IN_INTO_PATH_MATCHER);
 
-  public static long ts2diff_equal = 0;
-  public static long ts2diff_notEqual = 0;
+  //  public static long ts2diff_equal = 0;
+  //  public static long ts2diff_notEqual = 0;
 
   private TsFileConstant() {}
 

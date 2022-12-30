@@ -1,7 +1,6 @@
 package org.apache.iotdb.commons.service.metric;
 
 import org.apache.iotdb.commons.service.metric.enums.Operation;
-import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 
 public class IOMonitor {
 
@@ -135,16 +134,16 @@ public class IOMonitor {
         .append(DCP_Server_Query_Fetch_ns)
         .append("\n");
 
-    stringBuilder
-        .append("ts2diff_equal")
-        .append(",")
-        .append(TsFileConstant.ts2diff_equal)
-        .append("\n");
-    stringBuilder
-        .append("ts2diff_notequal")
-        .append(",")
-        .append(TsFileConstant.ts2diff_notEqual)
-        .append("\n");
+    //    stringBuilder
+    //        .append("ts2diff_equal")
+    //        .append(",")
+    //        .append(TsFileConstant.ts2diff_equal)
+    //        .append("\n");
+    //    stringBuilder
+    //        .append("ts2diff_notequal")
+    //        .append(",")
+    //        .append(TsFileConstant.ts2diff_notEqual)
+    //        .append("\n");
 
     return stringBuilder.toString();
   }
