@@ -241,6 +241,7 @@ public abstract class DeltaBinaryDecoder extends Decoder {
           for (int i = 0; i < packNum; i++) {
             data[i] = previous + minDeltaBase; // v=0
             previous = data[i];
+            TsFileConstant.ts2diff_notEqual++;
           }
         } else if (newRegularDelta < 0 || newRegularDelta >= Math.pow(2, packWidth)) {
           // [CASE 2] no need to compare equality cause impossible
@@ -252,6 +253,7 @@ public abstract class DeltaBinaryDecoder extends Decoder {
             long v = BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth);
             data[i] = previous + minDeltaBase + v;
             previous = data[i];
+            TsFileConstant.ts2diff_notEqual++;
           }
         } else {
           // [CASE 3]
@@ -289,9 +291,11 @@ public abstract class DeltaBinaryDecoder extends Decoder {
 
             if (equal) {
               data[i] = previous + regularTimeInterval;
+              TsFileConstant.ts2diff_equal++;
             } else {
               long v = BytesUtils.bytesToLong(deltaBuf, packWidth * i, packWidth);
               data[i] = previous + minDeltaBase + v;
+              TsFileConstant.ts2diff_notEqual++;
             }
             previous = data[i];
           }
