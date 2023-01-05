@@ -228,7 +228,8 @@ public abstract class DeltaBinaryDecoder extends Decoder {
 
       previous = firstValue;
       readIntTotalCount = packNum;
-      nextReadIndex = 0;
+      //      nextReadIndex = 0;
+      nextReadIndex = readIntTotalCount; // TODO for test
 
       if (enableRegularityTimeDecode) {
         long newRegularDelta = regularTimeInterval - minDeltaBase;
