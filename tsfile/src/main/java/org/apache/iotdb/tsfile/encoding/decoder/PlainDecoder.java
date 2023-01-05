@@ -29,6 +29,8 @@ import java.nio.ByteBuffer;
 
 public class PlainDecoder extends Decoder {
 
+  private boolean moveToLast = false;
+
   public PlainDecoder() {
     super(TSEncoding.PLAIN);
   }
@@ -50,17 +52,35 @@ public class PlainDecoder extends Decoder {
 
   @Override
   public long readLong(ByteBuffer buffer) {
-    return buffer.getLong();
+    //    return buffer.getLong();
+    long v = buffer.getLong();
+    if (!moveToLast) {
+      buffer.position(buffer.limit() - 8);
+      moveToLast = true;
+    }
+    return v;
   }
 
   @Override
   public float readFloat(ByteBuffer buffer) {
-    return buffer.getFloat();
+    //    return buffer.getFloat();
+    float v = buffer.getFloat();
+    if (!moveToLast) {
+      buffer.position(buffer.limit() - 4);
+      moveToLast = true;
+    }
+    return v;
   }
 
   @Override
   public double readDouble(ByteBuffer buffer) {
-    return buffer.getDouble();
+    //    return buffer.getDouble();
+    double v = buffer.getDouble();
+    if (!moveToLast) {
+      buffer.position(buffer.limit() - 8);
+      moveToLast = true;
+    }
+    return v;
   }
 
   @Override
