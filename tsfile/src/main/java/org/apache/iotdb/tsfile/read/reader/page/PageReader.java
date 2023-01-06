@@ -194,10 +194,14 @@ public class PageReader implements IPageReader {
           }
           break;
         case INT64:
+          long minPageTime = Long.MAX_VALUE; // for fair comparison: equal point number
           while (timeDecoder.hasNext(timeBuffer)) {
             long timestamp = timeDecoder.readLong(timeBuffer);
             long aLong = valueDecoder.readLong(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aLong))) {
+            //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+            // aLong))) {
+            if (timestamp < minPageTime) {
+              minPageTime = timestamp;
               timeBuilder.writeLong(timestamp);
               valueBuilder.writeLong(aLong);
               builder.declarePosition();
