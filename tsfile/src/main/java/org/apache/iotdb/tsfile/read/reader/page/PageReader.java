@@ -21,7 +21,6 @@ package org.apache.iotdb.tsfile.read.reader.page;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
 import org.apache.iotdb.tsfile.encoding.decoder.DeltaBinaryDecoder.LongDeltaDecoder;
-import org.apache.iotdb.tsfile.encoding.decoder.PlainDecoder;
 import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
 import org.apache.iotdb.tsfile.file.header.PageHeader;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -170,6 +169,7 @@ public class PageReader implements IPageReader {
     TsBlockBuilder builder = new TsBlockBuilder(Collections.singletonList(dataType));
     TimeColumnBuilder timeBuilder = builder.getTimeColumnBuilder();
     ColumnBuilder valueBuilder = builder.getColumnBuilder(0);
+    long minPageTime = Long.MAX_VALUE; // for fair comparison: equal point number
     if (filter == null || filter.satisfy(getStatistics())) {
       switch (dataType) {
         case BOOLEAN:
@@ -187,65 +187,56 @@ public class PageReader implements IPageReader {
           while (timeDecoder.hasNext(timeBuffer)) {
             long timestamp = timeDecoder.readLong(timeBuffer);
             int anInt = valueDecoder.readInt(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, anInt))) {
+            //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+            // anInt))) {
+            if (timestamp < minPageTime) {
+              minPageTime = timestamp;
               timeBuilder.writeLong(timestamp);
               valueBuilder.writeInt(anInt);
               builder.declarePosition();
             }
           }
           break;
-        case INT64:
+        case INT64: // test data type
           while (timeDecoder.hasNext(timeBuffer)) {
             long timestamp = timeDecoder.readLong(timeBuffer);
             long aLong = valueDecoder.readLong(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aLong))) {
+            //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+            // aLong))) {
+            if (timestamp < minPageTime) {
+              minPageTime = timestamp;
               timeBuilder.writeLong(timestamp);
               valueBuilder.writeLong(aLong);
               builder.declarePosition();
             }
-          }
-          // reset because timeDecoder is global for all pageReaders of a chunk
-          if (timeDecoder instanceof PlainDecoder) {
-            ((PlainDecoder) timeDecoder).moveToLast = false;
-          }
-          if (valueDecoder instanceof PlainDecoder) {
-            ((PlainDecoder) valueDecoder).moveToLast = false;
           }
           break;
         case FLOAT:
           while (timeDecoder.hasNext(timeBuffer)) {
             long timestamp = timeDecoder.readLong(timeBuffer);
             float aFloat = valueDecoder.readFloat(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aFloat))) {
+            //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+            // aFloat))) {
+            if (timestamp < minPageTime) {
+              minPageTime = timestamp;
               timeBuilder.writeLong(timestamp);
               valueBuilder.writeFloat(aFloat);
               builder.declarePosition();
             }
-          }
-          // reset because timeDecoder is global for all pageReaders of a chunk
-          if (timeDecoder instanceof PlainDecoder) {
-            ((PlainDecoder) timeDecoder).moveToLast = false;
-          }
-          if (valueDecoder instanceof PlainDecoder) {
-            ((PlainDecoder) valueDecoder).moveToLast = false;
           }
           break;
         case DOUBLE:
           while (timeDecoder.hasNext(timeBuffer)) {
             long timestamp = timeDecoder.readLong(timeBuffer);
             double aDouble = valueDecoder.readDouble(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aDouble))) {
+            //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+            // aDouble))) {
+            if (timestamp < minPageTime) {
+              minPageTime = timestamp;
               timeBuilder.writeLong(timestamp);
               valueBuilder.writeDouble(aDouble);
               builder.declarePosition();
             }
-          }
-          // reset because timeDecoder is global for all pageReaders of a chunk
-          if (timeDecoder instanceof PlainDecoder) {
-            ((PlainDecoder) timeDecoder).moveToLast = false;
-          }
-          if (valueDecoder instanceof PlainDecoder) {
-            ((PlainDecoder) valueDecoder).moveToLast = false;
           }
           break;
         case TEXT:

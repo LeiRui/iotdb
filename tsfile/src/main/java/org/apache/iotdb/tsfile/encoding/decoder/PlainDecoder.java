@@ -29,8 +29,6 @@ import java.nio.ByteBuffer;
 
 public class PlainDecoder extends Decoder {
 
-  public boolean moveToLast = false; // NOTE: this variable is shared by all pageReaders in a chunk
-
   public PlainDecoder() {
     super(TSEncoding.PLAIN);
   }
@@ -54,10 +52,7 @@ public class PlainDecoder extends Decoder {
   public long readLong(ByteBuffer buffer) {
     //    return buffer.getLong();
     long v = buffer.getLong();
-    if (!moveToLast) {
-      buffer.position(buffer.limit() - 8);
-      moveToLast = true;
-    }
+    buffer.position(buffer.limit());
     return v;
   }
 
@@ -65,10 +60,7 @@ public class PlainDecoder extends Decoder {
   public float readFloat(ByteBuffer buffer) {
     //    return buffer.getFloat();
     float v = buffer.getFloat();
-    if (!moveToLast) {
-      buffer.position(buffer.limit() - 4);
-      moveToLast = true;
-    }
+    buffer.position(buffer.limit());
     return v;
   }
 
@@ -76,10 +68,7 @@ public class PlainDecoder extends Decoder {
   public double readDouble(ByteBuffer buffer) {
     //    return buffer.getDouble();
     double v = buffer.getDouble();
-    if (!moveToLast) {
-      buffer.position(buffer.limit() - 8);
-      moveToLast = true;
-    }
+    buffer.position(buffer.limit());
     return v;
   }
 
