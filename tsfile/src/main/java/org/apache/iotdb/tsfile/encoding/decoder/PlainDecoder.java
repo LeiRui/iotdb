@@ -29,7 +29,7 @@ import java.nio.ByteBuffer;
 
 public class PlainDecoder extends Decoder {
 
-  private boolean moveToLast = false;
+  public boolean moveToLast = false; // NOTE: this variable is shared by all pageReaders in a chunk
 
   public PlainDecoder() {
     super(TSEncoding.PLAIN);

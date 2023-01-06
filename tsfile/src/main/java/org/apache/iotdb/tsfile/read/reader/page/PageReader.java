@@ -21,6 +21,7 @@ package org.apache.iotdb.tsfile.read.reader.page;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
 import org.apache.iotdb.tsfile.encoding.decoder.DeltaBinaryDecoder.LongDeltaDecoder;
+import org.apache.iotdb.tsfile.encoding.decoder.PlainDecoder;
 import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
 import org.apache.iotdb.tsfile.file.header.PageHeader;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -203,6 +204,13 @@ public class PageReader implements IPageReader {
               builder.declarePosition();
             }
           }
+          // reset because timeDecoder is global for all pageReaders of a chunk
+          if (timeDecoder instanceof PlainDecoder) {
+            ((PlainDecoder) timeDecoder).moveToLast = false;
+          }
+          if (valueDecoder instanceof PlainDecoder) {
+            ((PlainDecoder) valueDecoder).moveToLast = false;
+          }
           break;
         case FLOAT:
           while (timeDecoder.hasNext(timeBuffer)) {
@@ -214,6 +222,13 @@ public class PageReader implements IPageReader {
               builder.declarePosition();
             }
           }
+          // reset because timeDecoder is global for all pageReaders of a chunk
+          if (timeDecoder instanceof PlainDecoder) {
+            ((PlainDecoder) timeDecoder).moveToLast = false;
+          }
+          if (valueDecoder instanceof PlainDecoder) {
+            ((PlainDecoder) valueDecoder).moveToLast = false;
+          }
           break;
         case DOUBLE:
           while (timeDecoder.hasNext(timeBuffer)) {
@@ -224,6 +239,13 @@ public class PageReader implements IPageReader {
               valueBuilder.writeDouble(aDouble);
               builder.declarePosition();
             }
+          }
+          // reset because timeDecoder is global for all pageReaders of a chunk
+          if (timeDecoder instanceof PlainDecoder) {
+            ((PlainDecoder) timeDecoder).moveToLast = false;
+          }
+          if (valueDecoder instanceof PlainDecoder) {
+            ((PlainDecoder) valueDecoder).moveToLast = false;
           }
           break;
         case TEXT:
