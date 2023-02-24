@@ -115,6 +115,7 @@ public class PageReader implements IPageReader {
   @SuppressWarnings("squid:S3776") // Suppress high Cognitive Complexity warning
   @Override
   public BatchData getAllSatisfiedPageData(boolean ascending) throws IOException {
+    boolean flag = false;
     BatchData pageData = BatchDataFactory.createBatchData(dataType, ascending, false);
     if (filter == null || filter.satisfy(getStatistics())) {
       while (timeDecoder.hasNext(timeBuffer)) {
@@ -144,11 +145,17 @@ public class PageReader implements IPageReader {
               pageData.putFloat(timestamp, aFloat);
             }
             break;
-          case DOUBLE:
+          case DOUBLE: // TODO
             double aDouble = valueDecoder.readDouble(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aDouble))) {
+            double targetTimestamp = (pageHeader.getStartTime() + pageHeader.getEndTime()) / 2.0;
+            if (!flag && timestamp >= targetTimestamp) {
+              flag = true;
               pageData.putDouble(timestamp, aDouble);
             }
+            //            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp,
+            // aDouble))) {
+            //              pageData.putDouble(timestamp, aDouble);
+            //            }
             break;
           case TEXT:
             Binary aBinary = valueDecoder.readBinary(valueBuffer);
