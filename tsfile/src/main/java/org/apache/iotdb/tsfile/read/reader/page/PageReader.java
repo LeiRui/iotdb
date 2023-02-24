@@ -26,6 +26,7 @@ import org.apache.iotdb.tsfile.file.header.PageHeader;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.file.metadata.statistics.Statistics;
+import org.apache.iotdb.tsfile.file.metadata.statistics.StepRegress;
 import org.apache.iotdb.tsfile.read.common.BatchData;
 import org.apache.iotdb.tsfile.read.common.BatchDataFactory;
 import org.apache.iotdb.tsfile.read.common.TimeRange;
@@ -61,6 +62,8 @@ public class PageReader implements IPageReader {
 
   /** value column in memory */
   protected ByteBuffer valueBuffer;
+
+  public int timeBufferLength;
 
   protected Filter filter;
 
@@ -102,7 +105,7 @@ public class PageReader implements IPageReader {
    * @param pageData uncompressed bytes size of time column, time column, value column
    */
   private void splitDataToTimeStampAndValue(ByteBuffer pageData) {
-    int timeBufferLength = ReadWriteForEncodingUtils.readUnsignedVarInt(pageData);
+    timeBufferLength = ReadWriteForEncodingUtils.readUnsignedVarInt(pageData);
 
     timeBuffer = pageData.slice();
     timeBuffer.limit(timeBufferLength);
@@ -111,57 +114,73 @@ public class PageReader implements IPageReader {
     valueBuffer.position(timeBufferLength);
   }
 
+  /**
+   * Find the point with the closet timestamp equal to or larger than the given timestamp in the
+   * chunk.
+   *
+   * @param targetTimestamp must be within the chunk time range [startTime, endTime]
+   */
+  public BatchData findTheClosetPointEqualOrAfter(long targetTimestamp, boolean ascending)
+      throws IOException {
+    BatchData pageData = BatchDataFactory.createBatchData(dataType, ascending, false);
+    StepRegress stepRegress = pageHeader.getStatistics().getStepRegress();
+    // infer position starts from 1, so minus 1 here
+    int estimatedPos = (int) Math.round(stepRegress.infer(targetTimestamp)) - 1;
+
+    // search from estimatePos in the timeBuffer to find the closet timestamp equal to or larger
+    // than the given timestamp
+    if (timeBuffer.getLong(estimatedPos * 8) < targetTimestamp) {
+      while (timeBuffer.getLong(estimatedPos * 8) < targetTimestamp) {
+        estimatedPos++;
+        // IOMonitor.incPointsTravered();
+      }
+    } else if (timeBuffer.getLong(estimatedPos * 8) > targetTimestamp) {
+      while (timeBuffer.getLong(estimatedPos * 8) > targetTimestamp) {
+        estimatedPos--;
+        // IOMonitor.incPointsTravered();
+      }
+      if (timeBuffer.getLong(estimatedPos * 8) < targetTimestamp) {
+        estimatedPos++;
+        // IOMonitor.incPointsTravered();
+      } // else equal
+    } // else equal
+
+    // since we have constrained that targetTimestamp must be within the chunk time range
+    // [startTime, endTime],
+    // we can definitely find such a point with the closet timestamp equal to or larger than the
+    // given timestamp in the chunk.
+    long timestamp = timeBuffer.getLong(estimatedPos * 8);
+    switch (dataType) {
+        // iotdb的int类型的plain编码用的是自制的不支持random access
+        //      case INT32:
+        //        return new MinMaxInfo(pageReader.valueBuffer.getInt(estimatedPos * 4),
+        //            pageReader.timeBuffer.getLong(estimatedPos * 8));
+      case INT64:
+        long longVal = valueBuffer.getLong(timeBufferLength + estimatedPos * 8);
+        pageData.putLong(timestamp, longVal);
+        break;
+      case FLOAT:
+        float floatVal = valueBuffer.getFloat(timeBufferLength + estimatedPos * 4);
+        pageData.putFloat(timestamp, floatVal);
+        break;
+      case DOUBLE:
+        double doubleVal = valueBuffer.getDouble(timeBufferLength + estimatedPos * 8);
+        pageData.putDouble(timestamp, doubleVal);
+        break;
+      default:
+        throw new IOException("Unsupported data type!");
+    }
+
+    return pageData.flip();
+  }
+
   /** @return the returned BatchData may be empty, but never be null */
   @SuppressWarnings("squid:S3776") // Suppress high Cognitive Complexity warning
   @Override
   public BatchData getAllSatisfiedPageData(boolean ascending) throws IOException {
-    BatchData pageData = BatchDataFactory.createBatchData(dataType, ascending, false);
-    if (filter == null || filter.satisfy(getStatistics())) {
-      while (timeDecoder.hasNext(timeBuffer)) {
-        long timestamp = timeDecoder.readLong(timeBuffer);
-        switch (dataType) {
-          case BOOLEAN:
-            boolean aBoolean = valueDecoder.readBoolean(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aBoolean))) {
-              pageData.putBoolean(timestamp, aBoolean);
-            }
-            break;
-          case INT32:
-            int anInt = valueDecoder.readInt(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, anInt))) {
-              pageData.putInt(timestamp, anInt);
-            }
-            break;
-          case INT64:
-            long aLong = valueDecoder.readLong(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aLong))) {
-              pageData.putLong(timestamp, aLong);
-            }
-            break;
-          case FLOAT:
-            float aFloat = valueDecoder.readFloat(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aFloat))) {
-              pageData.putFloat(timestamp, aFloat);
-            }
-            break;
-          case DOUBLE:
-            double aDouble = valueDecoder.readDouble(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aDouble))) {
-              pageData.putDouble(timestamp, aDouble);
-            }
-            break;
-          case TEXT:
-            Binary aBinary = valueDecoder.readBinary(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aBinary))) {
-              pageData.putBinary(timestamp, aBinary);
-            }
-            break;
-          default:
-            throw new UnSupportedDataTypeException(String.valueOf(dataType));
-        }
-      }
-    }
-    return pageData.flip();
+    // TODO
+    double targetTimestamp = (pageHeader.getStartTime() + pageHeader.getEndTime()) / 2.0;
+    return findTheClosetPointEqualOrAfter((long) targetTimestamp, ascending);
   }
 
   @Override

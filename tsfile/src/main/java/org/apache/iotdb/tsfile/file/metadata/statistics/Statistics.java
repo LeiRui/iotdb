@@ -26,6 +26,7 @@ import org.apache.iotdb.tsfile.utils.Binary;
 import org.apache.iotdb.tsfile.utils.ReadWriteForEncodingUtils;
 import org.apache.iotdb.tsfile.utils.ReadWriteIOUtils;
 
+import org.eclipse.collections.impl.list.mutable.primitive.DoubleArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +61,8 @@ public abstract class Statistics<T extends Serializable> {
   private long endTime = Long.MIN_VALUE;
 
   static final String STATS_UNSUPPORTED_MSG = "%s statistics does not support: %s";
+
+  private StepRegress stepRegress = new StepRegress();
 
   /**
    * static method providing statistic instance for respective data type.
@@ -114,7 +117,8 @@ public abstract class Statistics<T extends Serializable> {
   public int getSerializedSize() {
     return ReadWriteForEncodingUtils.uVarIntSize(count) // count
         + 16 // startTime, endTime
-        + getStatsSize();
+        + getStatsSize()
+        + getStepRegressSize();
   }
 
   public abstract int getStatsSize();
@@ -124,9 +128,40 @@ public abstract class Statistics<T extends Serializable> {
     byteLen += ReadWriteForEncodingUtils.writeUnsignedVarInt(count, outputStream);
     byteLen += ReadWriteIOUtils.write(startTime, outputStream);
     byteLen += ReadWriteIOUtils.write(endTime, outputStream);
+
+    // TODO serialize stepRegress
+    byteLen += serializeStepRegress(outputStream);
+
     // value statistics of different data type
     byteLen += serializeStats(outputStream);
     return byteLen;
+  }
+
+  /**
+   * slope, m: the number of segment keys, m-2 segment keys in between when m>=2. The first and the
+   * last segment keys are not serialized here, because they are minTime and endTime respectively.
+   */
+  int serializeStepRegress(OutputStream outputStream) throws IOException {
+    int byteLen = 0;
+    stepRegress.learn(); // TODO ensure excuted once and only once
+    byteLen += ReadWriteIOUtils.write(stepRegress.getSlope(), outputStream); // K
+    DoubleArrayList segmentKeys = stepRegress.getSegmentKeys();
+    // t1 is startTime, tm is endTime, so no need serialize t1 and tm
+    byteLen += ReadWriteIOUtils.write(segmentKeys.size(), outputStream); // m
+    for (int i = 1; i < segmentKeys.size() - 1; i++) { // t2,t3,...,tm-1
+      byteLen += ReadWriteIOUtils.write(segmentKeys.get(i), outputStream);
+    }
+    return byteLen;
+  }
+
+  public int getStepRegressSize() {
+    if (stepRegress.getSegmentKeys().size() > 2) {
+      // 12: 8 bytes for slope, 4 bytes for size of segmentKeys
+      // t1 is startTime, tm is endTime, so no need serialize t1 and tm
+      return 12 + 8 * (stepRegress.getSegmentKeys().size() - 2);
+    } else {
+      return 12; // 8 bytes for slope, 4 bytes for size of segmentKeys
+    }
   }
 
   abstract int serializeStats(OutputStream outputStream) throws IOException;
@@ -165,6 +200,12 @@ public abstract class Statistics<T extends Serializable> {
         }
         // must be sure no overlap between two statistics
         this.count += stats.count;
+
+        // TODO M4-LSM assumes that there is always only one page in a chunk
+        // TODO M4-LSM if there are more than one chunk in a time series, then access each
+        //  chunkMetadata anyway
+        this.stepRegress = stats.stepRegress;
+
         mergeStatisticsValue((Statistics<T>) stats);
         isEmpty = false;
       }
@@ -180,31 +221,37 @@ public abstract class Statistics<T extends Serializable> {
   public void update(long time, boolean value) {
     update(time);
     updateStats(value);
+    updateStepRegress(time);
   }
 
   public void update(long time, int value) {
     update(time);
     updateStats(value);
+    updateStepRegress(time);
   }
 
   public void update(long time, long value) {
     update(time);
     updateStats(value);
+    updateStepRegress(time);
   }
 
   public void update(long time, float value) {
     update(time);
     updateStats(value);
+    updateStepRegress(time);
   }
 
   public void update(long time, double value) {
     update(time);
     updateStats(value);
+    updateStepRegress(time);
   }
 
   public void update(long time, Binary value) {
     update(time);
     updateStats(value);
+    updateStepRegress(time);
   }
 
   public void update(long time) {
@@ -220,31 +267,47 @@ public abstract class Statistics<T extends Serializable> {
   public void update(long[] time, boolean[] values, int batchSize) {
     update(time, batchSize);
     updateStats(values, batchSize);
+    updateStepRegress(time, batchSize);
   }
 
   public void update(long[] time, int[] values, int batchSize) {
     update(time, batchSize);
     updateStats(values, batchSize);
+    updateStepRegress(time, batchSize);
   }
 
   public void update(long[] time, long[] values, int batchSize) {
     update(time, batchSize);
     updateStats(values, batchSize);
+    updateStepRegress(time, batchSize);
   }
 
   public void update(long[] time, float[] values, int batchSize) {
     update(time, batchSize);
     updateStats(values, batchSize);
+    updateStepRegress(time, batchSize);
   }
 
   public void update(long[] time, double[] values, int batchSize) {
     update(time, batchSize);
     updateStats(values, batchSize);
+    updateStepRegress(time, batchSize);
   }
 
   public void update(long[] time, Binary[] values, int batchSize) {
     update(time, batchSize);
     updateStats(values, batchSize);
+    updateStepRegress(time, batchSize);
+  }
+
+  void updateStepRegress(long timestamp) {
+    stepRegress.insert(timestamp);
+  }
+
+  void updateStepRegress(long[] timestamps, int batchSize) {
+    for (int i = 0; i < batchSize; i++) {
+      updateStepRegress(timestamps[i]);
+    }
   }
 
   public void update(long[] time, int batchSize) {
@@ -342,6 +405,10 @@ public abstract class Statistics<T extends Serializable> {
     statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(inputStream));
     statistics.setStartTime(ReadWriteIOUtils.readLong(inputStream));
     statistics.setEndTime(ReadWriteIOUtils.readLong(inputStream));
+
+    // TODO
+    statistics.deserializeStepRegress(inputStream);
+
     statistics.deserialize(inputStream);
     statistics.isEmpty = false;
     return statistics;
@@ -353,9 +420,49 @@ public abstract class Statistics<T extends Serializable> {
     statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(buffer));
     statistics.setStartTime(ReadWriteIOUtils.readLong(buffer));
     statistics.setEndTime(ReadWriteIOUtils.readLong(buffer));
+
+    // TODO
+    statistics.deserializeStepRegress(buffer);
+
     statistics.deserialize(buffer);
     statistics.isEmpty = false;
     return statistics;
+  }
+
+  void deserializeStepRegress(ByteBuffer byteBuffer) {
+    this.stepRegress.setSlope(ReadWriteIOUtils.readDouble(byteBuffer)); // K
+    int m = ReadWriteIOUtils.readInt(byteBuffer); // m
+    DoubleArrayList segmentKeys = new DoubleArrayList();
+    segmentKeys.add(this.startTime); // t1
+    if (m > 1) { // TODO DEBUG
+      for (int i = 0; i < m - 2; i++) { // t2,t3,...,tm-1
+        segmentKeys.add(ReadWriteIOUtils.readDouble(byteBuffer));
+      }
+      segmentKeys.add(this.endTime);
+    }
+    this.stepRegress.setSegmentKeys(segmentKeys);
+    if (m > 1) {
+      // don't forget this, execute once and only once when
+      this.stepRegress.inferInterceptsFromSegmentKeys();
+    }
+  }
+
+  void deserializeStepRegress(InputStream inputStream) throws IOException {
+    this.stepRegress.setSlope(ReadWriteIOUtils.readDouble(inputStream)); // K
+    int m = ReadWriteIOUtils.readInt(inputStream); // m
+    DoubleArrayList segmentKeys = new DoubleArrayList();
+    segmentKeys.add(this.startTime); // t1
+    if (m > 1) { // TODO DEBUG
+      for (int i = 0; i < m - 2; i++) { // t2,t3,...,tm-1
+        segmentKeys.add(ReadWriteIOUtils.readDouble(inputStream));
+      }
+      segmentKeys.add(this.endTime);
+    }
+    this.stepRegress.setSegmentKeys(segmentKeys);
+    if (m > 1) {
+      // don't forget this, execute once and only once when
+      this.stepRegress.inferInterceptsFromSegmentKeys();
+    }
   }
 
   public long getStartTime() {
@@ -380,6 +487,10 @@ public abstract class Statistics<T extends Serializable> {
 
   public void setCount(int count) {
     this.count = count;
+  }
+
+  public StepRegress getStepRegress() {
+    return stepRegress;
   }
 
   public abstract long calculateRamSize();
