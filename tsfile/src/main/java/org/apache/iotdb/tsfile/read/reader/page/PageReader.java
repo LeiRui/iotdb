@@ -173,6 +173,8 @@ public class PageReader implements IPageReader {
 
   @Override
   public TsBlock getAllSatisfiedData() throws IOException {
+    boolean flag = false;
+    double targetTimestamp = (pageHeader.getStartTime() + pageHeader.getEndTime()) / 2.0;
     TsBlockBuilder builder = new TsBlockBuilder(Collections.singletonList(dataType));
     TimeColumnBuilder timeBuilder = builder.getTimeColumnBuilder();
     ColumnBuilder valueBuilder = builder.getColumnBuilder(0);
@@ -200,11 +202,12 @@ public class PageReader implements IPageReader {
             }
           }
           break;
-        case INT64:
+        case INT64: // TODO
           while (timeDecoder.hasNext(timeBuffer)) {
             long timestamp = timeDecoder.readLong(timeBuffer);
             long aLong = valueDecoder.readLong(valueBuffer);
-            if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aLong))) {
+            if (timestamp >= targetTimestamp && !flag) {
+              flag = true;
               timeBuilder.writeLong(timestamp);
               valueBuilder.writeLong(aLong);
               builder.declarePosition();
