@@ -29,7 +29,7 @@ import java.util.Properties;
 /** TSFileConfig is a configuration class. Every variable is public and has default value. */
 public class TSFileConfig implements Serializable {
 
-  private boolean enableChunkIndex = false;
+  private boolean enableChunkIndex = true;
 
   /** encoding configuration */
   private boolean enableRegularityTimeDecode = false;

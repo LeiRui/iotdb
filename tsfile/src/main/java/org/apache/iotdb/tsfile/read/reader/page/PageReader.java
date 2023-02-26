@@ -237,12 +237,12 @@ public class PageReader implements IPageReader {
         //        valueBuilder.writeFloat(floatVal);
         //        builder.declarePosition();
         //        break;
-        //      case DOUBLE:
-        //        double doubleVal = valueBuffer.getDouble(timeBufferLength + estimatedPos * 8);
-        //        timeBuilder.writeLong(timestamp);
-        //        valueBuilder.writeDouble(doubleVal);
-        //        builder.declarePosition();
-        //        break;
+      case DOUBLE:
+        double doubleVal = valueBuffer.getDouble(timeBufferLength + estimatedPos * 8);
+        timeBuilder.writeLong(timestamp);
+        valueBuilder.writeDouble(doubleVal);
+        builder.declarePosition();
+        break;
       default:
         throw new IOException("Unsupported data type!");
     }
@@ -276,6 +276,24 @@ public class PageReader implements IPageReader {
                 flag = true;
                 timeBuilder.writeLong(timestamp);
                 valueBuilder.writeLong(aLong);
+                builder.declarePosition();
+              }
+            }
+            break;
+          case DOUBLE:
+            while (timeDecoder.hasNext(timeBuffer)) {
+              long timestamp = timeDecoder.readLong(timeBuffer);
+              double aDouble = valueDecoder.readDouble(valueBuffer);
+              //              if (!isDeleted(timestamp) && (filter == null ||
+              // filter.satisfy(timestamp, aLong))) {
+              //                timeBuilder.writeLong(timestamp);
+              //                valueBuilder.writeLong(aLong);
+              //                builder.declarePosition();
+              //              }
+              if (timestamp >= targetTimestamp && !flag) {
+                flag = true;
+                timeBuilder.writeLong(timestamp);
+                valueBuilder.writeDouble(aDouble);
                 builder.declarePosition();
               }
             }

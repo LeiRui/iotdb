@@ -621,7 +621,7 @@ public class IoTDBConfig {
   private TSEncoding defaultFloatEncoding = TSEncoding.GORILLA;
 
   /** DOUBLE encoding when creating schema automatically is enabled */
-  private TSEncoding defaultDoubleEncoding = TSEncoding.GORILLA;
+  private TSEncoding defaultDoubleEncoding = TSEncoding.PLAIN;
 
   /** TEXT encoding when creating schema automatically is enabled */
   private TSEncoding defaultTextEncoding = TSEncoding.PLAIN;
