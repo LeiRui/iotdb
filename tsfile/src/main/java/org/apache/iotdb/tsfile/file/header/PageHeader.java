@@ -60,7 +60,8 @@ public class PageHeader {
     int compressedSize = ReadWriteForEncodingUtils.readUnsignedVarInt(inputStream);
     Statistics<? extends Serializable> statistics = null;
     if (hasStatistic) {
-      statistics = Statistics.deserialize(inputStream, dataType);
+      // TODO only statistics in PageHeader has stepRegress
+      statistics = Statistics.deserializeWithStepRegress(inputStream, dataType);
     }
     return new PageHeader(uncompressedSize, compressedSize, statistics);
   }
