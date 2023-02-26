@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class MySessionExample {
 
@@ -46,6 +47,11 @@ public class MySessionExample {
   private static final String deviceName = "root.sg1.d1";
 
   private static final String sensorName = "s1";
+
+  private static final String warmUpDeviceName =
+      "root.warm.d1"; // this is because step A very big for the first execution
+  private static final String warmUpSensorName =
+      "s1"; // this is because step A very big for the first execution
 
   private static String query_data;
 
@@ -87,6 +93,8 @@ public class MySessionExample {
         TSEncoding valueEncoding = TSEncoding.valueOf(args[4]);
         CompressionType compressionType = CompressionType.valueOf(args[5]);
         writeRealData(desiredChunkPointNum, csvData, valueDataType, valueEncoding, compressionType);
+        writeWarmUpData(); // this is because step A very big for the first execution, so query
+        // warmUp data before real test
       } catch (Exception e) {
         System.out.println(
             "Correct usage: w desiredChunkPointNum csvData valueDataType valueEncoding compressionType");
@@ -212,8 +220,69 @@ public class MySessionExample {
     }
   }
 
+  private static void writeWarmUpData() throws Exception {
+    int desiredChunkPointNum = 1000;
+    int pointsNum = 2000;
+    MeasurementSchema measurementSchema =
+        new MeasurementSchema(
+            warmUpSensorName, TSDataType.INT64, TSEncoding.PLAIN, CompressionType.SNAPPY);
+    List<MeasurementSchema> schemaList = new ArrayList<>();
+    schemaList.add(measurementSchema);
+    Tablet tablet = new Tablet(warmUpDeviceName, schemaList);
+    long[] timestamps = tablet.timestamps;
+    Object[] values = tablet.values;
+
+    int currentChunkPointNum = 0;
+    long time = 1;
+    for (int j = 0; j < pointsNum; j++) {
+      currentChunkPointNum++;
+      int row = tablet.rowSize++;
+      timestamps[row] = time++;
+      long long_value = ThreadLocalRandom.current().nextLong(100);
+      long[] long_sensor = (long[]) values[0];
+      long_sensor[row] = long_value;
+      if (tablet.rowSize == tablet.getMaxRowNumber()) {
+        sessionEnableRedirect.insertTablet(tablet, true);
+        tablet.reset();
+      }
+      if (currentChunkPointNum == desiredChunkPointNum) {
+        // only here and the last tablet trigger the flush
+        sessionEnableRedirect.insertTablet(tablet, true);
+        tablet.reset();
+        sessionEnableRedirect.executeNonQueryStatement("flush");
+        currentChunkPointNum = 0;
+      }
+    }
+    // flush the last Tablet
+    if (tablet.rowSize != 0) {
+      sessionEnableRedirect.insertTablet(tablet, true);
+      tablet.reset();
+      sessionEnableRedirect.executeNonQueryStatement("flush");
+    }
+  }
+
   private static void query4Redirect(String queryMetricResultCsvPath)
       throws IoTDBConnectionException, StatementExecutionException, FileNotFoundException {
+    // warm up query
+    // this is because step A very big for the first execution, so query warmUp data before real
+    // test
+    int warmPoints = 0;
+    String query_warmUpData =
+        String.format("select %s from %s", warmUpSensorName, warmUpDeviceName);
+    try (SessionDataSet dataSet = sessionEnableRedirect.executeQueryStatement(query_warmUpData)) {
+      DataIterator dataIterator = dataSet.iterator();
+      while (dataIterator.next()) { // avoid constructRowRecordFromValueArray
+        warmPoints++;
+      }
+    }
+    // sessionEnableRedirect.fetchAllConnections() will call IOMonitor.print(),
+    // which resets the metrics of the warmUp query.
+    TSConnectionInfoResp warmUpResp = sessionEnableRedirect.fetchAllConnections();
+    System.out.println(warmUpResp.metrics);
+    System.out.println("Finish querying warm up data: " + warmPoints + " points.");
+    System.out.println("-----------------------------");
+
+    // begin real query test
     PrintWriter pw = new PrintWriter(queryMetricResultCsvPath);
     System.out.println("begin query: " + query_data);
     long cnt = 0;

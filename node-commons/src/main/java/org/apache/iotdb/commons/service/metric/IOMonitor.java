@@ -33,6 +33,32 @@ public class IOMonitor {
 
   private static final Logger DEBUG_LOGGER = LoggerFactory.getLogger("IOMonitor");
 
+  private static void reset() {
+    DCP_A_GET_CHUNK_METADATAS_count = 0;
+    DCP_A_GET_CHUNK_METADATAS_ns = 0;
+
+    DCP_B_READ_MEM_CHUNK_count = 0;
+    DCP_B_READ_MEM_CHUNK_ns = 0;
+
+    DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_count = 0;
+    DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_ns = 0;
+
+    DCP_D_DECODE_PAGEDATA_count = 0;
+    DCP_D_DECODE_PAGEDATA_ns = 0;
+
+    DCP_SeriesScanOperator_hasNext_count = 0;
+    DCP_SeriesScanOperator_hasNext_ns = 0;
+
+    DCP_Server_Query_Execute_count = 0;
+    DCP_Server_Query_Execute_ns = 0;
+
+    DCP_Server_Query_Fetch_count = 0;
+    DCP_Server_Query_Fetch_ns = 0;
+
+    DCP_LongDeltaDecoder_loadIntBatch_count = 0;
+    DCP_LongDeltaDecoder_loadIntBatch_ns = 0;
+  }
+
   public static void addMeasure(Operation operation, long elapsedTimeInNanosecond) {
     // TODO tmp for debug
     DEBUG_LOGGER.info(operation.getName() + ": " + elapsedTimeInNanosecond + " ns");
@@ -142,6 +168,7 @@ public class IOMonitor {
         .append(DCP_Server_Query_Fetch_ns)
         .append("\n");
 
+    reset(); // whenever print() is called, reset the metrics, to clean warm up information.
     return stringBuilder.toString();
   }
 }
