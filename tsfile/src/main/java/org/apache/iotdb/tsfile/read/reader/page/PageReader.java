@@ -217,7 +217,7 @@ public class PageReader implements IPageReader {
     // given timestamp in the chunk.
     long timestamp = timeBuffer.getLong(estimatedPos * 8);
     switch (dataType) {
-        // iotdb的int类型的plain编码用的是自制的不支持random access（DOUBLE的plain似乎也有问题）
+        // iotdb的int类型的plain编码用的是自制的不支持random access
         //      case INT32:
         //        return new MinMaxInfo(pageReader.valueBuffer.getInt(estimatedPos * 4),
         //            pageReader.timeBuffer.getLong(estimatedPos * 8));
