@@ -1223,6 +1223,16 @@ public class IoTDBDescriptor {
   private void loadTsFileProps(Properties properties) {
     TSFileDescriptor.getInstance()
         .getConfig()
+        .setEnableChunkIndex(
+            Boolean.parseBoolean(
+                properties
+                    .getProperty(
+                        "enable_chunk_index",
+                        Boolean.toString(
+                            TSFileDescriptor.getInstance().getConfig().isEnableChunkIndex()))
+                    .trim()));
+    TSFileDescriptor.getInstance()
+        .getConfig()
         .setEnableRegularityTimeDecode(
             Boolean.parseBoolean(
                 properties

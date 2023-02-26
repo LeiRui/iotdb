@@ -37,7 +37,6 @@ import org.apache.iotdb.tsfile.read.common.block.column.TimeColumnBuilder;
 import org.apache.iotdb.tsfile.read.filter.basic.Filter;
 import org.apache.iotdb.tsfile.read.filter.operator.AndFilter;
 import org.apache.iotdb.tsfile.read.reader.IPageReader;
-import org.apache.iotdb.tsfile.utils.Binary;
 import org.apache.iotdb.tsfile.utils.ReadWriteForEncodingUtils;
 
 import java.io.IOException;
@@ -253,80 +252,33 @@ public class PageReader implements IPageReader {
 
   @Override
   public TsBlock getAllSatisfiedData() throws IOException {
+    long targetTimestamp = (long) ((pageHeader.getStartTime() + pageHeader.getEndTime()) / 2.0);
     if (pageHeader.getStatistics().getStepRegress().getSegmentKeys().size() > 0) {
-      double targetTimestamp = (pageHeader.getStartTime() + pageHeader.getEndTime()) / 2.0;
-      return findTheClosetPointEqualOrAfter_TSBlock((long) targetTimestamp);
+      // size>0 既要求开启了enableChunkIndex，同时一个chunk里不止一个page:
+      // 否则如果一个chunk里只有一个page的话，page的statistics用chunk的statistics赋值，
+      // 意味着stepRegress是一个初始化的空类，segmentKeys大小为0，此时就不用stepRegress index了
+      return findTheClosetPointEqualOrAfter_TSBlock(targetTimestamp);
     } else {
-      // TODO 如果一个chunk里只有一个page的话，page的statistics用chunk的statistics赋值，
-      //  意味着stepRegress是一个初始化的空类，segmentKeys大小为0，此时就不用stepRegress index了
+      boolean flag = false;
       TsBlockBuilder builder = new TsBlockBuilder(Collections.singletonList(dataType));
       TimeColumnBuilder timeBuilder = builder.getTimeColumnBuilder();
       ColumnBuilder valueBuilder = builder.getColumnBuilder(0);
       if (filter == null || filter.satisfy(getStatistics())) {
         switch (dataType) {
-          case BOOLEAN:
-            while (timeDecoder.hasNext(timeBuffer)) {
-              long timestamp = timeDecoder.readLong(timeBuffer);
-              boolean aBoolean = valueDecoder.readBoolean(valueBuffer);
-              if (!isDeleted(timestamp)
-                  && (filter == null || filter.satisfy(timestamp, aBoolean))) {
-                timeBuilder.writeLong(timestamp);
-                valueBuilder.writeBoolean(aBoolean);
-                builder.declarePosition();
-              }
-            }
-            break;
-          case INT32:
-            while (timeDecoder.hasNext(timeBuffer)) {
-              long timestamp = timeDecoder.readLong(timeBuffer);
-              int anInt = valueDecoder.readInt(valueBuffer);
-              if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, anInt))) {
-                timeBuilder.writeLong(timestamp);
-                valueBuilder.writeInt(anInt);
-                builder.declarePosition();
-              }
-            }
-            break;
           case INT64:
             while (timeDecoder.hasNext(timeBuffer)) {
               long timestamp = timeDecoder.readLong(timeBuffer);
               long aLong = valueDecoder.readLong(valueBuffer);
-              if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aLong))) {
+              //              if (!isDeleted(timestamp) && (filter == null ||
+              // filter.satisfy(timestamp, aLong))) {
+              //                timeBuilder.writeLong(timestamp);
+              //                valueBuilder.writeLong(aLong);
+              //                builder.declarePosition();
+              //              }
+              if (timestamp >= targetTimestamp && !flag) {
+                flag = true;
                 timeBuilder.writeLong(timestamp);
                 valueBuilder.writeLong(aLong);
-                builder.declarePosition();
-              }
-            }
-            break;
-          case FLOAT:
-            while (timeDecoder.hasNext(timeBuffer)) {
-              long timestamp = timeDecoder.readLong(timeBuffer);
-              float aFloat = valueDecoder.readFloat(valueBuffer);
-              if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aFloat))) {
-                timeBuilder.writeLong(timestamp);
-                valueBuilder.writeFloat(aFloat);
-                builder.declarePosition();
-              }
-            }
-            break;
-          case DOUBLE:
-            while (timeDecoder.hasNext(timeBuffer)) {
-              long timestamp = timeDecoder.readLong(timeBuffer);
-              double aDouble = valueDecoder.readDouble(valueBuffer);
-              if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aDouble))) {
-                timeBuilder.writeLong(timestamp);
-                valueBuilder.writeDouble(aDouble);
-                builder.declarePosition();
-              }
-            }
-            break;
-          case TEXT:
-            while (timeDecoder.hasNext(timeBuffer)) {
-              long timestamp = timeDecoder.readLong(timeBuffer);
-              Binary aBinary = valueDecoder.readBinary(valueBuffer);
-              if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aBinary))) {
-                timeBuilder.writeLong(timestamp);
-                valueBuilder.writeBinary(aBinary);
                 builder.declarePosition();
               }
             }
