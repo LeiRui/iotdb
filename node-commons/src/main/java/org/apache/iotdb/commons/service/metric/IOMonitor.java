@@ -2,6 +2,9 @@ package org.apache.iotdb.commons.service.metric;
 
 import org.apache.iotdb.commons.service.metric.enums.Operation;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class IOMonitor {
 
   public static int DCP_A_GET_CHUNK_METADATAS_count = 0;
@@ -28,7 +31,12 @@ public class IOMonitor {
   public static int DCP_LongDeltaDecoder_loadIntBatch_count = 0;
   public static long DCP_LongDeltaDecoder_loadIntBatch_ns = 0;
 
+  private static final Logger DEBUG_LOGGER = LoggerFactory.getLogger("IOMonitor");
+
   public static void addMeasure(Operation operation, long elapsedTimeInNanosecond) {
+    // TODO tmp for debug
+    DEBUG_LOGGER.info(operation.getName() + ": " + elapsedTimeInNanosecond + " ns");
+
     switch (operation) {
       case DCP_A_GET_CHUNK_METADATAS:
         DCP_A_GET_CHUNK_METADATAS_count++;
