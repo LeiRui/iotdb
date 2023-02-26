@@ -1,6 +1,7 @@
 package org.apache.iotdb.commons.service.metric;
 
 import org.apache.iotdb.commons.service.metric.enums.Operation;
+import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,8 @@ public class IOMonitor {
 
     DCP_LongDeltaDecoder_loadIntBatch_count = 0;
     DCP_LongDeltaDecoder_loadIntBatch_ns = 0;
+
+    TsFileConstant.DCP_D_DECODE_PAGEDATA_traversedPointNum = 0;
   }
 
   public static void addMeasure(Operation operation, long elapsedTimeInNanosecond) {
@@ -166,6 +169,11 @@ public class IOMonitor {
         .append("Server_Query_Fetch_ns")
         .append(",")
         .append(DCP_Server_Query_Fetch_ns)
+        .append("\n");
+    stringBuilder
+        .append("DCP_D_DECODE_PAGEDATA_traversedPointNum")
+        .append(",")
+        .append(TsFileConstant.DCP_D_DECODE_PAGEDATA_traversedPointNum)
         .append("\n");
 
     reset(); // whenever print() is called, reset the metrics, to clean warm up information.

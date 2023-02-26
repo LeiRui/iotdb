@@ -19,6 +19,7 @@
 package org.apache.iotdb.tsfile.read.reader.page;
 
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
+import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
 import org.apache.iotdb.tsfile.encoding.decoder.DeltaBinaryDecoder.LongDeltaDecoder;
 import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
@@ -131,16 +132,16 @@ public class PageReader implements IPageReader {
     if (timeBuffer.getLong(estimatedPos * 8) < targetTimestamp) {
       while (timeBuffer.getLong(estimatedPos * 8) < targetTimestamp) {
         estimatedPos++;
-        // IOMonitor.incPointsTravered();
+        TsFileConstant.DCP_D_DECODE_PAGEDATA_traversedPointNum++;
       }
     } else if (timeBuffer.getLong(estimatedPos * 8) > targetTimestamp) {
       while (timeBuffer.getLong(estimatedPos * 8) > targetTimestamp) {
         estimatedPos--;
-        // IOMonitor.incPointsTravered();
+        TsFileConstant.DCP_D_DECODE_PAGEDATA_traversedPointNum++;
       }
       if (timeBuffer.getLong(estimatedPos * 8) < targetTimestamp) {
         estimatedPos++;
-        // IOMonitor.incPointsTravered();
+        TsFileConstant.DCP_D_DECODE_PAGEDATA_traversedPointNum++;
       } // else equal
     } // else equal
 
@@ -202,16 +203,16 @@ public class PageReader implements IPageReader {
     if (timeBuffer.getLong(estimatedPos * 8) < targetTimestamp) {
       while (timeBuffer.getLong(estimatedPos * 8) < targetTimestamp) {
         estimatedPos++;
-        // IOMonitor.incPointsTravered();
+        TsFileConstant.DCP_D_DECODE_PAGEDATA_traversedPointNum++;
       }
     } else if (timeBuffer.getLong(estimatedPos * 8) > targetTimestamp) {
       while (timeBuffer.getLong(estimatedPos * 8) > targetTimestamp) {
         estimatedPos--;
-        // IOMonitor.incPointsTravered();
+        TsFileConstant.DCP_D_DECODE_PAGEDATA_traversedPointNum++;
       }
       if (timeBuffer.getLong(estimatedPos * 8) < targetTimestamp) {
         estimatedPos++;
-        // IOMonitor.incPointsTravered();
+        TsFileConstant.DCP_D_DECODE_PAGEDATA_traversedPointNum++;
       } // else equal
     } // else equal
 
