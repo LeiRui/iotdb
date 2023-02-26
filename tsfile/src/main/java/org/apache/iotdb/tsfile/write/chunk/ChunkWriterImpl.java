@@ -287,7 +287,8 @@ public class ChunkWriterImpl implements IChunkWriter {
         byte[] b = pageBuffer.toByteArray();
         pageBuffer.reset();
         pageBuffer.write(b, 0, this.sizeWithoutStatistic);
-        firstPageStatistics.serialize(pageBuffer);
+        // TODO only statistics in PageHeader has stepRegress
+        firstPageStatistics.serializeWithStepRegress(pageBuffer);
         pageBuffer.write(b, this.sizeWithoutStatistic, b.length - this.sizeWithoutStatistic);
         pageWriter.writePageHeaderAndDataIntoBuff(pageBuffer, false);
         firstPageStatistics = null;

@@ -238,7 +238,8 @@ public class PageWriter {
     } else {
       ReadWriteForEncodingUtils.writeUnsignedVarInt(uncompressedSize, pageBuffer);
       ReadWriteForEncodingUtils.writeUnsignedVarInt(compressedSize, pageBuffer);
-      statistics.serialize(pageBuffer);
+      // TODO only statistics in PageHeader has stepRegress
+      statistics.serializeWithStepRegress(pageBuffer);
     }
 
     // write page content to temp PBAOS

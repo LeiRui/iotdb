@@ -123,7 +123,7 @@ public abstract class Statistics<T extends Serializable> {
 
   public abstract int getStatsSize();
 
-  public int serialize(OutputStream outputStream) throws IOException {
+  public int serializeWithStepRegress(OutputStream outputStream) throws IOException {
     int byteLen = 0;
     byteLen += ReadWriteForEncodingUtils.writeUnsignedVarInt(count, outputStream);
     byteLen += ReadWriteIOUtils.write(startTime, outputStream);
@@ -132,6 +132,16 @@ public abstract class Statistics<T extends Serializable> {
     // TODO serialize stepRegress
     byteLen += serializeStepRegress(outputStream);
 
+    // value statistics of different data type
+    byteLen += serializeStats(outputStream);
+    return byteLen;
+  }
+
+  public int serialize(OutputStream outputStream) throws IOException {
+    int byteLen = 0;
+    byteLen += ReadWriteForEncodingUtils.writeUnsignedVarInt(count, outputStream);
+    byteLen += ReadWriteIOUtils.write(startTime, outputStream);
+    byteLen += ReadWriteIOUtils.write(endTime, outputStream);
     // value statistics of different data type
     byteLen += serializeStats(outputStream);
     return byteLen;
@@ -405,6 +415,17 @@ public abstract class Statistics<T extends Serializable> {
     statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(inputStream));
     statistics.setStartTime(ReadWriteIOUtils.readLong(inputStream));
     statistics.setEndTime(ReadWriteIOUtils.readLong(inputStream));
+    statistics.deserialize(inputStream);
+    statistics.isEmpty = false;
+    return statistics;
+  }
+
+  public static Statistics<? extends Serializable> deserializeWithStepRegress(
+      InputStream inputStream, TSDataType dataType) throws IOException {
+    Statistics<? extends Serializable> statistics = getStatsByType(dataType);
+    statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(inputStream));
+    statistics.setStartTime(ReadWriteIOUtils.readLong(inputStream));
+    statistics.setEndTime(ReadWriteIOUtils.readLong(inputStream));
 
     // TODO
     statistics.deserializeStepRegress(inputStream);
@@ -415,6 +436,17 @@ public abstract class Statistics<T extends Serializable> {
   }
 
   public static Statistics<? extends Serializable> deserialize(
+      ByteBuffer buffer, TSDataType dataType) {
+    Statistics<? extends Serializable> statistics = getStatsByType(dataType);
+    statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(buffer));
+    statistics.setStartTime(ReadWriteIOUtils.readLong(buffer));
+    statistics.setEndTime(ReadWriteIOUtils.readLong(buffer));
+    statistics.deserialize(buffer);
+    statistics.isEmpty = false;
+    return statistics;
+  }
+
+  public static Statistics<? extends Serializable> deserializeWithStepRegress(
       ByteBuffer buffer, TSDataType dataType) {
     Statistics<? extends Serializable> statistics = getStatsByType(dataType);
     statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(buffer));

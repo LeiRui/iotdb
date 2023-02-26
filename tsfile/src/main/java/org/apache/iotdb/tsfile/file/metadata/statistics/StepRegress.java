@@ -416,6 +416,7 @@ public class StepRegress {
           String.format(
               "t out of range. input within [%s,%s]", segmentKeys.get(0), segmentKeys.getLast()));
     }
+
     int seg = 0;
     for (; seg < segmentKeys.size() - 1; seg++) {
       if (t <= segmentKeys.get(seg + 1)) { // t < the right end of the segment interval
