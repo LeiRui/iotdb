@@ -129,16 +129,6 @@ public abstract class Statistics<T extends Serializable> {
     byteLen += ReadWriteForEncodingUtils.writeUnsignedVarInt(count, outputStream);
     byteLen += ReadWriteIOUtils.write(startTime, outputStream);
     byteLen += ReadWriteIOUtils.write(endTime, outputStream);
-    // value statistics of different data type
-    byteLen += serializeStats(outputStream);
-    return byteLen;
-  }
-
-  public int serializeWithStepRegress(OutputStream outputStream) throws IOException {
-    int byteLen = 0;
-    byteLen += ReadWriteForEncodingUtils.writeUnsignedVarInt(count, outputStream);
-    byteLen += ReadWriteIOUtils.write(startTime, outputStream);
-    byteLen += ReadWriteIOUtils.write(endTime, outputStream);
 
     // TODO serialize stepRegress
     if (TSFileDescriptor.getInstance().getConfig().isEnableChunkIndex()) {
@@ -149,6 +139,22 @@ public abstract class Statistics<T extends Serializable> {
     byteLen += serializeStats(outputStream);
     return byteLen;
   }
+
+  //  public int serializeWithStepRegress(OutputStream outputStream) throws IOException {
+  //    int byteLen = 0;
+  //    byteLen += ReadWriteForEncodingUtils.writeUnsignedVarInt(count, outputStream);
+  //    byteLen += ReadWriteIOUtils.write(startTime, outputStream);
+  //    byteLen += ReadWriteIOUtils.write(endTime, outputStream);
+  //
+  //    // TODO serialize stepRegress
+  //    if (TSFileDescriptor.getInstance().getConfig().isEnableChunkIndex()) {
+  //      byteLen += serializeStepRegress(outputStream);
+  //    }
+  //
+  //    // value statistics of different data type
+  //    byteLen += serializeStats(outputStream);
+  //    return byteLen;
+  //  }
 
   /**
    * slope, m: the number of segment keys, m-2 segment keys in between when m>=2. The first and the
@@ -418,17 +424,6 @@ public abstract class Statistics<T extends Serializable> {
     statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(inputStream));
     statistics.setStartTime(ReadWriteIOUtils.readLong(inputStream));
     statistics.setEndTime(ReadWriteIOUtils.readLong(inputStream));
-    statistics.deserialize(inputStream);
-    statistics.isEmpty = false;
-    return statistics;
-  }
-
-  public static Statistics<? extends Serializable> deserializeWithStepRegress(
-      InputStream inputStream, TSDataType dataType) throws IOException {
-    Statistics<? extends Serializable> statistics = getStatsByType(dataType);
-    statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(inputStream));
-    statistics.setStartTime(ReadWriteIOUtils.readLong(inputStream));
-    statistics.setEndTime(ReadWriteIOUtils.readLong(inputStream));
 
     // TODO
     if (TSFileDescriptor.getInstance().getConfig().isEnableChunkIndex()) {
@@ -440,18 +435,24 @@ public abstract class Statistics<T extends Serializable> {
     return statistics;
   }
 
-  public static Statistics<? extends Serializable> deserialize(
-      ByteBuffer buffer, TSDataType dataType) {
-    Statistics<? extends Serializable> statistics = getStatsByType(dataType);
-    statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(buffer));
-    statistics.setStartTime(ReadWriteIOUtils.readLong(buffer));
-    statistics.setEndTime(ReadWriteIOUtils.readLong(buffer));
-    statistics.deserialize(buffer);
-    statistics.isEmpty = false;
-    return statistics;
-  }
+  //  public static Statistics<? extends Serializable> deserializeWithStepRegress(
+  //      InputStream inputStream, TSDataType dataType) throws IOException {
+  //    Statistics<? extends Serializable> statistics = getStatsByType(dataType);
+  //    statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(inputStream));
+  //    statistics.setStartTime(ReadWriteIOUtils.readLong(inputStream));
+  //    statistics.setEndTime(ReadWriteIOUtils.readLong(inputStream));
+  //
+  //    // TODO
+  //    if (TSFileDescriptor.getInstance().getConfig().isEnableChunkIndex()) {
+  //      statistics.deserializeStepRegress(inputStream);
+  //    }
+  //
+  //    statistics.deserialize(inputStream);
+  //    statistics.isEmpty = false;
+  //    return statistics;
+  //  }
 
-  public static Statistics<? extends Serializable> deserializeWithStepRegress(
+  public static Statistics<? extends Serializable> deserialize(
       ByteBuffer buffer, TSDataType dataType) {
     Statistics<? extends Serializable> statistics = getStatsByType(dataType);
     statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(buffer));
@@ -467,6 +468,23 @@ public abstract class Statistics<T extends Serializable> {
     statistics.isEmpty = false;
     return statistics;
   }
+
+  //  public static Statistics<? extends Serializable> deserializeWithStepRegress(
+  //      ByteBuffer buffer, TSDataType dataType) {
+  //    Statistics<? extends Serializable> statistics = getStatsByType(dataType);
+  //    statistics.setCount(ReadWriteForEncodingUtils.readUnsignedVarInt(buffer));
+  //    statistics.setStartTime(ReadWriteIOUtils.readLong(buffer));
+  //    statistics.setEndTime(ReadWriteIOUtils.readLong(buffer));
+  //
+  //    // TODO
+  //    if (TSFileDescriptor.getInstance().getConfig().isEnableChunkIndex()) {
+  //      statistics.deserializeStepRegress(buffer);
+  //    }
+  //
+  //    statistics.deserialize(buffer);
+  //    statistics.isEmpty = false;
+  //    return statistics;
+  //  }
 
   void deserializeStepRegress(ByteBuffer byteBuffer) {
     this.stepRegress.setSlope(ReadWriteIOUtils.readDouble(byteBuffer)); // K

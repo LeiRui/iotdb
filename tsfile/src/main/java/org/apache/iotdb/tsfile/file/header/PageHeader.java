@@ -60,8 +60,7 @@ public class PageHeader {
     int compressedSize = ReadWriteForEncodingUtils.readUnsignedVarInt(inputStream);
     Statistics<? extends Serializable> statistics = null;
     if (hasStatistic) {
-      // TODO only statistics in PageHeader has stepRegress
-      statistics = Statistics.deserializeWithStepRegress(inputStream, dataType);
+      statistics = Statistics.deserialize(inputStream, dataType);
     }
     return new PageHeader(uncompressedSize, compressedSize, statistics);
   }
@@ -72,9 +71,7 @@ public class PageHeader {
       return new PageHeader(0, 0, null);
     }
     int compressedSize = ReadWriteForEncodingUtils.readUnsignedVarInt(buffer);
-    // TODO only statistics in PageHeader has stepRegress
-    Statistics<? extends Serializable> statistics =
-        Statistics.deserializeWithStepRegress(buffer, dataType);
+    Statistics<? extends Serializable> statistics = Statistics.deserialize(buffer, dataType);
     return new PageHeader(uncompressedSize, compressedSize, statistics);
   }
 
@@ -124,7 +121,7 @@ public class PageHeader {
     int length = 0;
     length += ReadWriteForEncodingUtils.writeUnsignedVarInt(uncompressedSize, outputStream);
     length += ReadWriteForEncodingUtils.writeUnsignedVarInt(compressedSize, outputStream);
-    length += statistics.serializeWithStepRegress(outputStream);
+    length += statistics.serialize(outputStream);
     return length;
   }
 

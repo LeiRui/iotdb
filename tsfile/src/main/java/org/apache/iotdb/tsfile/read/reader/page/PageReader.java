@@ -253,10 +253,7 @@ public class PageReader implements IPageReader {
   @Override
   public TsBlock getAllSatisfiedData() throws IOException {
     long targetTimestamp = (long) ((pageHeader.getStartTime() + pageHeader.getEndTime()) / 2.0);
-    if (pageHeader.getStatistics().getStepRegress().getSegmentKeys().size() > 0) {
-      // size>0 既要求开启了enableChunkIndex，同时一个chunk里不止一个page:
-      // 否则如果一个chunk里只有一个page的话，page的statistics用chunk的statistics赋值，
-      // 意味着stepRegress是一个初始化的空类，segmentKeys大小为0，此时就不用stepRegress index了
+    if (TSFileDescriptor.getInstance().getConfig().isEnableChunkIndex()) {
       return findTheClosetPointEqualOrAfter_TSBlock(targetTimestamp);
     } else {
       boolean flag = false;

@@ -31,7 +31,6 @@ import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.fileSystem.FSFactoryProducer;
 import org.apache.iotdb.tsfile.read.TsFileSequenceReader;
-import org.apache.iotdb.tsfile.read.common.BatchData;
 import org.apache.iotdb.tsfile.read.reader.page.PageReader;
 import org.apache.iotdb.tsfile.read.reader.page.TimePageReader;
 import org.apache.iotdb.tsfile.read.reader.page.ValuePageReader;
@@ -53,7 +52,8 @@ public class TsFileSequenceRead {
     "squid:S106"
   }) // Suppress high Cognitive Complexity and Standard outputs warning
   public static void main(String[] args) throws IOException {
-    String filename = "test.tsfile";
+    String filename =
+        "D:\\test-datanode\\data\\sequence\\root.sg1\\0\\0\\1677340129488-1-0-0.tsfile";
     if (args.length >= 1) {
       filename = args[0];
     }
@@ -149,22 +149,24 @@ public class TsFileSequenceRead {
                 PageReader pageReader =
                     new PageReader(
                         pageData, header.getDataType(), valueDecoder, defaultTimeDecoder, null);
-                BatchData batchData = pageReader.getAllSatisfiedPageData();
-                if (header.getChunkType() == MetaMarker.CHUNK_HEADER) {
-                  System.out.println("\t\tpoints in the page: " + pageHeader.getNumOfValues());
-                } else {
-                  System.out.println("\t\tpoints in the page: " + batchData.length());
-                }
-                if (printDetail) {
-                  while (batchData.hasCurrent()) {
-                    System.out.println(
-                        "\t\t\ttime, value: "
-                            + batchData.currentTime()
-                            + ", "
-                            + batchData.currentValue());
-                    batchData.next();
-                  }
-                }
+                //                BatchData batchData = pageReader.getAllSatisfiedPageData();
+                //                if (header.getChunkType() == MetaMarker.CHUNK_HEADER) {
+                //                  System.out.println("\t\tpoints in the page: " +
+                // pageHeader.getNumOfValues());
+                //                } else {
+                //                  System.out.println("\t\tpoints in the page: " +
+                // batchData.length());
+                //                }
+                //                if (printDetail) {
+                //                  while (batchData.hasCurrent()) {
+                //                    System.out.println(
+                //                        "\t\t\ttime, value: "
+                //                            + batchData.currentTime()
+                //                            + ", "
+                //                            + batchData.currentValue());
+                //                    batchData.next();
+                //                  }
+                //                }
               }
               pageIndex++;
               dataSize -= pageHeader.getSerializedPageSize();

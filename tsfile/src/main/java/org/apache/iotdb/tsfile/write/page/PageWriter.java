@@ -187,8 +187,8 @@ public class PageWriter {
   }
 
   /**
-   * getUncompressedBytes return data what it has been written in form of <code>
-   * size of time list, time list, value list</code>
+   * getUncompressedBytes return data what it has been written in form of <code> size of time list,
+   * time list, value list</code>
    *
    * @return a new readable ByteBuffer whose position is 0.
    */
@@ -238,8 +238,7 @@ public class PageWriter {
     } else {
       ReadWriteForEncodingUtils.writeUnsignedVarInt(uncompressedSize, pageBuffer);
       ReadWriteForEncodingUtils.writeUnsignedVarInt(compressedSize, pageBuffer);
-      // TODO only statistics in PageHeader has stepRegress
-      statistics.serializeWithStepRegress(pageBuffer);
+      statistics.serialize(pageBuffer);
     }
 
     // write page content to temp PBAOS
