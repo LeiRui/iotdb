@@ -174,7 +174,7 @@ public class PageReader implements IPageReader {
   @Override
   public TsBlock getAllSatisfiedData() throws IOException {
     boolean flag = false;
-    double targetTimestamp = (pageHeader.getStartTime() + pageHeader.getEndTime()) / 2.0;
+    long targetTimestamp = (long) ((pageHeader.getStartTime() + pageHeader.getEndTime()) / 2.0);
     TsBlockBuilder builder = new TsBlockBuilder(Collections.singletonList(dataType));
     TimeColumnBuilder timeBuilder = builder.getTimeColumnBuilder();
     ColumnBuilder valueBuilder = builder.getColumnBuilder(0);
