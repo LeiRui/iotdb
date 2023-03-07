@@ -64,7 +64,7 @@ public class IOMonitor {
 
   public static void addMeasure(Operation operation, long elapsedTimeInNanosecond) {
     // TODO tmp for debug
-    DEBUG_LOGGER.info(operation.getName() + ": " + elapsedTimeInNanosecond + " ns");
+    // DEBUG_LOGGER.info(operation.getName() + ": " + elapsedTimeInNanosecond + " ns");
 
     switch (operation) {
       case DCP_A_GET_CHUNK_METADATAS:
