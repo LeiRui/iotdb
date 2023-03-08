@@ -257,7 +257,7 @@ public class PageReader implements IPageReader {
     ColumnBuilder valueBuilder = builder.getColumnBuilder(0);
 
     int low = 0;
-    int high = (int) pageHeader.getStatistics().getCount();
+    int high = (int) pageHeader.getStatistics().getCount() - 1; // array index counting from 0
     int estimatedPos = -1;
     while (low <= high) {
       // Notice how the middle index is generated (int mid = low + ((high – low) / 2).
