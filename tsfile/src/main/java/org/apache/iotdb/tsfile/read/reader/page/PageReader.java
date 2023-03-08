@@ -281,14 +281,14 @@ public class PageReader implements IPageReader {
               }
             }
             break;
-          case DOUBLE:
+          case DOUBLE: // TODO double is not modified
             while (timeDecoder.hasNext(timeBuffer)) {
               long timestamp = timeDecoder.readLong(timeBuffer);
               double aDouble = valueDecoder.readDouble(valueBuffer);
               //              if (!isDeleted(timestamp) && (filter == null ||
-              // filter.satisfy(timestamp, aLong))) {
+              //                  filter.satisfy(timestamp, aDouble))) {
               //                timeBuilder.writeLong(timestamp);
-              //                valueBuilder.writeLong(aLong);
+              //                valueBuilder.writeDouble(aDouble);
               //                builder.declarePosition();
               //              }
               if (timestamp >= targetTimestamp && !flag) {

@@ -20,6 +20,7 @@
 package org.apache.iotdb.tsfile.read.reader.chunk;
 
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
+import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.compress.IUnCompressor;
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
 import org.apache.iotdb.tsfile.file.MetaMarker;
@@ -111,7 +112,11 @@ public class ChunkReader implements IChunkReader {
       }
       // if the current page satisfies
       if (pageSatisfied(pageHeader)) {
+        long startTime = System.nanoTime();
         pageReaderList.add(constructPageReaderForNextPage(pageHeader));
+        long elapsedTime = System.nanoTime() - startTime;
+        TsFileConstant.DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_count++;
+        TsFileConstant.DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_ns += elapsedTime;
       } else {
         skipBytesInStreamByLength(pageHeader.getCompressedSize());
       }

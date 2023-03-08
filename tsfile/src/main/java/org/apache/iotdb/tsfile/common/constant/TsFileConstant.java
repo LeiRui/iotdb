@@ -54,6 +54,8 @@ public class TsFileConstant {
       Pattern.compile(NODE_NAME_IN_INTO_PATH_MATCHER);
 
   public static long DCP_D_DECODE_PAGEDATA_traversedPointNum = 0;
+  public static int DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_count = 0;
+  public static long DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_ns = 0;
 
   private TsFileConstant() {}
 

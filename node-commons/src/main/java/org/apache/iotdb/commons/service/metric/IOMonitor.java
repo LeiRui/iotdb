@@ -14,8 +14,8 @@ public class IOMonitor {
   public static int DCP_B_READ_MEM_CHUNK_count = 0;
   public static long DCP_B_READ_MEM_CHUNK_ns = 0;
 
-  public static int DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_count = 0;
-  public static long DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_ns = 0;
+  //  public static int DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_count = 0;
+  //  public static long DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_ns = 0;
 
   public static int DCP_D_DECODE_PAGEDATA_count = 0;
   public static long DCP_D_DECODE_PAGEDATA_ns = 0;
@@ -41,9 +41,6 @@ public class IOMonitor {
     DCP_B_READ_MEM_CHUNK_count = 0;
     DCP_B_READ_MEM_CHUNK_ns = 0;
 
-    DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_count = 0;
-    DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_ns = 0;
-
     DCP_D_DECODE_PAGEDATA_count = 0;
     DCP_D_DECODE_PAGEDATA_ns = 0;
 
@@ -60,6 +57,8 @@ public class IOMonitor {
     DCP_LongDeltaDecoder_loadIntBatch_ns = 0;
 
     TsFileConstant.DCP_D_DECODE_PAGEDATA_traversedPointNum = 0;
+    TsFileConstant.DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_count = 0;
+    TsFileConstant.DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_ns = 0;
   }
 
   public static void addMeasure(Operation operation, long elapsedTimeInNanosecond) {
@@ -75,10 +74,10 @@ public class IOMonitor {
         DCP_B_READ_MEM_CHUNK_count++;
         DCP_B_READ_MEM_CHUNK_ns += elapsedTimeInNanosecond;
         break;
-      case DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA:
-        DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_count++;
-        DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_ns += elapsedTimeInNanosecond;
-        break;
+        //      case DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA:
+        //        DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_count++;
+        //        DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_ns += elapsedTimeInNanosecond;
+        //        break;
       case DCP_D_DECODE_PAGEDATA:
         DCP_D_DECODE_PAGEDATA_count++;
         DCP_D_DECODE_PAGEDATA_ns += elapsedTimeInNanosecond;
@@ -118,7 +117,7 @@ public class IOMonitor {
     stringBuilder
         .append("C_cnt")
         .append(",")
-        .append(DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_count)
+        .append(TsFileConstant.DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_count)
         .append("\n");
     stringBuilder.append("D_cnt").append(",").append(DCP_D_DECODE_PAGEDATA_count).append("\n");
     stringBuilder
@@ -147,7 +146,7 @@ public class IOMonitor {
     stringBuilder
         .append("C_ns")
         .append(",")
-        .append(DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_ns)
+        .append(TsFileConstant.DCP_C_DESERIALIZE_PAGEHEADER_DECOMPRESS_PAGEDATA_ns)
         .append("\n");
     stringBuilder.append("D_ns").append(",").append(DCP_D_DECODE_PAGEDATA_ns).append("\n");
     stringBuilder
