@@ -251,11 +251,59 @@ public class PageReader implements IPageReader {
     return builder.build();
   }
 
+  public TsBlock binarySearch(long targetTimestamp) throws IOException {
+    TsBlockBuilder builder = new TsBlockBuilder(Collections.singletonList(dataType));
+    TimeColumnBuilder timeBuilder = builder.getTimeColumnBuilder();
+    ColumnBuilder valueBuilder = builder.getColumnBuilder(0);
+
+    int low = 0;
+    int high = (int) pageHeader.getStatistics().getCount();
+    int estimatedPos = -1;
+    while (low <= high) {
+      // Notice how the middle index is generated (int mid = low + ((high – low) / 2).
+      // This to accommodate for extremely large arrays. If the middle index is generated
+      // simply by getting the middle index (int mid = (low + high) / 2), an overflow may
+      // occur for an array containing 230 or more elements as the sum of low + high could
+      // easily exceed the maximum positive int value.
+      int mid = low + ((high - low) / 2);
+      estimatedPos = mid;
+      long timestamp = timeBuffer.getLong(estimatedPos * 8);
+      if (timestamp < targetTimestamp) {
+        low = mid + 1;
+      } else if (timestamp > targetTimestamp) {
+        high = mid - 1;
+      } else { // timestamp == targetTimestamp
+        break;
+      }
+    }
+    // 这样找出来的estimatedPos应该要么就是等于targetTimestamp，要么是在其附近（倒未必是最近）
+    long timestamp = timeBuffer.getLong(estimatedPos * 8);
+    switch (dataType) {
+      case INT64:
+        long longVal = valueBuffer.getLong(timeBufferLength + estimatedPos * 8);
+        timeBuilder.writeLong(timestamp);
+        valueBuilder.writeLong(longVal);
+        builder.declarePosition();
+        break;
+      case DOUBLE:
+        double doubleVal = valueBuffer.getDouble(timeBufferLength + estimatedPos * 8);
+        timeBuilder.writeLong(timestamp);
+        valueBuilder.writeDouble(doubleVal);
+        builder.declarePosition();
+        break;
+      default:
+        throw new IOException("Unsupported data type!");
+    }
+
+    return builder.build();
+  }
+
   @Override
   public TsBlock getAllSatisfiedData() throws IOException {
     long targetTimestamp = (long) ((pageHeader.getStartTime() + pageHeader.getEndTime()) / 2.0);
     if (TSFileDescriptor.getInstance().getConfig().isEnableChunkIndex()) {
-      return findTheClosetPointEqualOrAfter_TSBlock(targetTimestamp);
+      //      return findTheClosetPointEqualOrAfter_TSBlock(targetTimestamp);
+      return binarySearch(targetTimestamp);
     } else {
       boolean flag = false;
       TsBlockBuilder builder = new TsBlockBuilder(Collections.singletonList(dataType));
