@@ -30,13 +30,7 @@ import org.apache.iotdb.confignode.rpc.thrift.TGlobalConfig;
 import org.apache.iotdb.confignode.rpc.thrift.TRatisConfig;
 import org.apache.iotdb.db.conf.directories.DirectoryManager;
 import org.apache.iotdb.db.engine.StorageEngineV2;
-import org.apache.iotdb.db.engine.compaction.constant.CompactionPriority;
-import org.apache.iotdb.db.engine.compaction.constant.CrossCompactionPerformer;
-import org.apache.iotdb.db.engine.compaction.constant.CrossCompactionSelector;
-import org.apache.iotdb.db.engine.compaction.constant.InnerSeqCompactionPerformer;
-import org.apache.iotdb.db.engine.compaction.constant.InnerSequenceCompactionSelector;
-import org.apache.iotdb.db.engine.compaction.constant.InnerUnseqCompactionPerformer;
-import org.apache.iotdb.db.engine.compaction.constant.InnerUnsequenceCompactionSelector;
+import org.apache.iotdb.db.engine.compaction.constant.*;
 import org.apache.iotdb.db.exception.BadNodeUrlFormatException;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.qp.utils.DateTimeUtils;
@@ -1221,6 +1215,16 @@ public class IoTDBDescriptor {
   }
 
   private void loadTsFileProps(Properties properties) {
+    TSFileDescriptor.getInstance()
+        .getConfig()
+        .setUncompressedSave(
+            Boolean.parseBoolean(
+                properties
+                    .getProperty(
+                        "uncompressed_save",
+                        Boolean.toString(
+                            TSFileDescriptor.getInstance().getConfig().isUncompressedSave()))
+                    .trim()));
     TSFileDescriptor.getInstance()
         .getConfig()
         .setEnableChunkIndex(

@@ -36,6 +36,8 @@ import org.apache.iotdb.tsfile.read.TsFileCheckStatus;
 import org.apache.iotdb.tsfile.read.TsFileSequenceReader;
 import org.apache.iotdb.tsfile.read.common.Chunk;
 import org.apache.iotdb.tsfile.read.common.Path;
+import org.apache.iotdb.tsfile.read.reader.IChunkReader;
+import org.apache.iotdb.tsfile.read.reader.chunk.ChunkReader;
 import org.apache.iotdb.tsfile.utils.BloomFilter;
 import org.apache.iotdb.tsfile.utils.Pair;
 
@@ -289,6 +291,7 @@ public class TsFileSketchTool {
         // chunk begins
         for (ChunkMetadata chunkMetadata : chunkGroupMetadata.getChunkMetadataList()) {
           Chunk chunk = reader.readMemChunk(chunkMetadata);
+          IChunkReader chunkReader = new ChunkReader(chunk, null);
           printlnBoth(
               pw,
               String.format("%20d", chunkMetadata.getOffsetOfChunkHeader())
@@ -327,6 +330,7 @@ public class TsFileSketchTool {
                     + pageHeader.getCompressedSize());
           } else { // more than one page in this chunk
             ByteBuffer chunkDataBuffer = chunk.getData();
+            chunkDataBuffer.position(0);
             int pageID = 0;
             while (chunkDataBuffer.remaining() > 0) {
               pageID++;
@@ -475,7 +479,7 @@ public class TsFileSketchTool {
   }
 
   private static Pair<String, String> checkArgs(String[] args) {
-    String filename = "D:\\1677395376855-1-0-0.tsfile";
+    String filename = "D:\\github\\compress\\snappy-gorilla-ts2diff-1679741885945-1-0-0.tsfile";
     String outFile = "TsFile_sketch_view.txt";
     if (args.length == 1) {
       filename = args[0];
