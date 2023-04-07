@@ -28,6 +28,12 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>iotdb-server</artifactId>
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
     <name>IoTDB Server</name>
     <properties>
         <iotdb.test.skip>false</iotdb.test.skip>
@@ -35,6 +41,25 @@
         <iotdb.ut.skip>${iotdb.test.skip}</iotdb.ut.skip>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
+            <version>10.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ggalmazor</groupId>
+            <artifactId>lt_downsampling_java8</artifactId>
+            <version>0.0.6</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.iotdb</groupId>
             <artifactId>service-rpc</artifactId>

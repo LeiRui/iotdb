@@ -66,6 +66,7 @@ public enum BuiltinFunction {
   EQUAL_SIZE_BUCKET_M4_SAMPLE("EQUAL_SIZE_BUCKET_M4_SAMPLE", UDTFEqualSizeBucketM4Sample.class),
   EQUAL_SIZE_BUCKET_OUTLIER_SAMPLE(
       "EQUAL_SIZE_BUCKET_OUTLIER_SAMPLE", UDTFEqualSizeBucketOutlierSample.class),
+  SAMPLE("SAMPLE", UDTFSample.class),
   M4("M4", UDTFM4.class);
 
   private final String functionName;

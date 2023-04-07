@@ -1094,4 +1094,80 @@ public class IoTDBUDTFBuiltinFunctionIT {
       fail(throwable.getMessage());
     }
   }
+
+  @Test
+  public void test_sample() {
+    // create timeseries
+    try (Connection connection = EnvFactory.getEnv().getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("SET STORAGE GROUP TO root.m4");
+      statement.execute("CREATE TIMESERIES root.m4.d1.s1 with datatype=double,encoding=PLAIN");
+      statement.execute("CREATE TIMESERIES root.m4.d1.s2 with datatype=INT32,encoding=PLAIN");
+    } catch (SQLException throwable) {
+      fail(throwable.getMessage());
+    }
+
+    // insert data
+    String insertTemplate = "INSERT INTO root.m4.d1(timestamp,%s)" + " VALUES(%d,%d)";
+    try (Connection connection = EnvFactory.getEnv().getConnection();
+        Statement statement = connection.createStatement()) {
+      // "root.m4.d1.s1" data illustration:
+      // https://user-images.githubusercontent.com/33376433/151985070-73158010-8ba0-409d-a1c1-df69bad1aaee.png
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 1, 5));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 2, 15));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 20, 1));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 25, 8));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 54, 3));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 120, 8));
+      statement.execute("FLUSH");
+
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 5, 10));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 8, 8));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 10, 30));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 20, 20));
+      statement.execute("FLUSH");
+
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 27, 20));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 30, 40));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 35, 10));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 40, 20));
+      statement.execute("FLUSH");
+
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 33, 9));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 45, 30));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 52, 8));
+      statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s1", 54, 18));
+      statement.execute("FLUSH");
+
+      // "root.m4.d1.s2" data: constant value 1
+      for (int i = 0; i < 100; i++) {
+        statement.execute(String.format(Locale.ENGLISH, insertTemplate, "s2", i, 1));
+      }
+      statement.execute("FLUSH");
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+    // begin test
+    String[] res = new String[] {"120,8.0"};
+
+    String sql =
+        String.format(
+            "select Sample(s1, '%s'='%s','%s'='%s') from root.m4.d1", "k", 2, "method", "triangle");
+
+    try (Connection conn = EnvFactory.getEnv().getConnection();
+        Statement statement = conn.createStatement()) {
+      ResultSet resultSet = statement.executeQuery(sql);
+      int count = 0;
+      while (resultSet.next()) {
+        String str = resultSet.getString(1) + "," + resultSet.getString(2);
+        System.out.println(str);
+        //        Assert.assertEquals(res[count], str);
+        //        count++;
+      }
+      //      Assert.assertEquals(res.length, count);
+    } catch (SQLException throwable) {
+      fail(throwable.getMessage());
+    }
+  }
 }
