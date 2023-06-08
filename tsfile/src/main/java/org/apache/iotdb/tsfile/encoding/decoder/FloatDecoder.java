@@ -86,6 +86,10 @@ public class FloatDecoder extends Decoder {
     return (float) result;
   }
 
+  public Decoder getDecoder() {
+    return decoder;
+  }
+
   @Override
   public double readDouble(ByteBuffer buffer) {
     readMaxPointValue(buffer);

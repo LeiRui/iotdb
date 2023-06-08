@@ -22,6 +22,7 @@ import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.apache.iotdb.tsfile.encoding.decoder.Decoder;
 import org.apache.iotdb.tsfile.encoding.decoder.DeltaBinaryDecoder.LongDeltaDecoder;
+import org.apache.iotdb.tsfile.encoding.decoder.FloatDecoder;
 import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
 import org.apache.iotdb.tsfile.file.header.PageHeader;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -315,36 +316,34 @@ public class PageReader implements IPageReader {
             while (timeDecoder.hasNext(timeBuffer)) {
               long timestamp = timeDecoder.readLong(timeBuffer);
               long aLong = valueDecoder.readLong(valueBuffer);
-              //              if (!isDeleted(timestamp) && (filter == null ||
-              // filter.satisfy(timestamp, aLong))) {
-              //                timeBuilder.writeLong(timestamp);
-              //                valueBuilder.writeLong(aLong);
-              //                builder.declarePosition();
-              //              }
-              if (timestamp >= targetTimestamp && !flag) {
-                flag = true;
+              if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aLong))) {
                 timeBuilder.writeLong(timestamp);
                 valueBuilder.writeLong(aLong);
                 builder.declarePosition();
               }
+              //              if (timestamp >= targetTimestamp && !flag) {
+              //                flag = true;
+              //                timeBuilder.writeLong(timestamp);
+              //                valueBuilder.writeLong(aLong);
+              //                builder.declarePosition();
+              //              }
             }
             break;
           case DOUBLE: // TODO double is not modified
             while (timeDecoder.hasNext(timeBuffer)) {
               long timestamp = timeDecoder.readLong(timeBuffer);
               double aDouble = valueDecoder.readDouble(valueBuffer);
-              //              if (!isDeleted(timestamp) && (filter == null ||
-              //                  filter.satisfy(timestamp, aDouble))) {
-              //                timeBuilder.writeLong(timestamp);
-              //                valueBuilder.writeDouble(aDouble);
-              //                builder.declarePosition();
-              //              }
-              if (timestamp >= targetTimestamp && !flag) {
-                flag = true;
+              if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aDouble))) {
                 timeBuilder.writeLong(timestamp);
                 valueBuilder.writeDouble(aDouble);
                 builder.declarePosition();
               }
+              //              if (timestamp >= targetTimestamp && !flag) {
+              //                flag = true;
+              //                timeBuilder.writeLong(timestamp);
+              //                valueBuilder.writeDouble(aDouble);
+              //                builder.declarePosition();
+              //              }
             }
             break;
           default:
@@ -359,6 +358,28 @@ public class PageReader implements IPageReader {
             0; // reset because timeDecoder is global for all pageReaders of a chunk
         ((LongDeltaDecoder) timeDecoder).loadIntBatch_cnt =
             0; // reset because timeDecoder is global for all pageReaders of a chunk
+      }
+      if (valueDecoder.getType().equals(TSEncoding.TS_2DIFF)) {
+        if (dataType == TSDataType.INT64) {
+          LongDeltaDecoder longDeltaDecoder = (LongDeltaDecoder) valueDecoder;
+          loadIntBatch_ns += longDeltaDecoder.loadIntBatch_ns;
+          loadIntBatch_cnt += longDeltaDecoder.loadIntBatch_cnt;
+          longDeltaDecoder.loadIntBatch_ns =
+              0; // reset because valueDecoder is global for all pageReaders of a chunk
+          longDeltaDecoder.loadIntBatch_cnt =
+              0; // reset because valueDecoder is global for all pageReaders of a chunk
+        } else if (dataType == TSDataType.DOUBLE) {
+          LongDeltaDecoder longDeltaDecoder =
+              (LongDeltaDecoder) ((FloatDecoder) valueDecoder).getDecoder();
+          loadIntBatch_ns += longDeltaDecoder.loadIntBatch_ns;
+          loadIntBatch_cnt += longDeltaDecoder.loadIntBatch_cnt;
+          longDeltaDecoder.loadIntBatch_ns =
+              0; // reset because valueDecoder is global for all pageReaders of a chunk
+          longDeltaDecoder.loadIntBatch_cnt =
+              0; // reset because valueDecoder is global for all pageReaders of a chunk
+        } else {
+          throw new IOException("oh unsupported data type!");
+        }
       }
       return builder.build();
     }
