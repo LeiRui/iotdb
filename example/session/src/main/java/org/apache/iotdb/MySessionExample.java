@@ -47,11 +47,13 @@ public class MySessionExample {
   private static final String deviceName = "root.sg1.d1";
 
   private static final String sensorName = "s1";
+  private static final String device_sensor_name = deviceName + "." + sensorName;
 
   private static final String warmUpDeviceName =
       "root.warm.d1"; // this is because step A very big for the first execution
   private static final String warmUpSensorName =
       "s1"; // this is because step A very big for the first execution
+  private static final String warmUpDevice_sensor_name = warmUpDeviceName + "." + warmUpSensorName;
 
   private static String query_data;
 
@@ -148,8 +150,10 @@ public class MySessionExample {
       TSEncoding valueEncoding,
       CompressionType compressionType)
       throws Exception {
-    MeasurementSchema measurementSchema =
-        new MeasurementSchema(sensorName, valueDataType, valueEncoding, compressionType);
+    sessionEnableRedirect.createTimeseries(
+        device_sensor_name, valueDataType, valueEncoding, compressionType);
+
+    MeasurementSchema measurementSchema = new MeasurementSchema(sensorName, valueDataType);
     List<MeasurementSchema> schemaList = new ArrayList<>();
     schemaList.add(measurementSchema);
     Tablet tablet = new Tablet(deviceName, schemaList);
@@ -221,11 +225,12 @@ public class MySessionExample {
   }
 
   private static void writeWarmUpData() throws Exception {
+    sessionEnableRedirect.createTimeseries(
+        warmUpDevice_sensor_name, TSDataType.INT64, TSEncoding.PLAIN, CompressionType.SNAPPY);
+
     int desiredChunkPointNum = 1000;
     int pointsNum = 2000;
-    MeasurementSchema measurementSchema =
-        new MeasurementSchema(
-            warmUpSensorName, TSDataType.INT64, TSEncoding.PLAIN, CompressionType.SNAPPY);
+    MeasurementSchema measurementSchema = new MeasurementSchema(warmUpSensorName, TSDataType.INT64);
     List<MeasurementSchema> schemaList = new ArrayList<>();
     schemaList.add(measurementSchema);
     Tablet tablet = new Tablet(warmUpDeviceName, schemaList);
