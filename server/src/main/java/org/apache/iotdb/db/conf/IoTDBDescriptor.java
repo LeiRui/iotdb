@@ -1320,6 +1320,14 @@ public class IoTDBDescriptor {
                         TSFileDescriptor.getInstance().getConfig().getFloatPrecision()))));
     TSFileDescriptor.getInstance()
         .getConfig()
+        .setTs2diffPackSize(
+            Integer.parseInt(
+                properties.getProperty(
+                    "ts2diff_pack_size",
+                    Integer.toString(
+                        TSFileDescriptor.getInstance().getConfig().getTs2diffPackSize()))));
+    TSFileDescriptor.getInstance()
+        .getConfig()
         .setTimeEncoder(
             properties.getProperty(
                 "time_encoder", TSFileDescriptor.getInstance().getConfig().getTimeEncoder()));
