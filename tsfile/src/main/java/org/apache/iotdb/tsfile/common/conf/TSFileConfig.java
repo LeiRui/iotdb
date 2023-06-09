@@ -106,6 +106,8 @@ public class TSFileConfig implements Serializable {
 
   private int ts2diffPackSize = 128;
 
+  private boolean ts2diffSkipIteratingPoints = true;
+
   /** Default bit width of RLE encoding is 8. */
   private int rleBitWidth = 8;
   /** Default block size of two-diff. delta encoding is 128 */
@@ -308,6 +310,14 @@ public class TSFileConfig implements Serializable {
 
   public void setTs2diffPackSize(int ts2diffPackSize) {
     this.ts2diffPackSize = ts2diffPackSize;
+  }
+
+  public boolean getTs2diffSkipIteratingPoints() {
+    return ts2diffSkipIteratingPoints;
+  }
+
+  public void setTs2diffSkipIteratingPoints(boolean ts2diffSkipIteratingPoints) {
+    this.ts2diffSkipIteratingPoints = ts2diffSkipIteratingPoints;
   }
 
   public String getFreqType() {

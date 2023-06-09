@@ -1328,6 +1328,16 @@ public class IoTDBDescriptor {
                         TSFileDescriptor.getInstance().getConfig().getTs2diffPackSize()))));
     TSFileDescriptor.getInstance()
         .getConfig()
+        .setTs2diffSkipIteratingPoints(
+            Boolean.parseBoolean(
+                properties.getProperty(
+                    "ts2diff_skip_iterating_points",
+                    Boolean.toString(
+                        TSFileDescriptor.getInstance()
+                            .getConfig()
+                            .getTs2diffSkipIteratingPoints()))));
+    TSFileDescriptor.getInstance()
+        .getConfig()
         .setTimeEncoder(
             properties.getProperty(
                 "time_encoder", TSFileDescriptor.getInstance().getConfig().getTimeEncoder()));
