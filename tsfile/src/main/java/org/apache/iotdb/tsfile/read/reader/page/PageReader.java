@@ -306,7 +306,7 @@ public class PageReader implements IPageReader {
       //      return findTheClosetPointEqualOrAfter_TSBlock(targetTimestamp);
       return binarySearch(targetTimestamp);
     } else {
-      boolean flag = false;
+      //      boolean flag = false;
       TsBlockBuilder builder = new TsBlockBuilder(Collections.singletonList(dataType));
       TimeColumnBuilder timeBuilder = builder.getTimeColumnBuilder();
       ColumnBuilder valueBuilder = builder.getColumnBuilder(0);
@@ -316,11 +316,12 @@ public class PageReader implements IPageReader {
             while (timeDecoder.hasNext(timeBuffer)) {
               long timestamp = timeDecoder.readLong(timeBuffer);
               long aLong = valueDecoder.readLong(valueBuffer);
-              if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aLong))) {
-                timeBuilder.writeLong(timestamp);
-                valueBuilder.writeLong(aLong);
-                builder.declarePosition();
-              }
+              //              if (!isDeleted(timestamp) && (filter == null ||
+              // filter.satisfy(timestamp, aLong))) {
+              timeBuilder.writeLong(timestamp);
+              valueBuilder.writeLong(aLong);
+              builder.declarePosition();
+              //              }
               //              if (timestamp >= targetTimestamp && !flag) {
               //                flag = true;
               //                timeBuilder.writeLong(timestamp);
@@ -333,11 +334,12 @@ public class PageReader implements IPageReader {
             while (timeDecoder.hasNext(timeBuffer)) {
               long timestamp = timeDecoder.readLong(timeBuffer);
               double aDouble = valueDecoder.readDouble(valueBuffer);
-              if (!isDeleted(timestamp) && (filter == null || filter.satisfy(timestamp, aDouble))) {
-                timeBuilder.writeLong(timestamp);
-                valueBuilder.writeDouble(aDouble);
-                builder.declarePosition();
-              }
+              //              if (!isDeleted(timestamp) && (filter == null ||
+              // filter.satisfy(timestamp, aDouble))) {
+              timeBuilder.writeLong(timestamp);
+              valueBuilder.writeDouble(aDouble);
+              builder.declarePosition();
+              //              }
               //              if (timestamp >= targetTimestamp && !flag) {
               //                flag = true;
               //                timeBuilder.writeLong(timestamp);
@@ -364,19 +366,13 @@ public class PageReader implements IPageReader {
           LongDeltaDecoder longDeltaDecoder = (LongDeltaDecoder) valueDecoder;
           loadIntBatch_ns += longDeltaDecoder.loadIntBatch_ns;
           loadIntBatch_cnt += longDeltaDecoder.loadIntBatch_cnt;
-          longDeltaDecoder.loadIntBatch_ns =
-              0; // reset because valueDecoder is global for all pageReaders of a chunk
-          longDeltaDecoder.loadIntBatch_cnt =
-              0; // reset because valueDecoder is global for all pageReaders of a chunk
+          // no need reset because valueDecoder is unique for each pageReader
         } else if (dataType == TSDataType.DOUBLE) {
           LongDeltaDecoder longDeltaDecoder =
               (LongDeltaDecoder) ((FloatDecoder) valueDecoder).getDecoder();
           loadIntBatch_ns += longDeltaDecoder.loadIntBatch_ns;
           loadIntBatch_cnt += longDeltaDecoder.loadIntBatch_cnt;
-          longDeltaDecoder.loadIntBatch_ns =
-              0; // reset because valueDecoder is global for all pageReaders of a chunk
-          longDeltaDecoder.loadIntBatch_cnt =
-              0; // reset because valueDecoder is global for all pageReaders of a chunk
+          // no need reset because valueDecoder is unique for each pageReader
         } else {
           throw new IOException("oh unsupported data type!");
         }

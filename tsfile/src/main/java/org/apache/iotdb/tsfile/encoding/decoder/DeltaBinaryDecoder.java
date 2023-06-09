@@ -306,6 +306,11 @@ public abstract class DeltaBinaryDecoder extends Decoder {
 
       loadIntBatch_ns += (System.nanoTime() - startTime);
       loadIntBatch_cnt++;
+
+      // make the rest points in the pack not iterated in pageReader
+      packNum = 0;
+      readIntTotalCount = 0;
+
       return firstValue;
     }
 
