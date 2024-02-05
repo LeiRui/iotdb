@@ -182,7 +182,8 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
     double[] lastIter_v = new double[N1]; // N1不包括全局首尾点
 
     // TODO: 如果和上次迭代时使用的lr一样那么这个bucket这次迭代就使用上次的采点结果，不必重复计算
-    boolean[] needRecalc = new boolean[N1]; // N1不包括全局首尾点，初始化都是false
+    boolean[] lastSame = new boolean[N1 + 1]; // N1不包括全局首点，初始化都是false
+    lastSame[N1] = true; // 把全局尾点设为true
 
     int num = 0; // 注意从0开始！
     for (; num < numIterations; num++) {
@@ -191,8 +192,10 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
       lt = CONFIG.getP1t();
       lv = CONFIG.getP1v();
 
-      boolean[] currentNeedRecalc = new boolean[N1]; // N1不包括全局首尾点，初始化都是false
-      boolean allFalseFlag = true; // 如果非首轮迭代全部都是false那可以提前结束迭代，因为后面都不会再有任何变化
+      //      boolean[] currentSame = new boolean[N1 + 1]; // N1不包括全局首点，初始化都是false
+      //      currentSame[N1] = true; // 把全局尾点设为true
+      boolean allSameFlag = true; // 如果非首轮迭代全部都是true那可以提前结束迭代，因为后面都不会再有任何变化
+      boolean currentLeftSame = true;
 
       //      StringBuilder series = new StringBuilder(); // TODO debug
       //      // 全局首点
@@ -200,13 +203,14 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
 
       // 遍历分桶 Assume no empty buckets
       for (int b = 0; b < N1; b++) {
-        if (CONFIG.isAcc_iterRepeat() && num > 0 && !needRecalc[b]) {
+        if (CONFIG.isAcc_iterRepeat() && num > 0 && lastSame[b + 1] && currentLeftSame) {
           // 排除num=0，因为第一次迭代要全部算的
           // 不需要更新本轮迭代本桶选点，或者说本轮迭代本桶选点就是lastIter内已有结果
           // 也不需要更新currentNeedRecalc
           // 下一个桶自然地以select_t, select_v作为左桶固定点
           lt = lastIter_t[b];
           lv = lastIter_v[b];
+          lastSame[b] = true; // 因为这个桶现在只会被下一轮当作右边桶读了
           continue;
         }
         double rt = 0; // must initialize as zero, because may be used as sum for average
@@ -486,15 +490,22 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
         //        series.append(select_v).append("[").append(select_t).append("]").append(",");
 
         // 更新currentNeedRecalc,注意在记录本轮迭代本桶选点之前判断
-        if (CONFIG.isAcc_iterRepeat() && select_t != lastIter_t[b]) { // 本次迭代选点结果和上一轮不一样
-          allFalseFlag = false;
-          if (b == 0) { // 第一个桶
-            currentNeedRecalc[b + 1] = true; // 作为右边桶的左边固定点变了，所以下一轮右边桶要重新采点
-          } else if (b == N1 - 1) { // 最后一个桶
-            currentNeedRecalc[b - 1] = true; // 作为左边桶的右边固定点变了，所以下一轮左边桶要重新采点
+        if (CONFIG.isAcc_iterRepeat()) {
+          if (select_t != lastIter_t[b]) { // 本次迭代选点结果和上一轮不一样
+            allSameFlag = false; // 无法提前退出迭代
+            lastSame[b] = false; // 提示下一轮迭代左边桶的右边固定点变了从而左边桶到时候要重新计算
+            currentLeftSame = false; // 提示这一轮迭代右边桶的左边固定点变了从而右边桶到时候要重新计算
+            //          if (b == 0) { // 第一个桶
+            //            currentSame[b + 1] = true; // 作为右边桶的左边固定点变了，所以下一轮右边桶要重新采点
+            //          } else if (b == N1 - 1) { // 最后一个桶
+            //            currentSame[b - 1] = true; // 作为左边桶的右边固定点变了，所以下一轮左边桶要重新采点
+            //          } else {
+            //            currentSame[b - 1] = true; // 作为左边桶的右边固定点变了，所以下一轮左边桶要重新采点
+            //            currentSame[b + 1] = true; // 作为右边桶的左边固定点变了，所以下一轮右边桶要重新采点
+            //          }
           } else {
-            currentNeedRecalc[b - 1] = true; // 作为左边桶的右边固定点变了，所以下一轮左边桶要重新采点
-            currentNeedRecalc[b + 1] = true; // 作为右边桶的左边固定点变了，所以下一轮右边桶要重新采点
+            lastSame[b] = true;
+            currentLeftSame = true;
           }
         }
 
@@ -511,12 +522,12 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
       //      series.append(pnv).append("[").append(pnt).append("]").append(",");
       //      System.out.println(series);
 
-      if (CONFIG.isAcc_iterRepeat() && allFalseFlag) {
+      if (CONFIG.isAcc_iterRepeat() && allSameFlag) {
         num++; // +1表示是完成的迭代次数
         break;
       }
       // 否则currentNeedRecalc里至少有一个true，因此继续迭代
-      needRecalc = currentNeedRecalc;
+      //      lastSame = currentSame;
       //      System.out.println(Arrays.toString(needRecalc)); // TODO debug
 
     } // end Iterations
