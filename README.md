@@ -19,7 +19,7 @@
 
 -->
 
-# M4-LSM 
+# ILTS
 - The codes for ILTS and baselines used in comparative experiments are available in this repository.
     - ILTS is implemented in [server\src\main\java\org\apache\iotdb\db\query\dataset\groupby\LocalGroupByExecutorTri_ILTS.java](server\src\main\java\org\apache\iotdb\db\query\dataset\groupby\LocalGroupByExecutorTri_ILTS.java).
     - LTTB is implemented in [server\src\main\java\org\apache\iotdb\db\query\dataset\groupby\LocalGroupByExecutorTri_LTTB.java](server\src\main\java\org\apache\iotdb\db\query\dataset\groupby\LocalGroupByExecutorTri_LTTB.java).
