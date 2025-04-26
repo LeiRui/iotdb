@@ -46,13 +46,7 @@ import org.apache.iotdb.tsfile.utils.Pair;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
 
@@ -248,11 +242,11 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
         } else {
           if (num == 0) {
             List<ChunkSuit4Tri> chunkSuit4TriList = splitChunkList.get(b + 1);
-            if (chunkSuit4TriList == null) {
-              throw new IOException("Empty bucket!");
-            }
             long rightStartTime = startTime + (b + 1) * interval;
             long rightEndTime = startTime + (b + 2) * interval;
+            if (chunkSuit4TriList == null) {
+              throw new IOException("Empty bucket!" + rightStartTime + ":" + rightEndTime);
+            }
             int cnt = 0;
             for (ChunkSuit4Tri chunkSuit4Tri : chunkSuit4TriList) {
               TSDataType dataType = chunkSuit4Tri.chunkMetadata.getDataType();
@@ -303,7 +297,7 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
               }
             }
             if (cnt == 0) {
-              throw new IOException("Empty bucket!");
+              throw new IOException("Empty bucket!" + rightStartTime + ":" + rightEndTime);
             }
             rt = rt / cnt;
             rv = rv / cnt;
