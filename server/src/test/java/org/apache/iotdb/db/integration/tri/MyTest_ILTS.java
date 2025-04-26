@@ -97,15 +97,19 @@ public class MyTest_ILTS {
   public void test1() {
     prepareData1();
     config.setNumIterations(4);
+    //    config.setEnableTri("ILTS");
+    config.setEnableTri("");
     String res = "5.0[1],10.0[2],2.0[40],5.0[55],20.0[62],1.0[90],7.0[102],";
     try (Connection connection =
             DriverManager.getConnection("jdbc:iotdb://127.0.0.1:6667/", "root", "root");
         Statement statement = connection.createStatement()) {
       boolean hasResultSet =
           statement.execute(
-              "SELECT min_value(s0)"
+              "SELECT ILTS(s0)"
+                  //                                "SELECT MIN_VALUE(s0)"
                   // TODO not real min_value here, actually controlled by enableTri
-                  + ",max_value(s0),min_time(s0), max_time(s0), first_value(s0), last_value(s0)"
+                  //                  + ",max_value(s0),min_time(s0), max_time(s0), first_value(s0),
+                  // last_value(s0)"
                   + " FROM root.vehicle.d0 group by ([2,102),20ms)");
       // (102-2)/(7-2)=20ms
       // note keep no empty buckets
@@ -119,7 +123,7 @@ public class MyTest_ILTS {
           Assert.assertEquals(res, ans);
         }
       }
-      System.out.println(((IoTDBStatement) statement).executeFinish());
+      //      System.out.println(((IoTDBStatement) statement).executeFinish());
     } catch (Exception e) {
       e.printStackTrace();
       fail(e.getMessage());

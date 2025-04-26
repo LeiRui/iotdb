@@ -60,6 +60,7 @@ public class AggregateResultFactory {
       case SQLConstant.MAX_TIME:
         return !ascending ? new MaxTimeDescAggrResult() : new MaxTimeAggrResult();
       case SQLConstant.MIN_VALUE:
+      case SQLConstant.ILTS:
         return new MinValueAggrResult(dataType);
       case SQLConstant.MAX_VALUE:
         return new MaxValueAggrResult(dataType);

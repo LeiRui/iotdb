@@ -152,6 +152,7 @@ functionName
     : MIN_TIME
     | MAX_TIME
     | MIN_VALUE
+    | ILTS
     | MAX_VALUE
     | COUNT
     | AVG
@@ -522,6 +523,7 @@ nodeName
     | MIN_TIME
     | MAX_TIME
     | MIN_VALUE
+    | ILTS
     | MAX_VALUE
     | AVG
     | FIRST_VALUE
@@ -636,6 +638,7 @@ nodeNameWithoutStar
     | MIN_TIME
     | MAX_TIME
     | MIN_VALUE
+    | ILTS
     | MAX_VALUE
     | AVG
     | FIRST_VALUE
@@ -1138,6 +1141,11 @@ MAX_TIME
 MIN_VALUE
     : M I N UNDERLINE V A L U E
     ;
+
+ILTS
+    : I L T S
+    ;
+
 
 MAX_VALUE
     : M A X UNDERLINE V A L U E

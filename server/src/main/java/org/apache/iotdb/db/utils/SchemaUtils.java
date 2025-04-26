@@ -18,11 +18,7 @@
  */
 package org.apache.iotdb.db.utils;
 
-import org.apache.iotdb.db.exception.metadata.IllegalPathException;
-import org.apache.iotdb.db.exception.metadata.MetadataException;
-import org.apache.iotdb.db.exception.metadata.PathAlreadyExistException;
-import org.apache.iotdb.db.exception.metadata.PathNotExistException;
-import org.apache.iotdb.db.exception.metadata.StorageGroupNotSetException;
+import org.apache.iotdb.db.exception.metadata.*;
 import org.apache.iotdb.db.metadata.PartialPath;
 import org.apache.iotdb.db.metadata.mnode.MeasurementMNode;
 import org.apache.iotdb.db.qp.constant.SQLConstant;
@@ -38,14 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ClosedChannelException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class SchemaUtils {
 
@@ -195,6 +184,7 @@ public class SchemaUtils {
     List<TSDataType> tsDataTypes = new ArrayList<>();
     for (int i = 0; i < paths.size(); i++) {
       String aggrStr = aggregations != null ? aggregations.get(i) : null;
+      aggrStr = aggrStr.toLowerCase();
       TSDataType dataType = getAggregationType(aggrStr);
       if (dataType != null) {
         tsDataTypes.add(dataType);
@@ -203,7 +193,9 @@ public class SchemaUtils {
         tsDataTypes.add(
             path == null
                 ? null
-                : (aggrStr.equals("min_value") || aggrStr.equals("max_value")
+                : (aggrStr.equals("min_value")
+                        || aggrStr.equals("max_value")
+                        || aggrStr.equals("ilts")
                     ? transformMinMaxDataType(IoTDB.metaManager.getSeriesType(path))
                     : IoTDB.metaManager.getSeriesType(path)));
       }
@@ -212,9 +204,9 @@ public class SchemaUtils {
   }
 
   /**
-   * @author Yuyuan Kang
    * @param aggregation aggregation function
    * @return the data type of the aggregation or null if it aggregation is null
+   * @author Yuyuan Kang
    */
   public static TSDataType getAggregationType(String aggregation) {
     if (aggregation == null) {
@@ -229,6 +221,7 @@ public class SchemaUtils {
       case SQLConstant.SUM:
         return TSDataType.DOUBLE;
       case SQLConstant.MIN_VALUE:
+      case SQLConstant.ILTS:
       case SQLConstant.MAX_VALUE:
       case SQLConstant.LAST_VALUE:
       case SQLConstant.FIRST_VALUE:

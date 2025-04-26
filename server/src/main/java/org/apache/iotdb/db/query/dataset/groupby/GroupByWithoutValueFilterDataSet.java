@@ -46,12 +46,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
@@ -108,6 +104,10 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
         PartialPath path = (PartialPath) paths.get(i);
         if (!pathExecutors.containsKey(path)) {
           // init GroupByExecutor
+          String agg = groupByTimePlan.getAggregations().get(i).toLowerCase();
+          if (agg.equals("ilts")) {
+            CONFIG.setEnableTri("ILTS"); // affecting getGroupByExecutor and nextWithoutConstraint
+          }
           pathExecutors.put(
               path,
               getGroupByExecutor(
