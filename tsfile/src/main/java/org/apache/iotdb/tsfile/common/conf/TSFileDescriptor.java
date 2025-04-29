@@ -109,6 +109,9 @@ public class TSFileDescriptor {
           Boolean.parseBoolean(
               properties.getProperty(
                   "write_convex_hull", Boolean.toString(conf.isWriteConvexHull()))));
+      conf.setWriteTVIndex(
+          Boolean.parseBoolean(
+              properties.getProperty("write_tv_index", Boolean.toString(conf.isWriteTVIndex()))));
       conf.setEnableMinMaxLSM(
           Boolean.parseBoolean(
               properties.getProperty(
@@ -123,8 +126,8 @@ public class TSFileDescriptor {
           Boolean.parseBoolean(
               properties.getProperty("use_Mad", Boolean.toString(conf.isUseMad()))));
       conf.setErrorParam(
-          Integer.parseInt(
-              properties.getProperty("error_Param", Integer.toString(conf.getErrorParam()))));
+          Double.parseDouble(
+              properties.getProperty("error_Param", Double.toString(conf.getErrorParam()))));
       conf.setUseValueIndex(
           Boolean.parseBoolean(
               properties.getProperty("use_ValueIndex", Boolean.toString(conf.isUseValueIndex()))));

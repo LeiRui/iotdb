@@ -33,19 +33,9 @@ import org.eclipse.collections.impl.list.mutable.primitive.DoubleArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * This class is used for recording statistic information of each measurement in a delta file. While
@@ -147,10 +137,12 @@ public abstract class Statistics<T> {
     byteLen += ReadWriteIOUtils.write(endTime, outputStream);
     // value statistics of different data type
     byteLen += serializeStats(outputStream);
-    //    // serialize stepRegress
-    //    byteLen += serializeStepRegress(outputStream, true);
-    //    // serialize value index
-    //    byteLen += serializeValueIndex(outputStream, true);
+    if (TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
+      // serialize stepRegress
+      byteLen += serializeStepRegress(outputStream, true);
+      // serialize value index
+      byteLen += serializeValueIndex(outputStream, true);
+    }
     // serialize convex hull
     if (TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()) {
       byteLen += serializeConvexHull(outputStream, true);
@@ -165,10 +157,12 @@ public abstract class Statistics<T> {
     byteLen += ReadWriteIOUtils.write(endTime, outputStream);
     // value statistics of different data type
     byteLen += serializeStats(outputStream);
-    //    // serialize stepRegress
-    //    byteLen += serializeStepRegress(outputStream, log);
-    //    // serialize value index
-    //    byteLen += serializeValueIndex(outputStream, log);
+    if (TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
+      // serialize stepRegress
+      byteLen += serializeStepRegress(outputStream, log);
+      // serialize value index
+      byteLen += serializeValueIndex(outputStream, log);
+    }
     // serialize convex hull
     if (TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()) {
       byteLen += serializeConvexHull(outputStream, log);
@@ -324,8 +318,8 @@ public abstract class Statistics<T> {
       // TODO assumes that there is always only one page in a chunk
       // TODO if there are more than one chunk in a time series, then access each
       //    chunkMetadata anyway
-      //      this.stepRegress = stats.stepRegress;
-      //      this.valueIndex = stats.valueIndex;
+      this.stepRegress = stats.stepRegress;
+      this.valueIndex = stats.valueIndex;
 
       this.quickHullPoints = stats.quickHullPoints;
       this.quickHullBitSet = stats.quickHullBitSet;
@@ -364,9 +358,11 @@ public abstract class Statistics<T> {
       endTime = time;
     }
     updateStats(value, time); // TP,BP,sum,lastValue,firstValue
-    // update time index
-    //    updateStepRegress(time);
-    //    updateValueIndex(value);
+    if (TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
+      // update time index
+      updateStepRegress(time);
+      updateValueIndex(value);
+    }
     if (TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()) {
       updateConvexHull(time, value);
     }
@@ -382,8 +378,10 @@ public abstract class Statistics<T> {
       endTime = time;
     }
     updateStats(value, time);
-    //    updateStepRegress(time);
-    //    updateValueIndex(value);
+    if (TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
+      updateStepRegress(time);
+      updateValueIndex(value);
+    }
     if (TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()) {
       updateConvexHull(time, value);
     }
@@ -399,8 +397,10 @@ public abstract class Statistics<T> {
       endTime = time;
     }
     updateStats(value, time);
-    //    updateStepRegress(time);
-    //    updateValueIndex(value);
+    if (TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
+      updateStepRegress(time);
+      updateValueIndex(value);
+    }
     if (TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()) {
       updateConvexHull(time, value);
     }
@@ -416,8 +416,10 @@ public abstract class Statistics<T> {
       endTime = time;
     }
     updateStats(value, time);
-    //    updateStepRegress(time);
-    //    updateValueIndex(value);
+    if (TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
+      updateStepRegress(time);
+      updateValueIndex(value);
+    }
     if (TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()) {
       updateConvexHull(time, value);
     }
@@ -457,8 +459,10 @@ public abstract class Statistics<T> {
       endTime = time[batchSize - 1];
     }
     updateStats(values, time, batchSize);
-    //    updateStepRegress(time, batchSize);
-    //    updateValueIndex(values, batchSize);
+    if (TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
+      updateStepRegress(time, batchSize);
+      updateValueIndex(values, batchSize);
+    }
     if (TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()) {
       updateConvexHull(time, values, batchSize);
     }
@@ -474,8 +478,10 @@ public abstract class Statistics<T> {
       endTime = time[batchSize - 1];
     }
     updateStats(values, time, batchSize);
-    //    updateStepRegress(time, batchSize);
-    //    updateValueIndex(values, batchSize);
+    if (TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
+      updateStepRegress(time, batchSize);
+      updateValueIndex(values, batchSize);
+    }
     if (TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()) {
       updateConvexHull(time, values, batchSize);
     }
@@ -491,8 +497,10 @@ public abstract class Statistics<T> {
       endTime = time[batchSize - 1];
     }
     updateStats(values, time, batchSize);
-    //    updateStepRegress(time, batchSize);
-    //    updateValueIndex(values, batchSize);
+    if (TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
+      updateStepRegress(time, batchSize);
+      updateValueIndex(values, batchSize);
+    }
     if (TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()) {
       updateConvexHull(time, values, batchSize);
     }
@@ -508,8 +516,10 @@ public abstract class Statistics<T> {
       endTime = time[batchSize - 1];
     }
     updateStats(values, time, batchSize);
-    //    updateStepRegress(time, batchSize);
-    //    updateValueIndex(values, batchSize);
+    if (TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
+      updateStepRegress(time, batchSize);
+      updateValueIndex(values, batchSize);
+    }
     if (TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()) {
       updateConvexHull(time, values, batchSize);
     }
@@ -705,8 +715,10 @@ public abstract class Statistics<T> {
     statistics.setStartTime(ReadWriteIOUtils.readLong(buffer));
     statistics.setEndTime(ReadWriteIOUtils.readLong(buffer));
     statistics.deserialize(buffer);
-    //    statistics.deserializeStepRegress(buffer);
-    //    statistics.deserializeValueIndex(buffer);
+    if (TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
+      statistics.deserializeStepRegress(buffer);
+      statistics.deserializeValueIndex(buffer);
+    }
     if (TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()) {
       statistics.deserializeConvexHull(buffer);
     }
@@ -816,7 +828,7 @@ public abstract class Statistics<T> {
     int m = ReadWriteIOUtils.readInt(byteBuffer); // m
     DoubleArrayList segmentKeys = new DoubleArrayList();
     segmentKeys.add(this.startTime); // t1
-    if (m > 1) { // TODO DEBUG
+    if (m > 1) {
       for (int i = 0; i < m - 2; i++) { // t2,t3,...,tm-1
         segmentKeys.add(ReadWriteIOUtils.readDouble(byteBuffer));
       }

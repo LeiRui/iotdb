@@ -29,6 +29,8 @@ public class TSFileConfig implements Serializable {
 
   private boolean writeConvexHull = false;
 
+  private boolean writeTVIndex = false;
+
   private boolean enableMinMaxLSM = false;
 
   private boolean useStatistics = true;
@@ -39,7 +41,7 @@ public class TSFileConfig implements Serializable {
 
   private boolean useMad = false;
 
-  private int errorParam = 1;
+  private double errorParam = 1;
 
   /** encoding configuration */
   public static final int RLE_MIN_REPEATED_NUM = 8;
@@ -169,6 +171,14 @@ public class TSFileConfig implements Serializable {
     this.writeConvexHull = writeConvexHull;
   }
 
+  public boolean isWriteTVIndex() {
+    return writeTVIndex;
+  }
+
+  public void setWriteTVIndex(boolean writeTVIndex) {
+    this.writeTVIndex = writeTVIndex;
+  }
+
   public boolean isEnableMinMaxLSM() {
     return enableMinMaxLSM;
   }
@@ -201,11 +211,11 @@ public class TSFileConfig implements Serializable {
     this.useMad = useMad;
   }
 
-  public int getErrorParam() {
+  public double getErrorParam() {
     return errorParam;
   }
 
-  public void setErrorParam(int errorParam) {
+  public void setErrorParam(double errorParam) {
     this.errorParam = errorParam;
   }
 

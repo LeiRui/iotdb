@@ -24,18 +24,9 @@ import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
 import org.apache.iotdb.tsfile.file.header.PageHeader;
 import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
-import org.apache.iotdb.tsfile.file.metadata.statistics.DoubleStatistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.LongStatistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.MinMaxInfo;
-import org.apache.iotdb.tsfile.file.metadata.statistics.Statistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.ValueIndex;
-import org.apache.iotdb.tsfile.read.common.BatchData;
-import org.apache.iotdb.tsfile.read.common.BatchDataFactory;
-import org.apache.iotdb.tsfile.read.common.ChunkSuit4CPV;
-import org.apache.iotdb.tsfile.read.common.IOMonitor2;
+import org.apache.iotdb.tsfile.file.metadata.statistics.*;
+import org.apache.iotdb.tsfile.read.common.*;
 import org.apache.iotdb.tsfile.read.common.IOMonitor2.Operation;
-import org.apache.iotdb.tsfile.read.common.TimeRange;
-import org.apache.iotdb.tsfile.read.common.ValuePoint;
 import org.apache.iotdb.tsfile.read.filter.basic.Filter;
 import org.apache.iotdb.tsfile.read.filter.operator.AndFilter;
 import org.apache.iotdb.tsfile.read.reader.IPageReader;
@@ -168,7 +159,8 @@ public class PageReader implements IPageReader {
   }
 
   public void updateTP_withValueIndex(ChunkSuit4CPV chunkSuit4CPV) {
-    if (TSFileDescriptor.getInstance().getConfig().isUseValueIndex()) {
+    if (TSFileDescriptor.getInstance().getConfig().isUseValueIndex()
+        && TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
       //      long start = System.nanoTime();
       // NOTE: get valueIndex from chunkSuit4CPV.getChunkMetadata().getStatistics(), not
       // chunkSuit4CPV.getStatistics()!
@@ -350,7 +342,8 @@ public class PageReader implements IPageReader {
   }
 
   public void updateBP_withValueIndex(ChunkSuit4CPV chunkSuit4CPV) {
-    if (TSFileDescriptor.getInstance().getConfig().isUseValueIndex()) {
+    if (TSFileDescriptor.getInstance().getConfig().isUseValueIndex()
+        && TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
       long start = System.nanoTime();
       // NOTE: get valueIndex from chunkSuit4CPV.getChunkMetadata().getStatistics(), not
       // chunkSuit4CPV.getStatistics()!

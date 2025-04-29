@@ -22,13 +22,7 @@ package org.apache.iotdb.tsfile.read.common;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
-import org.apache.iotdb.tsfile.file.metadata.statistics.DoubleStatistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.FloatStatistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.IntegerStatistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.LongStatistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.MinMaxInfo;
-import org.apache.iotdb.tsfile.file.metadata.statistics.Statistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.StepRegress;
+import org.apache.iotdb.tsfile.file.metadata.statistics.*;
 import org.apache.iotdb.tsfile.read.reader.page.PageReader;
 
 import java.io.IOException;
@@ -253,7 +247,8 @@ public class ChunkSuit4CPV {
   public int updateFPwithTheClosetPointEqualOrAfter(long targetTimestamp) throws IOException {
     //    long start = System.nanoTime();
     int estimatedPos;
-    if (TSFileDescriptor.getInstance().getConfig().isUseTimeIndex()) {
+    if (TSFileDescriptor.getInstance().getConfig().isUseTimeIndex()
+        && TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
       StepRegress stepRegress = chunkMetadata.getStatistics().getStepRegress();
       // infer position starts from 1, so minus 1 here
       // note get count from global chunkMetadata.getStatistics().getCount(), not local
@@ -372,7 +367,8 @@ public class ChunkSuit4CPV {
   public int updateLPwithTheClosetPointEqualOrBefore(long targetTimestamp) throws IOException {
     //    long start = System.nanoTime();
     int estimatedPos;
-    if (TSFileDescriptor.getInstance().getConfig().isUseTimeIndex()) {
+    if (TSFileDescriptor.getInstance().getConfig().isUseTimeIndex()
+        && TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
       StepRegress stepRegress = chunkMetadata.getStatistics().getStepRegress();
       // infer position starts from 1, so minus 1 here
       // note get count from global chunkMetadata.getStatistics().getCount(), not local
@@ -497,7 +493,8 @@ public class ChunkSuit4CPV {
   public boolean checkIfExist(long targetTimestamp) throws IOException {
     //    long start = System.nanoTime();
     boolean exist;
-    if (TSFileDescriptor.getInstance().getConfig().isUseTimeIndex()) {
+    if (TSFileDescriptor.getInstance().getConfig().isUseTimeIndex()
+        && TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()) {
       StepRegress stepRegress = chunkMetadata.getStatistics().getStepRegress();
       // infer position starts from 1, so minus 1 here
       // note get count from global chunkMetadata.getStatistics().getCount(), not local

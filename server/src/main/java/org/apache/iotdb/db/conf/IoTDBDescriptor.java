@@ -937,6 +937,14 @@ public class IoTDBDescriptor {
                         TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()))));
     TSFileDescriptor.getInstance()
         .getConfig()
+        .setWriteTVIndex(
+            Boolean.parseBoolean(
+                properties.getProperty(
+                    "write_tv_index",
+                    Boolean.toString(
+                        TSFileDescriptor.getInstance().getConfig().isWriteTVIndex()))));
+    TSFileDescriptor.getInstance()
+        .getConfig()
         .setEnableMinMaxLSM(
             Boolean.parseBoolean(
                 properties.getProperty(
@@ -969,10 +977,10 @@ public class IoTDBDescriptor {
     TSFileDescriptor.getInstance()
         .getConfig()
         .setErrorParam(
-            Integer.parseInt(
+            Double.parseDouble(
                 properties.getProperty(
                     "error_Param",
-                    Integer.toString(TSFileDescriptor.getInstance().getConfig().getErrorParam()))));
+                    Double.toString(TSFileDescriptor.getInstance().getConfig().getErrorParam()))));
     TSFileDescriptor.getInstance()
         .getConfig()
         .setUseValueIndex(
