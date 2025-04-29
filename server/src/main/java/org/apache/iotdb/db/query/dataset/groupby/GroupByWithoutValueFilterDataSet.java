@@ -109,6 +109,15 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
       agg = "ilts";
       //            agg = groupByTimePlan.getAggregations().get(0).toLowerCase();
     }
+    if (groupByTimePlan.getAggregations().contains("m4lsm")
+        || groupByTimePlan.getAggregations().contains("M4LSM")) {
+      if (groupByTimePlan.getAggregations().size() > 1 || groupByTimePlan.getPaths().size() > 1) {
+        throw new QueryProcessException(
+            "M4LSM aggregation is currently not supported together with other aggregation functions or paths.");
+      }
+      agg = "m4lsm";
+      //            agg = groupByTimePlan.getAggregations().get(0).toLowerCase();
+    }
     try {
       // init resultIndexes, group result indexes by path
       for (int i = 0; i < paths.size(); i++) {
@@ -146,6 +155,7 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
     } else if (!CONFIG.getEnableTri().equals("") || agg.equals("ilts")) {
       return nextWithoutConstraintTri_allInOne();
     } else {
+      // agg.equals("m4lsm")也走这个分支
       return nextWithoutConstraint_raw();
     }
 
@@ -419,7 +429,12 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
         record.addField(null);
         continue;
       }
-      record.addField(res.getResult(), res.getResultDataType());
+      if (agg.equals("m4lsm")) { // 移除无用的minmaxinfo里的timestamp，仅用val当作text载体
+        MinMaxInfo minMaxInfo = (MinMaxInfo) res.getResult();
+        record.addField(minMaxInfo.val, TSDataType.MIN_MAX_INT64);
+      } else {
+        record.addField(res.getResult(), res.getResultDataType());
+      }
     }
     return record;
   }
@@ -488,6 +503,9 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
           path, allSensors, dataType, context, timeFilter, fileFilter, ascending);
     } else if (CONFIG.getEnableTri().equals("Visval")) {
       return new LocalGroupByExecutorTri_Visval(
+          path, allSensors, dataType, context, timeFilter, fileFilter, ascending);
+    } else if (agg.equals("m4lsm")) {
+      return new LocalGroupByExecutor4CPV(
           path, allSensors, dataType, context, timeFilter, fileFilter, ascending);
     } else {
       logger.info("No matched enable_tri!");

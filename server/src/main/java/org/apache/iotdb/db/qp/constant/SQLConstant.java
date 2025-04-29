@@ -61,6 +61,7 @@ public class SQLConstant {
   public static final String MAX_VALUE = "max_value";
   public static final String MIN_VALUE = "min_value";
   public static final String ILTS = "ilts";
+  public static final String M4LSM = "m4lsm";
 
   public static final String FIRST_VALUE = "first_value";
   public static final String LAST_VALUE = "last_value";

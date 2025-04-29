@@ -58,7 +58,10 @@ public class AggregationPlan extends RawDataQueryPlan {
     this.dataTypes = dataTypes;
     for (int i = 0; i < aggregations.size(); i++) {
       String agg = aggregations.get(i).toLowerCase();
-      if (agg.equals("min_value") || agg.equals("max_value") || agg.equals("ilts")) {
+      if (agg.equals("min_value")
+          || agg.equals("max_value")
+          || agg.equals("ilts")
+          || agg.equals("m4lsm")) {
         dataTypes.set(i, SchemaUtils.transformMinMaxDataType(dataTypes.get(i)));
       }
     }

@@ -196,6 +196,7 @@ public class SchemaUtils {
                 : (aggrStr.equals("min_value")
                         || aggrStr.equals("max_value")
                         || aggrStr.equals("ilts")
+                        || aggrStr.equals("m4lsm")
                     ? transformMinMaxDataType(IoTDB.metaManager.getSeriesType(path))
                     : IoTDB.metaManager.getSeriesType(path)));
       }
@@ -222,6 +223,7 @@ public class SchemaUtils {
         return TSDataType.DOUBLE;
       case SQLConstant.MIN_VALUE:
       case SQLConstant.ILTS:
+      case SQLConstant.M4LSM:
       case SQLConstant.MAX_VALUE:
       case SQLConstant.LAST_VALUE:
       case SQLConstant.FIRST_VALUE:

@@ -24,19 +24,17 @@ import org.apache.iotdb.db.exception.StorageEngineException;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.PartialPath;
 import org.apache.iotdb.db.query.aggregation.AggregateResult;
+import org.apache.iotdb.db.query.aggregation.impl.MinValueAggrResult;
 import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.control.QueryResourceManager;
+import org.apache.iotdb.db.query.factory.AggregateResultFactory;
 import org.apache.iotdb.db.query.filter.TsFileFilter;
 import org.apache.iotdb.db.query.reader.series.SeriesReader;
 import org.apache.iotdb.db.query.reader.universal.PriorityMergeReader.MergeReaderPriority;
 import org.apache.iotdb.db.utils.FileLoaderUtils;
 import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
-import org.apache.iotdb.tsfile.file.metadata.statistics.DoubleStatistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.FloatStatistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.IntegerStatistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.LongStatistics;
-import org.apache.iotdb.tsfile.file.metadata.statistics.Statistics;
+import org.apache.iotdb.tsfile.file.metadata.statistics.*;
 import org.apache.iotdb.tsfile.read.common.ChunkSuit4CPV;
 import org.apache.iotdb.tsfile.read.common.TimeRange;
 import org.apache.iotdb.tsfile.read.filter.GroupByFilter;
@@ -48,13 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 // This is the MFGroupByExecutor in M4-LSM paper.
 public class LocalGroupByExecutor4CPV implements GroupByExecutor {
@@ -63,6 +55,8 @@ public class LocalGroupByExecutor4CPV implements GroupByExecutor {
 
   // Aggregate result buffer of this path
   private final List<AggregateResult> results = new ArrayList<>();
+
+  private List<AggregateResult> innerResults = new ArrayList<>();
 
   private List<ChunkSuit4CPV> currentChunkList;
   private final List<ChunkSuit4CPV> futureChunkList = new ArrayList<>();
@@ -87,6 +81,58 @@ public class LocalGroupByExecutor4CPV implements GroupByExecutor {
     //    long start = System.nanoTime();
 
     this.tsDataType = dataType;
+
+    innerResults.add(
+        AggregateResultFactory.getAggrResultByName("min_time", TSDataType.INT64, ascending));
+    innerResults.add(
+        AggregateResultFactory.getAggrResultByName("max_time", TSDataType.INT64, ascending));
+    if (dataType == TSDataType.MIN_MAX_DOUBLE) {
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName("first_value", TSDataType.DOUBLE, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName("last_value", TSDataType.DOUBLE, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName(
+              "min_value", TSDataType.MIN_MAX_DOUBLE, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName(
+              "max_value", TSDataType.MIN_MAX_DOUBLE, ascending));
+    } else if (dataType == TSDataType.MIN_MAX_FLOAT) {
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName("first_value", TSDataType.FLOAT, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName("last_value", TSDataType.FLOAT, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName(
+              "min_value", TSDataType.MIN_MAX_FLOAT, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName(
+              "max_value", TSDataType.MIN_MAX_FLOAT, ascending));
+    } else if (dataType == TSDataType.MIN_MAX_INT32) {
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName("first_value", TSDataType.INT32, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName("last_value", TSDataType.INT32, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName(
+              "min_value", TSDataType.MIN_MAX_INT32, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName(
+              "max_value", TSDataType.MIN_MAX_INT32, ascending));
+    } else if (dataType == TSDataType.MIN_MAX_INT64) {
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName("first_value", TSDataType.INT64, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName("last_value", TSDataType.INT64, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName(
+              "min_value", TSDataType.MIN_MAX_INT64, ascending));
+      innerResults.add(
+          AggregateResultFactory.getAggrResultByName(
+              "max_value", TSDataType.MIN_MAX_INT64, ascending));
+    } else {
+      throw new QueryProcessException("Wrong data type!");
+    }
 
     // get all data sources
     QueryDataSource queryDataSource =
@@ -309,11 +355,18 @@ public class LocalGroupByExecutor4CPV implements GroupByExecutor {
       result.reset();
     }
 
+    for (AggregateResult result : innerResults) {
+      result.reset();
+    }
+
     //    long start = System.nanoTime();
     getCurrentChunkListFromFutureChunkList(curStartTime, curEndTime, startTime, endTime, interval);
     //    IOMonitor2.addMeasure(Operation.M4_LSM_MERGE_M4_TIME_SPAN, System.nanoTime() - start);
 
     if (currentChunkList.size() == 0) {
+      // 空桶，与M4 UDF一样的输出结果
+      MinValueAggrResult minValueAggrResult = (MinValueAggrResult) results.get(0);
+      minValueAggrResult.updateResult(new MinMaxInfo<>("empty", 0));
       return results;
     }
 
@@ -333,6 +386,42 @@ public class LocalGroupByExecutor4CPV implements GroupByExecutor {
     calculateTopPoint(currentChunkList, startTime, endTime, interval, curStartTime);
     //    IOMonitor2.addMeasure(Operation.M4_LSM_TP, System.nanoTime() - start);
 
+    // 与M4 UDF一样的输出格式
+    String series_final =
+        "FirstPoint=("
+            + innerResults.get(0).getResult()
+            + ","
+            + innerResults.get(2).getResult()
+            + "), "
+            + "LastPoint=("
+            + innerResults.get(1).getResult()
+            + ","
+            + innerResults.get(3).getResult()
+            + "), "
+            + "BottomPoint=("
+            + ((MinMaxInfo<?>) innerResults.get(4).getResult()).timestamp
+            + ","
+            + ((MinMaxInfo<?>) innerResults.get(4).getResult()).val
+            + "), "
+            + "TopPoint=("
+            + ((MinMaxInfo<?>) innerResults.get(5).getResult()).timestamp
+            + ","
+            + ((MinMaxInfo<?>) innerResults.get(5).getResult()).val
+            + ")";
+
+    // first point
+    //
+    // series_final.append(innerResults.get(2).getResult()).append("[").append(innerResults.get(0).getResult()).append("]").append(",");
+    // last point
+    //
+    // series_final.append(innerResults.get(3).getResult()).append("[").append(innerResults.get(1).getResult()).append("]").append(",");
+    // bottom point
+    //        series_final.append(innerResults.get(4).getResult()).append(",");
+    // top point
+    //        series_final.append(innerResults.get(5).getResult()).append(",");
+
+    MinValueAggrResult minValueAggrResult = (MinValueAggrResult) results.get(0);
+    minValueAggrResult.updateResult(new MinMaxInfo<>(series_final, 0));
     return results;
   }
 
@@ -470,7 +559,7 @@ public class LocalGroupByExecutor4CPV implements GroupByExecutor {
 
           if (!isUpdate && overlaps.size() == 0) {
             // no overlaps, then the candidate point is not updated, then it is the final result
-            results
+            innerResults
                 .get(4)
                 .updateResultUsingValues(
                     new long[] {candidateTimestamp}, 1, new Object[] {candidateValue});
@@ -499,7 +588,7 @@ public class LocalGroupByExecutor4CPV implements GroupByExecutor {
           }
           if (!isUpdate) {
             // the candidate point is not updated, then it is the final result
-            results
+            innerResults
                 .get(4)
                 .updateResultUsingValues(
                     new long[] {candidateTimestamp}, 1, new Object[] {candidateValue});
@@ -672,7 +761,7 @@ public class LocalGroupByExecutor4CPV implements GroupByExecutor {
 
           if (!isUpdate && overlaps.size() == 0) {
             // no overlaps, then the candidate point is not updated, then it is the final result
-            results
+            innerResults
                 .get(5)
                 .updateResultUsingValues(
                     new long[] {candidateTimestamp}, 1, new Object[] {candidateValue});
@@ -701,7 +790,7 @@ public class LocalGroupByExecutor4CPV implements GroupByExecutor {
           }
           if (!isUpdate) {
             // the candidate point is not updated, then it is the final result
-            results
+            innerResults
                 .get(5)
                 .updateResultUsingValues(
                     new long[] {candidateTimestamp}, 1, new Object[] {candidateValue});
@@ -826,11 +915,11 @@ public class LocalGroupByExecutor4CPV implements GroupByExecutor {
           continue; // back to loop 1
         } else {
           // the candidate point is not deleted, then it is the final result
-          results
+          innerResults
               .get(0)
               .updateResultUsingValues(
                   new long[] {candidateTimestamp}, 1, new Object[] {candidateValue});
-          results
+          innerResults
               .get(2)
               .updateResultUsingValues(
                   new long[] {candidateTimestamp}, 1, new Object[] {candidateValue});
@@ -938,11 +1027,11 @@ public class LocalGroupByExecutor4CPV implements GroupByExecutor {
           continue; // back to loop 1
         } else {
           // the candidate point is not deleted, then it is the final result
-          results
+          innerResults
               .get(1)
               .updateResultUsingValues(
                   new long[] {candidateTimestamp}, 1, new Object[] {candidateValue});
-          results
+          innerResults
               .get(3)
               .updateResultUsingValues(
                   new long[] {candidateTimestamp}, 1, new Object[] {candidateValue});

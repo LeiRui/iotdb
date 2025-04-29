@@ -153,6 +153,7 @@ functionName
     | MAX_TIME
     | MIN_VALUE
     | ILTS
+    | M4LSM
     | MAX_VALUE
     | COUNT
     | AVG
@@ -524,6 +525,7 @@ nodeName
     | MAX_TIME
     | MIN_VALUE
     | ILTS
+    | M4LSM
     | MAX_VALUE
     | AVG
     | FIRST_VALUE
@@ -639,6 +641,7 @@ nodeNameWithoutStar
     | MAX_TIME
     | MIN_VALUE
     | ILTS
+    | M4LSM
     | MAX_VALUE
     | AVG
     | FIRST_VALUE
@@ -1146,6 +1149,9 @@ ILTS
     : I L T S
     ;
 
+M4LSM
+    : M '4' L S M
+    ;
 
 MAX_VALUE
     : M A X UNDERLINE V A L U E

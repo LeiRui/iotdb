@@ -96,6 +96,33 @@ public class MyTest1 {
   }
 
   @Test
+  public void test0() throws Exception {
+    prepareData1();
+
+    try (Connection connection =
+            DriverManager.getConnection("jdbc:iotdb://127.0.0.1:6667/", "root", "root");
+        Statement statement = connection.createStatement()) {
+      boolean hasResultSet =
+          statement.execute("SELECT m4lsm(s0) FROM root.vehicle.d0 group by ([0,100),78ms)");
+      //      boolean hasResultSet =
+      //              statement.execute(
+      //                      "SELECT m4(s0,'tqs'='0','tqe'='100','aggInterval'='78') FROM
+      // root.vehicle.d0 where time>=0 and time<100");
+      Assert.assertTrue(hasResultSet);
+      try (ResultSet resultSet = statement.getResultSet()) {
+        int i = 0;
+        while (resultSet.next()) {
+          String ans = resultSet.getString(TIMESTAMP_STR) + "," + resultSet.getString(2);
+          System.out.println(ans);
+        }
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      fail(e.getMessage());
+    }
+  }
+
+  @Test
   public void test1() throws Exception {
     prepareData1();
 
