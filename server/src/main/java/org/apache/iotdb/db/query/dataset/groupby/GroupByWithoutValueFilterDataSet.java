@@ -70,6 +70,8 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
    */
   private Map<PartialPath, List<Integer>> resultIndexes = new HashMap<>();
 
+  private String agg;
+
   public GroupByWithoutValueFilterDataSet() {}
 
   /** constructor. */
@@ -98,16 +100,21 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
                 paths.stream().map(p -> (PartialPath) p).collect(Collectors.toList()),
                 context,
                 timeFilter);
+    if (groupByTimePlan.getAggregations().contains("ilts")
+        || groupByTimePlan.getAggregations().contains("ILTS")) {
+      if (groupByTimePlan.getAggregations().size() > 1 || groupByTimePlan.getPaths().size() > 1) {
+        throw new QueryProcessException(
+            "ILTS aggregation is currently not supported together with other aggregation functions or paths.");
+      }
+      agg = "ilts";
+      //            agg = groupByTimePlan.getAggregations().get(0).toLowerCase();
+    }
     try {
       // init resultIndexes, group result indexes by path
       for (int i = 0; i < paths.size(); i++) {
         PartialPath path = (PartialPath) paths.get(i);
         if (!pathExecutors.containsKey(path)) {
           // init GroupByExecutor
-          String agg = groupByTimePlan.getAggregations().get(i).toLowerCase();
-          if (agg.equals("ilts")) {
-            CONFIG.setEnableTri("ILTS"); // affecting getGroupByExecutor and nextWithoutConstraint
-          }
           pathExecutors.put(
               path,
               getGroupByExecutor(
@@ -136,7 +143,7 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
   public RowRecord nextWithoutConstraint() throws IOException {
     if (CONFIG.getEnableTri().equals("MinMaxLTTB")) {
       return nextWithoutConstraintTri_MinMaxLTTB();
-    } else if (!CONFIG.getEnableTri().equals("")) {
+    } else if (!CONFIG.getEnableTri().equals("") || agg.equals("ilts")) {
       return nextWithoutConstraintTri_allInOne();
     } else {
       return nextWithoutConstraint_raw();
@@ -457,7 +464,7 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
     } else if (CONFIG.getEnableTri().equals("LTTB")) {
       return new LocalGroupByExecutorTri_LTTB(
           path, allSensors, dataType, context, timeFilter, fileFilter, ascending);
-    } else if (CONFIG.getEnableTri().equals("ILTS")) {
+    } else if (CONFIG.getEnableTri().equals("ILTS") || agg.equals("ilts")) {
       if (!TSFileDescriptor.getInstance().getConfig().isWriteConvexHull()
           && CONFIG.isAcc_convex()) {
         throw new QueryProcessException("ILTS use convex hull acceleration, which is not written!");

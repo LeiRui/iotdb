@@ -104,13 +104,7 @@ public class MyTest_ILTS {
             DriverManager.getConnection("jdbc:iotdb://127.0.0.1:6667/", "root", "root");
         Statement statement = connection.createStatement()) {
       boolean hasResultSet =
-          statement.execute(
-              "SELECT ILTS(s0)"
-                  //                                "SELECT MIN_VALUE(s0)"
-                  // TODO not real min_value here, actually controlled by enableTri
-                  //                  + ",max_value(s0),min_time(s0), max_time(s0), first_value(s0),
-                  // last_value(s0)"
-                  + " FROM root.vehicle.d0 group by ([2,102),20ms)");
+          statement.execute("SELECT ilts(s0)" + " FROM root.vehicle.d0 group by ([2,102),20ms)");
       // (102-2)/(7-2)=20ms
       // note keep no empty buckets
 
