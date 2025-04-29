@@ -70,7 +70,7 @@ public class GroupByWithoutValueFilterDataSet extends GroupByEngineDataSet {
    */
   private Map<PartialPath, List<Integer>> resultIndexes = new HashMap<>();
 
-  private String agg;
+  private String agg = "";
 
   public GroupByWithoutValueFilterDataSet() {}
 
