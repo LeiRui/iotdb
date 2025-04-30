@@ -422,6 +422,7 @@ public class LocalGroupByExecutor4CPV implements GroupByExecutor {
 
     MinValueAggrResult minValueAggrResult = (MinValueAggrResult) results.get(0);
     minValueAggrResult.updateResult(new MinMaxInfo<>(series_final, 0));
+    System.out.println(series_final); // TODO FOR DEBUG
     return results;
   }
 
