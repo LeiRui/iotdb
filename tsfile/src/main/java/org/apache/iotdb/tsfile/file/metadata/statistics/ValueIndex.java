@@ -93,7 +93,11 @@ public class ValueIndex {
 
   private void initForLearn() {
     this.stdDev = getStdDev();
-    this.errorBound = 2 * stdDev * errorParam;
+    if (this.stdDev == 0.0) { // constant numbers
+      this.errorBound = 1e-6; // 避免0，赋予一个小正数
+    } else {
+      this.errorBound = 2 * stdDev * errorParam;
+    }
     this.sdtEncoder.setCompDeviation(errorBound / 2.0); // stdDev
   }
 
