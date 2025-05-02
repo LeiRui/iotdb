@@ -128,7 +128,6 @@ public abstract class GroupByEngineDataSet extends QueryDataSet {
       } else {
         curStartTime += curSlidingStep;
       }
-      System.out.println("curStartTime=" + curStartTime); // TODO FOR DEBUG
       // This is an open interval , [0-100)
       if (curStartTime + interval > endTime) {
         // 注意没有等号！因为左闭右开

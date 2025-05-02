@@ -118,11 +118,12 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
         ChunkMetadata chunkMetadata = chunkSuit4Tri.chunkMetadata;
         long chunkMinTime = chunkMetadata.getStartTime();
         long chunkMaxTime = chunkMetadata.getEndTime();
-        if (chunkMinTime >= endTime || chunkMaxTime < startTime) {
+        if (chunkMinTime > endTime || chunkMaxTime < startTime) {
           continue; // note futureChunkList is not sorted in advance, so not break, just skip
         }
         int idx1 = (int) Math.floor((chunkMinTime - startTime) * 1.0 / interval);
         idx1 = Math.max(idx1, 0);
+        idx1 = Math.min(idx1, N1 - 1);
         int idx2 = (int) Math.floor((chunkMaxTime - startTime) * 1.0 / interval);
         idx2 = Math.min(idx2, N1 - 1);
         for (int i = idx1; i <= idx2; i++) {
@@ -133,7 +134,10 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
 
       if (CONFIG.getAutoP1n()) {
         // get real p1
-        List<ChunkSuit4Tri> firstBucket = splitChunkList.get(0);
+        // TODO deal with empty bucket
+        //        List<ChunkSuit4Tri> firstBucket = splitChunkList.get(0);
+        List<ChunkSuit4Tri> firstBucket =
+            splitChunkList.get(Collections.min(splitChunkList.keySet()));
         sortByStartTime(firstBucket);
         ChunkSuit4Tri firstChunk = firstBucket.get(0);
         if (firstChunk.pageReader == null) {
@@ -155,7 +159,10 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
         }
 
         // get real pn
-        List<ChunkSuit4Tri> lastBucket = splitChunkList.get(N1 - 1);
+        // TODO deal with empty bucket
+        //        List<ChunkSuit4Tri> lastBucket = splitChunkList.get(N1 - 1);
+        List<ChunkSuit4Tri> lastBucket =
+            splitChunkList.get(Collections.max(splitChunkList.keySet()));
         sortByStartTime(lastBucket);
         ChunkSuit4Tri lastChunk = lastBucket.get(lastBucket.size() - 1);
         if (lastChunk.pageReader == null) {
@@ -211,10 +218,11 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
       result.reset();
     }
 
-    long[] lastIter_t = new long[N1];
+    long[] lastIter_t = new long[N1]; // 初始值0。-1表示空桶
     double[] lastIter_v = new double[N1];
 
     boolean[] lastSame = new boolean[N1 + 1];
+    //        byte[] lastSame = new byte[N1 + 1]; // 0 = false (default), 1 = true, 2 = empty
     lastSame[N1] = true;
 
     int num = 0;
@@ -228,206 +236,296 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
       boolean currentLeftSame = true;
 
       for (int b = 0; b < N1; b++) {
-        if (CONFIG.isAcc_iterRepeat() && num > 0 && lastSame[b + 1] && currentLeftSame) {
-          lt = lastIter_t[b];
-          lv = lastIter_v[b];
-          lastSame[b] = true;
+        if (lastIter_t[b] == -1) { // 说明之前已经确认过当前桶是空桶，不必计算
           continue;
         }
+
+        if (CONFIG.isAcc_iterRepeat() && num > 0 && currentLeftSame) {
+          // TODO deal with empty
+          int tmp_b = b;
+          if (tmp_b < N1 - 1) { // 否则right floater是全局尾点一定相同
+            while (lastIter_t[tmp_b + 1] == -1) {
+              tmp_b += 1;
+              if (tmp_b == N1 - 1) {
+                break; // 右边直到最后一个桶都是空桶，于是right floater是全局尾点一定相同
+              }
+            } // 往右找到首个非空桶
+          }
+          if (lastSame[tmp_b + 1]) { // 注意lastSame[N1] = true
+            lt = lastIter_t[b]; // 一定非空
+            lv = lastIter_v[b];
+            lastSame[b] = true;
+            continue;
+          }
+        }
+
+        // 计算right floater
         double rt = 0; // must initialize as zero, because may be used as sum for average
         double rv = 0; // must initialize as zero, because may be used as sum for average
-        if (b == N1 - 1) {
+        if (b == N1 - 1) { // 最后一个桶的right floater是全局尾点
           rt = pnt;
           rv = pnv;
         } else {
-          if (num == 0) {
-            List<ChunkSuit4Tri> chunkSuit4TriList = splitChunkList.get(b + 1);
-            long rightStartTime = startTime + (b + 1) * interval;
-            long rightEndTime = startTime + (b + 2) * interval;
-            if (chunkSuit4TriList == null) {
-              throw new IOException("Empty bucket!" + rightStartTime + ":" + rightEndTime);
-            }
-            int cnt = 0;
-            for (ChunkSuit4Tri chunkSuit4Tri : chunkSuit4TriList) {
-              TSDataType dataType = chunkSuit4Tri.chunkMetadata.getDataType();
-              if (dataType != TSDataType.DOUBLE) {
-                throw new UnSupportedDataTypeException(String.valueOf(dataType));
-              }
-              if (CONFIG.isAcc_avg()) {
-                if (chunkSuit4Tri.chunkMetadata.getStartTime() >= rightStartTime
-                    && chunkSuit4Tri.chunkMetadata.getEndTime() < rightEndTime) {
-                  rt +=
-                      (chunkSuit4Tri.chunkMetadata.getStartTime()
-                              + chunkSuit4Tri.chunkMetadata.getEndTime())
-                          * chunkSuit4Tri.chunkMetadata.getStatistics().getCount()
-                          / 2.0;
-                  rv += chunkSuit4Tri.chunkMetadata.getStatistics().getSumDoubleValue();
-                  cnt += chunkSuit4Tri.chunkMetadata.getStatistics().getCount();
-                  continue;
-                }
-              }
-
-              // 1. load page data if it hasn't been loaded
-              if (chunkSuit4Tri.pageReader == null) {
-                chunkSuit4Tri.pageReader =
-                    FileLoaderUtils.loadPageReaderList4CPV(
-                        chunkSuit4Tri.chunkMetadata, this.timeFilter);
-                //  ATTENTION: YOU HAVE TO ENSURE THAT THERE IS ONLY ONE PAGE IN A CHUNK,
-                //  BECAUSE THE WHOLE IMPLEMENTATION IS BASED ON THIS ASSUMPTION.
-                //  OTHERWISE, PAGEREADER IS FOR THE FIRST PAGE IN THE CHUNK WHILE
-                //  STEPREGRESS IS FOR THE LAST PAGE IN THE CHUNK (THE MERGE OF STEPREGRESS IS
-                //  ASSIGN DIRECTLY), WHICH WILL INTRODUCE BUGS!
-              }
-              // 2. calculate avg
-              PageReader pageReader = chunkSuit4Tri.pageReader;
-              for (int j = 0; j < chunkSuit4Tri.chunkMetadata.getStatistics().getCount(); j++) {
-                IOMonitor2.DCP_D_getAllSatisfiedPageData_traversedPointNum++;
-                long timestamp = pageReader.timeBuffer.getLong(j * 8);
-                if (timestamp < rightStartTime) {
-                  continue;
-                } else if (timestamp >= rightEndTime) {
+          if (num == 0) { // 初始计算右边桶的平均点作为right floater
+            //                        List<ChunkSuit4Tri> chunkSuit4TriList = splitChunkList.get(b +
+            // 1);
+            //                        long rightStartTime = startTime + (b + 1) * interval;
+            //                        long rightEndTime = startTime + (b + 2) * interval;
+            //                        if (chunkSuit4TriList == null) {
+            //                            throw new IOException("Empty bucket!" + rightStartTime +
+            // ":" + rightEndTime);
+            //                        }
+            int tmp_b = b; // 用来定位右边首个非空桶tmp_b+1
+            while (true) { // tmp_b<N1-1
+              List<ChunkSuit4Tri> chunkSuit4TriList = splitChunkList.get(tmp_b + 1);
+              while (chunkSuit4TriList == null) {
+                tmp_b += 1;
+                if (tmp_b == N1 - 1) { // 最后一个桶是空的
                   break;
-                } else { // rightStartTime<=t<rightEndTime
-                  ByteBuffer valueBuffer = pageReader.valueBuffer;
-                  double v = valueBuffer.getDouble(pageReader.timeBufferLength + j * 8);
-                  rt += timestamp;
-                  rv += v;
-                  cnt++;
                 }
+                chunkSuit4TriList = splitChunkList.get(tmp_b + 1);
+              }
+              if (tmp_b == N1 - 1) {
+                // 找到右边直到最后一个桶都是空的，因此直接用全局尾点作为right floater
+                rt = pnt;
+                rv = pnv;
+                break; // right floater计算完成
+              } else {
+                // 计算找到的右边首个非空桶，计算平均点作为right floater
+                rt = 0; // 注意清空
+                rv = 0; // 注意清空
+                int cnt = 0; // 注意清空
+
+                long rightStartTime = startTime + (tmp_b + 1) * interval;
+                long rightEndTime = startTime + (tmp_b + 2) * interval;
+
+                if (chunkSuit4TriList == null) { // 正常不会出现这个错误，因为前面已经控制
+                  throw new IOException("Empty bucket!" + rightStartTime + ":" + rightEndTime);
+                }
+
+                for (ChunkSuit4Tri chunkSuit4Tri : chunkSuit4TriList) {
+                  TSDataType dataType = chunkSuit4Tri.chunkMetadata.getDataType();
+                  if (dataType != TSDataType.DOUBLE) {
+                    throw new UnSupportedDataTypeException(String.valueOf(dataType));
+                  }
+                  if (CONFIG.isAcc_avg()) {
+                    if (chunkSuit4Tri.chunkMetadata.getStartTime() >= rightStartTime
+                        && chunkSuit4Tri.chunkMetadata.getEndTime() < rightEndTime) {
+                      rt +=
+                          (chunkSuit4Tri.chunkMetadata.getStartTime()
+                                  + chunkSuit4Tri.chunkMetadata.getEndTime())
+                              * chunkSuit4Tri.chunkMetadata.getStatistics().getCount()
+                              / 2.0; // 对于非均匀时间戳不准确，但是初始平均点后面迭代就会替换成真实存在的点
+                      rv += chunkSuit4Tri.chunkMetadata.getStatistics().getSumDoubleValue();
+                      cnt += chunkSuit4Tri.chunkMetadata.getStatistics().getCount();
+                      continue;
+                    }
+                  }
+
+                  // 1. load page data if it hasn't been loaded
+                  if (chunkSuit4Tri.pageReader == null) {
+                    chunkSuit4Tri.pageReader =
+                        FileLoaderUtils.loadPageReaderList4CPV(
+                            chunkSuit4Tri.chunkMetadata, this.timeFilter);
+                    //  ATTENTION: YOU HAVE TO ENSURE THAT THERE IS ONLY ONE PAGE IN A CHUNK,
+                    //  BECAUSE THE WHOLE IMPLEMENTATION IS BASED ON THIS ASSUMPTION.
+                    //  OTHERWISE, PAGEREADER IS FOR THE FIRST PAGE IN THE CHUNK WHILE
+                    //  STEPREGRESS IS FOR THE LAST PAGE IN THE CHUNK (THE MERGE OF STEPREGRESS IS
+                    //  ASSIGN DIRECTLY), WHICH WILL INTRODUCE BUGS!
+                  }
+                  // 2. calculate avg
+                  PageReader pageReader = chunkSuit4Tri.pageReader;
+                  for (int j = 0; j < chunkSuit4Tri.chunkMetadata.getStatistics().getCount(); j++) {
+                    IOMonitor2.DCP_D_getAllSatisfiedPageData_traversedPointNum++;
+                    long timestamp = pageReader.timeBuffer.getLong(j * 8);
+                    if (timestamp < rightStartTime) {
+                      continue;
+                    } else if (timestamp >= rightEndTime) {
+                      break;
+                    } else { // rightStartTime<=t<rightEndTime
+                      ByteBuffer valueBuffer = pageReader.valueBuffer;
+                      double v = valueBuffer.getDouble(pageReader.timeBufferLength + j * 8);
+                      rt += timestamp;
+                      rv += v;
+                      cnt++;
+                    }
+                  }
+                }
+                if (cnt == 0) { // 此时说明右边桶有块时间范围重叠但是中间空的没有点真的落在桶内，所以还要继续往右找
+                  //                                throw new IOException("Empty bucket!" +
+                  // rightStartTime + ":" + rightEndTime);
+                  // TODO deal with empty
+                  tmp_b += 1;
+                  if (tmp_b == N1 - 1) {
+                    // 找到右边直到最后一个桶都是空的，因此直接用全局尾点作为right floater
+                    rt = pnt;
+                    rv = pnv;
+                    break; // right floater计算完成
+                  }
+                  continue;
+                }
+
+                // cnt>0:
+                rt = rt / cnt;
+                rv = rv / cnt;
+                break; // right floater计算完成
               }
             }
-            if (cnt == 0) {
-              throw new IOException("Empty bucket!" + rightStartTime + ":" + rightEndTime);
+          } else { // 非初始化
+            //                        rt = lastIter_t[b + 1];
+            //                        rv = lastIter_v[b + 1];
+            // TODO deal with empty
+            int tmp_b = b; // b<N1-1
+            rt = lastIter_t[tmp_b + 1];
+            rv = lastIter_v[tmp_b + 1]; // 这个不能漏掉
+            while (rt == -1) { // -1 timestamp is a signal of empty
+              tmp_b += 1;
+              if (tmp_b == N1 - 1) {
+                // 找到右边直到最后一个桶都是空的，因此直接用全局尾点作为right floater
+                rt = pnt;
+                rv = pnv;
+                break; // right floater计算完成
+              }
+              rt = lastIter_t[tmp_b + 1];
+              rv = lastIter_v[tmp_b + 1];
+            } // right floater计算完成
+
+            if (rt == -1) { // 正常不会出现这个错误
+              throw new IOException("Empty right bucket!");
             }
-            rt = rt / cnt;
-            rv = rv / cnt;
-          } else {
-            rt = lastIter_t[b + 1];
-            rv = lastIter_v[b + 1];
           }
         }
+
+        // 找到当前桶里的最大三角形点
         double maxDistance = -1;
-        long select_t = -1;
+        long select_t = -1; // -1 timestamp is a signal of empty
         double select_v = -1;
         List<ChunkSuit4Tri> chunkSuit4TriList = splitChunkList.get(b);
-        long localCurStartTime = startTime + (b) * interval;
-        long localCurEndTime = startTime + (b + 1) * interval;
-        if (CONFIG.isAcc_rectangle()) {
-          for (ChunkSuit4Tri chunkSuit4Tri : chunkSuit4TriList) {
-            long[] rect_t =
-                new long[] {
-                  chunkSuit4Tri.chunkMetadata.getStartTime(), // FPt
-                  chunkSuit4Tri.chunkMetadata.getEndTime(), // LPt
-                  chunkSuit4Tri.chunkMetadata.getStatistics().getBottomTimestamp(), // BPt
-                  chunkSuit4Tri.chunkMetadata.getStatistics().getTopTimestamp() // TPt
-                };
-            double[] rect_v =
-                new double[] {
-                  (double) chunkSuit4Tri.chunkMetadata.getStatistics().getFirstValue(), // FPv
-                  (double) chunkSuit4Tri.chunkMetadata.getStatistics().getLastValue(), // LPv
-                  (double) chunkSuit4Tri.chunkMetadata.getStatistics().getMinValue(), // BPv
-                  (double) chunkSuit4Tri.chunkMetadata.getStatistics().getMaxValue() // TPv
-                };
-            for (int i = 0; i < 4; i++) {
-              if (rect_t[i] >= localCurStartTime && rect_t[i] < localCurEndTime) {
-                double distance =
-                    IOMonitor2.calculateDistance(lt, lv, rect_t[i], rect_v[i], rt, rv);
-                if (distance > maxDistance) {
-                  maxDistance = distance;
-                  select_t = rect_t[i];
-                  select_v = rect_v[i];
+
+        // TODO deal with empty
+        if (chunkSuit4TriList != null) {
+          long localCurStartTime = startTime + (b) * interval;
+          long localCurEndTime = startTime + (b + 1) * interval;
+          if (CONFIG.isAcc_rectangle()) {
+            for (ChunkSuit4Tri chunkSuit4Tri : chunkSuit4TriList) {
+              long[] rect_t =
+                  new long[] {
+                    chunkSuit4Tri.chunkMetadata.getStartTime(), // FPt
+                    chunkSuit4Tri.chunkMetadata.getEndTime(), // LPt
+                    chunkSuit4Tri.chunkMetadata.getStatistics().getBottomTimestamp(), // BPt
+                    chunkSuit4Tri.chunkMetadata.getStatistics().getTopTimestamp() // TPt
+                  };
+              double[] rect_v =
+                  new double[] {
+                    (double) chunkSuit4Tri.chunkMetadata.getStatistics().getFirstValue(), // FPv
+                    (double) chunkSuit4Tri.chunkMetadata.getStatistics().getLastValue(), // LPv
+                    (double) chunkSuit4Tri.chunkMetadata.getStatistics().getMinValue(), // BPv
+                    (double) chunkSuit4Tri.chunkMetadata.getStatistics().getMaxValue() // TPv
+                  };
+              for (int i = 0; i < 4; i++) {
+                if (rect_t[i] >= localCurStartTime && rect_t[i] < localCurEndTime) {
+                  double distance =
+                      IOMonitor2.calculateDistance(lt, lv, rect_t[i], rect_v[i], rt, rv);
+                  if (distance > maxDistance) {
+                    maxDistance = distance;
+                    select_t = rect_t[i];
+                    select_v = rect_v[i];
+                  }
                 }
               }
-            }
-            chunkSuit4Tri.distance_loose_upper_bound =
-                IOMonitor2.calculateDistance(lt, lv, rect_t[0], rect_v[2], rt, rv); // FPt,BPv
-            chunkSuit4Tri.distance_loose_upper_bound =
-                Math.max(
-                    chunkSuit4Tri.distance_loose_upper_bound,
-                    IOMonitor2.calculateDistance(lt, lv, rect_t[0], rect_v[3], rt, rv)); // FPt,TPv
-            chunkSuit4Tri.distance_loose_upper_bound =
-                Math.max(
-                    chunkSuit4Tri.distance_loose_upper_bound,
-                    IOMonitor2.calculateDistance(lt, lv, rect_t[1], rect_v[2], rt, rv)); // LPt,BPv
-            chunkSuit4Tri.distance_loose_upper_bound =
-                Math.max(
-                    chunkSuit4Tri.distance_loose_upper_bound,
-                    IOMonitor2.calculateDistance(lt, lv, rect_t[1], rect_v[3], rt, rv)); // LPt,TPv
-          }
-        }
-        for (ChunkSuit4Tri chunkSuit4Tri : chunkSuit4TriList) {
-          TSDataType dataType = chunkSuit4Tri.chunkMetadata.getDataType();
-          if (dataType != TSDataType.DOUBLE) {
-            throw new UnSupportedDataTypeException(String.valueOf(dataType));
-          }
-          if (CONFIG.isAcc_rectangle()) {
-            if (chunkSuit4Tri.distance_loose_upper_bound <= maxDistance) {
-              continue;
+              chunkSuit4Tri.distance_loose_upper_bound =
+                  IOMonitor2.calculateDistance(lt, lv, rect_t[0], rect_v[2], rt, rv); // FPt,BPv
+              chunkSuit4Tri.distance_loose_upper_bound =
+                  Math.max(
+                      chunkSuit4Tri.distance_loose_upper_bound,
+                      IOMonitor2.calculateDistance(
+                          lt, lv, rect_t[0], rect_v[3], rt, rv)); // FPt,TPv
+              chunkSuit4Tri.distance_loose_upper_bound =
+                  Math.max(
+                      chunkSuit4Tri.distance_loose_upper_bound,
+                      IOMonitor2.calculateDistance(
+                          lt, lv, rect_t[1], rect_v[2], rt, rv)); // LPt,BPv
+              chunkSuit4Tri.distance_loose_upper_bound =
+                  Math.max(
+                      chunkSuit4Tri.distance_loose_upper_bound,
+                      IOMonitor2.calculateDistance(
+                          lt, lv, rect_t[1], rect_v[3], rt, rv)); // LPt,TPv
             }
           }
-          // load page data if it hasn't been loaded
-          if (chunkSuit4Tri.pageReader == null) {
-            chunkSuit4Tri.pageReader =
-                FileLoaderUtils.loadPageReaderList4CPV(
-                    chunkSuit4Tri.chunkMetadata, this.timeFilter);
-            //  ATTENTION: YOU HAVE TO ENSURE THAT THERE IS ONLY ONE PAGE IN A CHUNK,
-            //  BECAUSE THE WHOLE IMPLEMENTATION IS BASED ON THIS ASSUMPTION.
-            //  OTHERWISE, PAGEREADER IS FOR THE FIRST PAGE IN THE CHUNK WHILE
-            //  STEPREGRESS IS FOR THE LAST PAGE IN THE CHUNK (THE MERGE OF STEPREGRESS IS
-            //  ASSIGN DIRECTLY), WHICH WILL INTRODUCE BUGS!
-          }
-          PageReader pageReader = chunkSuit4Tri.pageReader;
-          if (CONFIG.isAcc_convex()
-              && chunkSuit4Tri.chunkMetadata.getStatistics().getCount() >= 3) {
-            BitSet bitSet = chunkSuit4Tri.chunkMetadata.getStatistics().getQuickHullBitSet();
-            List<QuickHullPoint> foundPoints =
-                convexHullAcc(
-                    lt,
-                    lv,
-                    rt,
-                    rv,
-                    pageReader,
-                    bitSet,
-                    chunkSuit4Tri.chunkMetadata.getStatistics().getCount());
-            double ch_maxDistance = -1;
-            long ch_select_t = -1;
-            double ch_select_v = -1;
-            for (QuickHullPoint point : foundPoints) {
-              IOMonitor2.DCP_D_getAllSatisfiedPageData_traversedPointNum++;
-              double distance = IOMonitor2.calculateDistance(lt, lv, point.t, point.v, rt, rv);
-              if (distance > ch_maxDistance) {
-                ch_maxDistance = distance;
-                ch_select_t = point.t;
-                ch_select_v = point.v;
+          for (ChunkSuit4Tri chunkSuit4Tri : chunkSuit4TriList) {
+            TSDataType dataType = chunkSuit4Tri.chunkMetadata.getDataType();
+            if (dataType != TSDataType.DOUBLE) {
+              throw new UnSupportedDataTypeException(String.valueOf(dataType));
+            }
+            if (CONFIG.isAcc_rectangle()) {
+              if (chunkSuit4Tri.distance_loose_upper_bound <= maxDistance) {
+                continue;
               }
             }
-            if (ch_maxDistance <= maxDistance) {
-              continue;
+            // load page data if it hasn't been loaded
+            if (chunkSuit4Tri.pageReader == null) {
+              chunkSuit4Tri.pageReader =
+                  FileLoaderUtils.loadPageReaderList4CPV(
+                      chunkSuit4Tri.chunkMetadata, this.timeFilter);
+              //  ATTENTION: YOU HAVE TO ENSURE THAT THERE IS ONLY ONE PAGE IN A CHUNK,
+              //  BECAUSE THE WHOLE IMPLEMENTATION IS BASED ON THIS ASSUMPTION.
+              //  OTHERWISE, PAGEREADER IS FOR THE FIRST PAGE IN THE CHUNK WHILE
+              //  STEPREGRESS IS FOR THE LAST PAGE IN THE CHUNK (THE MERGE OF STEPREGRESS IS
+              //  ASSIGN DIRECTLY), WHICH WILL INTRODUCE BUGS!
             }
-            if (ch_select_t >= localCurStartTime && ch_select_t < localCurEndTime) {
-              maxDistance = ch_maxDistance;
-              select_t = ch_select_t;
-              select_v = ch_select_v;
-              continue; // note this
+            PageReader pageReader = chunkSuit4Tri.pageReader;
+            if (CONFIG.isAcc_convex()
+                && chunkSuit4Tri.chunkMetadata.getStatistics().getCount() >= 3) {
+              BitSet bitSet = chunkSuit4Tri.chunkMetadata.getStatistics().getQuickHullBitSet();
+              List<QuickHullPoint> foundPoints =
+                  convexHullAcc(
+                      lt,
+                      lv,
+                      rt,
+                      rv,
+                      pageReader,
+                      bitSet,
+                      chunkSuit4Tri.chunkMetadata.getStatistics().getCount());
+              double ch_maxDistance = -1;
+              long ch_select_t = -1;
+              double ch_select_v = -1;
+              for (QuickHullPoint point : foundPoints) {
+                IOMonitor2.DCP_D_getAllSatisfiedPageData_traversedPointNum++;
+                double distance = IOMonitor2.calculateDistance(lt, lv, point.t, point.v, rt, rv);
+                if (distance > ch_maxDistance) {
+                  ch_maxDistance = distance;
+                  ch_select_t = point.t;
+                  ch_select_v = point.v;
+                }
+              }
+              if (ch_maxDistance <= maxDistance) {
+                continue;
+              }
+              if (ch_select_t >= localCurStartTime && ch_select_t < localCurEndTime) {
+                maxDistance = ch_maxDistance;
+                select_t = ch_select_t;
+                select_v = ch_select_v;
+                continue; // note this
+              }
             }
-          }
-          int count = chunkSuit4Tri.chunkMetadata.getStatistics().getCount();
-          int j;
-          for (j = 0; j < count; j++) {
-            IOMonitor2.DCP_D_getAllSatisfiedPageData_traversedPointNum++;
-            long timestamp = pageReader.timeBuffer.getLong(j * 8);
-            if (timestamp < localCurStartTime) {
-              continue;
-            } else if (timestamp >= localCurEndTime) {
-              break;
-            } else { // localCurStartTime<=t<localCurEndTime
-              ByteBuffer valueBuffer = pageReader.valueBuffer;
-              double v = valueBuffer.getDouble(pageReader.timeBufferLength + j * 8);
-              double distance = IOMonitor2.calculateDistance(lt, lv, timestamp, v, rt, rv);
-              if (distance > maxDistance) {
-                maxDistance = distance;
-                select_t = timestamp;
-                select_v = v;
+            int count = chunkSuit4Tri.chunkMetadata.getStatistics().getCount();
+            int j;
+            for (j = 0; j < count; j++) {
+              IOMonitor2.DCP_D_getAllSatisfiedPageData_traversedPointNum++;
+              long timestamp = pageReader.timeBuffer.getLong(j * 8);
+              if (timestamp < localCurStartTime) {
+                continue;
+              } else if (timestamp >= localCurEndTime) {
+                break;
+              } else { // localCurStartTime<=t<localCurEndTime
+                ByteBuffer valueBuffer = pageReader.valueBuffer;
+                double v = valueBuffer.getDouble(pageReader.timeBufferLength + j * 8);
+                double distance = IOMonitor2.calculateDistance(lt, lv, timestamp, v, rt, rv);
+                if (distance > maxDistance) {
+                  maxDistance = distance;
+                  select_t = timestamp;
+                  select_v = v;
+                }
               }
             }
           }
@@ -437,16 +535,22 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
           if (select_t != lastIter_t[b]) {
             allSameFlag = false;
             lastSame[b] = false;
-            currentLeftSame = false;
+            if (select_t != -1) {
+              currentLeftSame = false;
+            } // 否则empty bucket无权更改，保持左边最近的非空桶的结果
           } else {
             lastSame[b] = true;
-            currentLeftSame = true;
+            if (select_t != -1) {
+              currentLeftSame = true;
+            } // 否则empty bucket无权更改，保持左边最近的非空桶的结果
           }
         }
 
-        lt = select_t;
-        lv = select_v;
-        lastIter_t[b] = select_t;
+        if (select_t != -1) {
+          lt = select_t;
+          lv = select_v;
+        } // 否则empty bucket无权更改，保持左边最近的非空桶的结果
+        lastIter_t[b] = select_t; // -1表示空桶
         lastIter_v[b] = select_v;
       }
 
@@ -458,7 +562,16 @@ public class LocalGroupByExecutorTri_ILTS implements GroupByExecutor {
 
     series_final.append(p1v).append("[").append(p1t).append("]").append(",");
     for (int i = 0; i < lastIter_t.length; i++) {
-      series_final.append(lastIter_v[i]).append("[").append(lastIter_t[i]).append("]").append(",");
+      if (lastIter_t[i] == -1) { // 空桶
+        series_final.append("empty").append(",");
+      } else {
+        series_final
+            .append(lastIter_v[i])
+            .append("[")
+            .append(lastIter_t[i])
+            .append("]")
+            .append(",");
+      }
     }
 
     series_final.append(pnv).append("[").append(pnt).append("]").append(",");

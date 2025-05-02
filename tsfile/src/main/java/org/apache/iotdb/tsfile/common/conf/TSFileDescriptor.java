@@ -74,7 +74,6 @@ public class TSFileDescriptor {
   private void loadProps() {
     InputStream inputStream;
     String url = System.getProperty(TsFileConstant.TSFILE_CONF, null);
-    url = "D:\\demo\\eBUG\\iotdb\\conf"; // TODO for debug
     if (url == null) {
       url = System.getProperty(TsFileConstant.TSFILE_HOME, null);
       if (url != null) {
